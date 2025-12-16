@@ -1,5 +1,5 @@
-package com.example.MPPS.Entity;
-import com.example.MPPS.Entity.type.UserRole;
+package com.example.backend.Entity;
+import com.example.backend.Entity.type.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

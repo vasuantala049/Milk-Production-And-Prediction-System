@@ -1,6 +1,6 @@
-package com.example.MPPS.Entity;
+package com.example.backend.Entity;
 
-import com.example.MPPS.Entity.type.OrderStatus;
+import com.example.backend.Entity.type.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 

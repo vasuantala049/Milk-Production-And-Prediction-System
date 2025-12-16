@@ -1,4 +1,4 @@
-package com.example.MPPS.Entity.type;
+package com.example.backend.Entity.type;
 
 public enum CattleStatus {
     ACTIVE,
