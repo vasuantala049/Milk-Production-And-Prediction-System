@@ -3,6 +3,8 @@ package com.example.backend.Entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
@@ -19,6 +21,11 @@ public class Cattle {
 
     private String breed;
 
+    private String type;
+
+    private LocalDateTime dob;
+
+    private Long weight;
     private String status; // ACTIVE / SICK / SOLD
 
     @ManyToOne

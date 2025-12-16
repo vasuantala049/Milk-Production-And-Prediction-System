@@ -1,15 +1,27 @@
 package com.example.backend.DTO;
 
 import com.example.backend.Entity.type.UserRole;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.*;
+import lombok.*;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class CreateUserRequestDto {
+
+    @NotBlank
     private String name;
+
+    @Email
+    @NotBlank
     private String email;
+
+    @NotNull
     private UserRole role;
+
+    // REQUIRED when role = OWNER
+    private CreateFarmDto farm;
+
+    // REQUIRED when role = WORKER
+    private Long farmId;
 }

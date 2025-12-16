@@ -34,6 +34,10 @@ public class User {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @ManyToOne
+    @JoinColumn(name = "assigned_farm_id")
+    private Farm assignedFarm;
+
     // one user can own multiple farms
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     private List<Farm> farms;

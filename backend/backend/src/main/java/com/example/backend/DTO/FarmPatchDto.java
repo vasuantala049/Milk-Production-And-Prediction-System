@@ -5,10 +5,10 @@ import lombok.*;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class FarmResponseDto {
-
-    private Long id;
+public class FarmPatchDto {
     private String name;
     private String address;
+
+    // TEMP until Spring Security
     private Long ownerId;
 }
