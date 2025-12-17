@@ -1,6 +1,7 @@
 package com.example.backend.Controller;
 import com.example.backend.DTO.UserPatchDto;
 import com.example.backend.DTO.UserResponseDto;
+import com.example.backend.Repository.UserRepository;
 import jakarta.validation.Valid;
 import com.example.backend.DTO.CreateUserRequestDto;
 import com.example.backend.Service.UserService;
@@ -17,7 +18,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
-
+    private final UserRepository userRepository;
     @GetMapping("/{id}")
     public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));
@@ -48,4 +49,9 @@ public class UserController {
         return ResponseEntity.ok(userService.patchUser(id, patchDto));
     }
 
+    @GetMapping("/db-test")
+    public String testDb() {
+        userRepository.count();
+        return "DB OK";
+    }
 }

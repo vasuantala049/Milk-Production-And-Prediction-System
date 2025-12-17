@@ -1,7 +1,6 @@
-export default function Dashboard() {
+export default function Dashboard({ onGoToFarms, onGoToCattle, selectedFarm }) {
   return (
     <div className="min-h-screen bg-[#f7faf7] px-6 py-4">
-
       {/* Top Bar */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
@@ -20,18 +19,45 @@ export default function Dashboard() {
           Good Morning,
         </h1>
         <p className="text-sm text-gray-500">
-          Here's what's happening on the farm today.
+          Here&apos;s what&apos;s happening on the farm today.
         </p>
+        {selectedFarm && (
+          <p className="text-xs text-gray-500 mt-1">
+            Active farm: <span className="font-semibold">{selectedFarm.name}</span>
+          </p>
+        )}
       </div>
 
-      {/* Stats Cards */}
+      {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4 mb-8">
+        <button
+          onClick={onGoToFarms}
+          className="bg-white rounded-xl p-4 shadow-sm text-left hover:shadow-md transition"
+        >
+          <p className="text-xs text-gray-500 mb-1">Farms</p>
+          <p className="font-semibold text-gray-800">Manage Farms</p>
+          <p className="text-xs text-gray-400 mt-1">
+            View and add farms you own.
+          </p>
+        </button>
+        <button
+          onClick={onGoToCattle}
+          className="bg-white rounded-xl p-4 shadow-sm text-left hover:shadow-md transition"
+        >
+          <p className="text-xs text-gray-500 mb-1">Cattle</p>
+          <p className="font-semibold text-gray-800">Manage Herd</p>
+          <p className="text-xs text-gray-400 mt-1">
+            View and add cattle for the active farm.
+          </p>
+        </button>
+      </div>
 
+      {/* Stats Cards (placeholders for now) */}
+      <div className="grid grid-cols-2 gap-4 mb-8">
         <StatCard title="TOTAL HERD" unit="Head" />
         <StatCard title="TODAY'S MILK" unit="L" />
         <StatCard title="PREDICTED" unit="L" />
         <StatCard title="SOLD REVENUE" unit="$" />
-
       </div>
 
       {/* Production Trends */}
@@ -50,7 +76,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Chart Placeholder */}
         <div className="h-40 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
           Chart Data From Backend
         </div>
@@ -61,22 +86,14 @@ export default function Dashboard() {
         <h2 className="font-semibold text-gray-800 mb-3">
           Production Alerts
         </h2>
-
-        {/* Alert Placeholder */}
         <div className="bg-white rounded-lg p-4 text-gray-400 text-sm shadow-sm">
           Alerts will appear here
         </div>
       </div>
-
-      {/* Floating Button */}
-      <button className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-full font-medium shadow-lg">
-        + Log Production
-      </button>
     </div>
   );
 }
 
-/* Reusable Stat Card */
 function StatCard({ title, unit }) {
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm">

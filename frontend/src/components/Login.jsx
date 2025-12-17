@@ -1,6 +1,5 @@
 import { useState } from "react";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+import { apiFetch } from "../api/client";
 
 export default function Login({ onLoginSuccess, onSwitchToRegister }) {
   const [identity, setIdentity] = useState("");   // email
@@ -15,21 +14,14 @@ export default function Login({ onLoginSuccess, onSwitchToRegister }) {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const data = await apiFetch("/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: identity,
           password: password,
         }),
       });
 
-      if (!res.ok) {
-        setError("Invalid email or password");
-        return;
-      }
-
-      const data = await res.json(); // { token, type, user }
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
@@ -38,7 +30,11 @@ export default function Login({ onLoginSuccess, onSwitchToRegister }) {
       }
     } catch (err) {
       console.error(err);
-      setError("Network error");
+      if (err.status === 401 || err.status === 403) {
+        setError("Invalid email or password");
+      } else {
+        setError(err.message || "Network error. Check your connection.");
+      }
     } finally {
       setLoading(false);
     }

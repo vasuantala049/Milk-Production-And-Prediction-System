@@ -1,6 +1,5 @@
 import { useState } from "react";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+import { apiFetch } from "../api/client";
 
 export default function Register({ onRegisterSuccess, onSwitchToLogin }) {
   const [name, setName] = useState("");
@@ -36,35 +35,24 @@ export default function Register({ onRegisterSuccess, onSwitchToLogin }) {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/auth/register`, {
+      const data = await apiFetch("/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      if (res.status === 409) {
-        setError("A user with this email already exists.");
-        return;
-      }
-      if (!res.ok) {
-        setError("Failed to create account. Please check details and try again.");
-        return;
-      }
-
-      const data = await res.json(); // { token, user, ... }
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-      }
-      if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-      }
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
       if (onRegisterSuccess) {
         onRegisterSuccess(data);
       }
     } catch (err) {
       console.error(err);
-      setError("Network error");
+      if (err.status === 409) {
+        setError("A user with this email already exists.");
+      } else {
+        setError(err.message || "Failed to create account. Check your connection.");
+      }
     } finally {
       setLoading(false);
     }

@@ -50,4 +50,11 @@ public class FarmController {
 
         return ResponseEntity.ok(farmService.patchFarm(id, patchDto));
     }
+
+    // DELETE farm (only OWNER) - for now just deletes by id
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteFarm(@PathVariable Long id) {
+        farmService.deleteFarm(id);
+        return ResponseEntity.noContent().build();
+    }
 }

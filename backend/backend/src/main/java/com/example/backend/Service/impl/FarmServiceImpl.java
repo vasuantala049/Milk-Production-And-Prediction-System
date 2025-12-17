@@ -97,6 +97,14 @@ public class FarmServiceImpl implements FarmService {
         return toResponseDto(saved);
     }
 
+    @Override
+    public void deleteFarm(Long id) {
+        if (!farmRepository.existsById(id)) {
+            throw new IllegalArgumentException("Farm not found");
+        }
+        farmRepository.deleteById(id);
+    }
+
     // ---------- helper ----------
     private FarmResponseDto toResponseDto(Farm farm) {
         FarmResponseDto dto = modelMapper.map(farm, FarmResponseDto.class);
