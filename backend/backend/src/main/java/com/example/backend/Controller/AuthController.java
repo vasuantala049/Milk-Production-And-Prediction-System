@@ -1,10 +1,10 @@
 package com.example.backend.Controller;
 
-import com.example.backend.DTO.AuthResponseDto;
-import com.example.backend.DTO.CreateUserRequestDto;
-import com.example.backend.DTO.LoginRequestDto;
-import com.example.backend.DTO.UserResponseDto;
+import com.example.backend.DTO.*;
+import com.example.backend.Entity.Farm;
 import com.example.backend.Entity.User;
+import com.example.backend.Entity.type.UserRole;
+import com.example.backend.Repository.FarmRepository;
 import com.example.backend.Repository.UserRepository;
 import com.example.backend.Security.JwtTokenProvider;
 import jakarta.validation.Valid;
@@ -19,6 +19,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -30,34 +32,42 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
     private final ModelMapper modelMapper;
-
+    private final FarmRepository farmRepository;
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDto> register(@RequestBody @Valid CreateUserRequestDto request) {
-        // Check if user already exists
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
 
-        // Create new user
         User user = new User();
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setRole(request.getRole());
-        
-        // Encode password if provided
-        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        // 🔥 ROLE-BASED LOGIC (this was missing)
+        if (request.getRole() == UserRole.WORKER) {
+            Farm farm = farmRepository.findById(request.getFarmId())
+                    .orElseThrow(() -> new RuntimeException("Farm not found"));
+            user.setAssignedFarm(farm);
         }
 
-        // Handle farm assignment based on role (similar to UserServiceImpl)
-        // For simplicity, we'll keep it basic here
+        if (request.getRole() == UserRole.FARM_OWNER) {
+            Farm farm = new Farm();
+            farm.setName(request.getFarm().getName());
+            farm.setAddress(request.getFarm().getAddress());
+            farm.setOwner(user);
+            user.setFarms(List.of(farm));
+        }
+
         User savedUser = userRepository.save(user);
 
-        // Generate token
-        UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
+        UserDetails userDetails =
+                userDetailsService.loadUserByUsername(savedUser.getEmail());
+
         String token = jwtTokenProvider.generateToken(userDetails);
 
-        // Build response
         UserResponseDto userResponse = modelMapper.map(savedUser, UserResponseDto.class);
         AuthResponseDto response = AuthResponseDto.builder()
                 .token(token)
