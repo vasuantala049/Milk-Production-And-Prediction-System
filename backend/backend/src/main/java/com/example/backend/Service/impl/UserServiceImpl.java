@@ -23,6 +23,50 @@ public class UserServiceImpl implements UserService {
     private final FarmRepository farmRepository;
     private final ModelMapper modelMapper;
 
+    @Override
+    public UserResponseDto createNewUser(CreateUserRequestDto dto) {
+
+        User user = new User();
+        user.setName(dto.getName());
+        user.setEmail(dto.getEmail());
+        user.setRole(dto.getRole());
+
+        switch (dto.getRole()) {
+
+            case FARM_OWNER -> {
+                if (dto.getFarm() == null) {
+                    throw new IllegalArgumentException("OWNER must create a farm");
+                }
+
+                Farm farm = new Farm();
+                farm.setName(dto.getFarm().getName());
+                farm.setAddress(dto.getFarm().getAddress());
+                farm.setOwner(user);
+
+                user.setFarms(List.of(farm));
+            }
+
+            case WORKER -> {
+                if (dto.getFarmId() == null) {
+                    throw new IllegalArgumentException("WORKER must be assigned to a farm");
+                }
+
+                Farm farm = farmRepository.findById(dto.getFarmId())
+                        .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+
+                user.setAssignedFarm(farm);
+            }
+
+            case BUYER -> {
+                // nothing extra
+            }
+
+            default -> throw new IllegalStateException("Unsupported role");
+        }
+
+        User saved = userRepository.save(user);
+        return modelMapper.map(saved, UserResponseDto.class);
+    }
 
     @Override
     public UserResponseDto getUserById(Long id) {

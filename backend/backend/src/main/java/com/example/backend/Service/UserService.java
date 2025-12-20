@@ -10,7 +10,7 @@ import java.util.Map;
 
 public interface UserService {
 
-
+    UserResponseDto createNewUser(@Valid CreateUserRequestDto request);
 
     UserResponseDto getUserById(Long id);
 

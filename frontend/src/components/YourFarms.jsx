@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api/client";
 
-export default function YourFarms({ onSelectFarm, onAddFarm, onBack }) {
+export default function YourFarms({ onSelectFarm, onAddFarm }) {
   const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -39,13 +39,6 @@ export default function YourFarms({ onSelectFarm, onAddFarm, onBack }) {
     <div className="min-h-screen bg-[#f7faf7] px-6 py-4">
       {/* Top Bar */}
       <div className="flex items-center gap-3 mb-6">
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-xl text-gray-600"
-        >
-          ←
-        </button>
         <div className="h-10 w-10 rounded-full bg-gray-200"></div>
         <div>
           <p className="text-xs text-gray-500">Welcome</p>

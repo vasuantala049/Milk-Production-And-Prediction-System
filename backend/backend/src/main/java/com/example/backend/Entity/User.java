@@ -33,6 +33,11 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
+    @Column(name = "oauth_provider")
+    private String oauthProvider;
+
+    @Column(name = "oauth_provider_id")
+    private String oauthProviderId;
 
     @CreationTimestamp
     @Column(updatable = false)

@@ -44,7 +44,6 @@ function App() {
           setView("cattle");
         }}
         onAddFarm={() => setView("addFarm")}
-        onBack={() => setView("dashboard")}
       />
     );
   }

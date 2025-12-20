@@ -46,7 +46,7 @@ public class AuthController {
         user.setRole(request.getRole());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-
+        // 🔥 ROLE-BASED LOGIC (this was missing)
         if (request.getRole() == UserRole.WORKER) {
             Farm farm = farmRepository.findById(request.getFarmId())
                     .orElseThrow(() -> new RuntimeException("Farm not found"));
