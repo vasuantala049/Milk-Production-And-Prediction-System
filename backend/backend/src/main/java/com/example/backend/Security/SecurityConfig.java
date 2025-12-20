@@ -28,6 +28,7 @@ import java.util.List;
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
+@Profile("!test")
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
