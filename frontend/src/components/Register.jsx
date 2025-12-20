@@ -18,7 +18,7 @@ export default function Register({ onRegisterSuccess, onSwitchToLogin }) {
     setError("");
     setLoading(true);
 
-    // Shape must match backend CreateUserRequestDto
+   
     const payload = {
       name,
       email,

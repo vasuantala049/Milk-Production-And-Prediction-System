@@ -12,10 +12,20 @@ export async function apiFetch(path, options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (networkErr) {
+    console.error("Network error fetching", `${API_BASE}${path}`, networkErr);
+    const error = new Error(
+      `Network error: failed to reach API at ${API_BASE}${path}. Check backend server and CORS settings.`
+    );
+    error.code = "NETWORK_ERROR";
+    throw error;
+  }
 
   const text = await res.text();
   let data;
