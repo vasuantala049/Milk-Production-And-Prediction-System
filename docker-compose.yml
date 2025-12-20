@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: milk-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: vasu@2005
+      MYSQL_DATABASE: mpps
+      MYSQL_USER: milkuser
+      MYSQL_PASSWORD: vasu@2005
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend/backend
+      dockerfile: Dockerfile
+    container_name: milk-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://milk-mysql:3306/mpps
+      SPRING_DATASOURCE_USERNAME: milkuser
+      SPRING_DATASOURCE_PASSWORD: vasu@2005
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/users/db-test"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: milk-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+
+volumes:
+  mysql_data:
