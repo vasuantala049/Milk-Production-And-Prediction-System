@@ -22,11 +22,12 @@ jobs:
           cache: maven
 
       - name: Compile
+        working-directory: backend/backend
         run: mvn -B clean compile
 
 
   test:
-    needs: build   
+    needs: build
     runs-on: ubuntu-latest
 
     services:
@@ -61,6 +62,7 @@ jobs:
           done
 
       - name: Run tests
+        working-directory: backend/backend
         env:
           SPRING_PROFILES_ACTIVE: test
           SPRING_DATASOURCE_URL: jdbc:mariadb://localhost:3306/mpps
