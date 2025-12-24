@@ -1,4 +1,29 @@
-export default function Dashboard({ onGoToFarms, onGoToCattle, selectedFarm }) {
+import { useNavigate } from "react-router-dom";
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+
+  // ✅ Read active farm safely
+  const activeFarm = JSON.parse(localStorage.getItem("activeFarm"));
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("activeFarm");
+    navigate("/login", { replace: true });
+  };
+
+  const handleManageHerd = () => {
+    // ✅ If no farm selected, force user to farms page
+    if (!activeFarm) {
+      navigate("/farms");
+      return;
+    }
+
+    // ✅ Correct navigation with farmId
+    navigate(`/cattle/${activeFarm.id}`);
+  };
+
   return (
     <div className="min-h-screen bg-[#f7faf7] px-6 py-4">
       {/* Top Bar */}
@@ -10,7 +35,13 @@ export default function Dashboard({ onGoToFarms, onGoToCattle, selectedFarm }) {
             <p className="font-semibold text-gray-800">DAIRYDASH</p>
           </div>
         </div>
-        <div className="h-6 w-6 bg-gray-200 rounded-full"></div>
+
+        <button
+          onClick={handleLogout}
+          className="text-sm text-gray-500 bg-green-300 hover:bg-green-500 hover:text-gray-800 transition px-3 py-1 rounded"
+        >
+          Logout
+        </button>
       </div>
 
       {/* Greeting */}
@@ -21,9 +52,11 @@ export default function Dashboard({ onGoToFarms, onGoToCattle, selectedFarm }) {
         <p className="text-sm text-gray-500">
           Here&apos;s what&apos;s happening on the farm today.
         </p>
-        {selectedFarm && (
+
+        {activeFarm && (
           <p className="text-xs text-gray-500 mt-1">
-            Active farm: <span className="font-semibold">{selectedFarm.name}</span>
+            Active farm:{" "}
+            <span className="font-semibold">{activeFarm.name}</span>
           </p>
         )}
       </div>
@@ -31,28 +64,33 @@ export default function Dashboard({ onGoToFarms, onGoToCattle, selectedFarm }) {
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <button
-          onClick={onGoToFarms}
+          onClick={() => navigate("/farms")}
           className="bg-white rounded-xl p-4 shadow-sm text-left hover:shadow-md transition"
         >
           <p className="text-xs text-gray-500 mb-1">Farms</p>
-          <p className="font-semibold text-gray-800">Manage Farms</p>
+          <p className="font-semibold text-gray-800">
+            Manage Farms
+          </p>
           <p className="text-xs text-gray-400 mt-1">
-            View and add farms you own.
+            View and manage your farms.
           </p>
         </button>
+
         <button
-          onClick={onGoToCattle}
+          onClick={handleManageHerd}
           className="bg-white rounded-xl p-4 shadow-sm text-left hover:shadow-md transition"
         >
           <p className="text-xs text-gray-500 mb-1">Cattle</p>
-          <p className="font-semibold text-gray-800">Manage Herd</p>
+          <p className="font-semibold text-gray-800">
+            Manage Herd
+          </p>
           <p className="text-xs text-gray-400 mt-1">
             View and add cattle for the active farm.
           </p>
         </button>
       </div>
 
-      {/* Stats Cards (placeholders for now) */}
+      {/* Stats Cards (PLACEHOLDERS KEPT) */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <StatCard title="TOTAL HERD" unit="Head" />
         <StatCard title="TODAY'S MILK" unit="L" />
@@ -60,7 +98,7 @@ export default function Dashboard({ onGoToFarms, onGoToCattle, selectedFarm }) {
         <StatCard title="SOLD REVENUE" unit="$" />
       </div>
 
-      {/* Production Trends */}
+      {/* Production Trends (PLACEHOLDER KEPT) */}
       <div className="bg-white rounded-xl p-4 shadow-sm mb-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold text-gray-800">
@@ -81,7 +119,7 @@ export default function Dashboard({ onGoToFarms, onGoToCattle, selectedFarm }) {
         </div>
       </div>
 
-      {/* Alerts */}
+      {/* Alerts (PLACEHOLDER KEPT) */}
       <div className="mb-20">
         <h2 className="font-semibold text-gray-800 mb-3">
           Production Alerts

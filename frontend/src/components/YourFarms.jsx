@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
 
-export default function YourFarms({ onSelectFarm, onAddFarm }) {
+export default function YourFarms() {
+  const navigate = useNavigate();
   const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -13,126 +15,133 @@ export default function YourFarms({ onSelectFarm, onAddFarm }) {
       setLoading(false);
       return;
     }
+
     const user = JSON.parse(storedUser);
-    if (user.role !== "FARM_OWNER") {
-      setError("Only farm owners have farms associated with their account.");
-      setLoading(false);
+
+    apiFetch(`/farms/owner/${user.id}`)
+      .then((data) => {
+        const list = data || [];
+        setFarms(list);
+
+        // ✅ Ensure default farm exists if at least one farm is present
+        if (list.length > 0 && !localStorage.getItem("activeFarm")) {
+          localStorage.setItem("activeFarm", JSON.stringify(list[0]));
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(err.message || "Failed to load farms.");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleBackToDashboard = () => {
+    if (farms.length === 0) {
+      setError("You need at least one farm to see the dashboard.");
       return;
     }
 
-    const fetchFarms = async () => {
-      try {
-        const data = await apiFetch(`/farms/owner/${user.id}`);
-        setFarms(data || []);
-      } catch (err) {
-        console.error(err);
-        setError(err.message || "Failed to load farms.");
-      } finally {
-        setLoading(false);
-      }
-    };
+    // ✅ Always ensure a default farm before dashboard
+    localStorage.setItem("activeFarm", JSON.stringify(farms[0]));
+    navigate("/dashboard");
+  };
 
-    fetchFarms();
-  }, []);
+  const handleViewFarm = (farm) => {
+    localStorage.setItem("activeFarm", JSON.stringify(farm));
+    navigate("/dashboard");
+  };
+
+  const handleDeleteFarm = async (farmId) => {
+    if (!window.confirm("Delete this farm? This cannot be undone.")) return;
+
+    try {
+      await apiFetch(`/farms/${farmId}`, { method: "DELETE" });
+
+      setFarms((prev) => {
+        const updated = prev.filter((f) => f.id !== farmId);
+
+        // ❌ If no farms remain, remove activeFarm
+        if (updated.length === 0) {
+          localStorage.removeItem("activeFarm");
+        }
+
+        return updated;
+      });
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to delete farm.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f7faf7] px-6 py-4">
-      {/* Top Bar */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="h-10 w-10 rounded-full bg-gray-200"></div>
-        <div>
-          <p className="text-xs text-gray-500">Welcome</p>
-          <p className="font-semibold text-gray-800">Select Your Farm</p>
-        </div>
-      </div>
+      {/* Back Button */}
+      <button
+        onClick={handleBackToDashboard}
+        className="mb-4 text-gray-600"
+      >
+        ← Back to Dashboard
+      </button>
 
-      {/* Page Title */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Your Farms</h1>
-        <p className="text-sm text-gray-500">
-          Choose a farm to view its dashboard.
-        </p>
-      </div>
+      <h1 className="text-2xl font-bold mb-4">Your Farms</h1>
 
       {loading && <p className="text-sm text-gray-500">Loading farms...</p>}
+
       {error && !loading && (
         <p className="text-sm text-red-500 mb-4">{error}</p>
       )}
 
-      {/* Farms List */}
       <div className="space-y-4">
         {!loading &&
           !error &&
           farms.map((farm) => (
-            <FarmCard
+            <div
               key={farm.id}
-              farm={farm}
-              onSelect={() => onSelectFarm?.(farm)}
-              onDeleted={() =>
-                setFarms((prev) => prev.filter((f) => f.id !== farm.id))
-              }
-            />
+              className="bg-white rounded-xl p-4 shadow-sm flex justify-between items-center gap-3"
+            >
+              {/* Farm Info */}
+              <div
+                onClick={() => handleViewFarm(farm)}
+                className="flex-1 cursor-pointer hover:opacity-90 transition"
+              >
+                <p className="font-semibold text-gray-800">{farm.name}</p>
+                <p className="text-xs text-gray-500">{farm.address}</p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  type="button"
+                  onClick={() => handleViewFarm(farm)}
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  View
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteFarm(farm.id)}
+                  className="text-xs text-red-500 hover:underline"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           ))}
+
         {!loading && !error && farms.length === 0 && (
           <p className="text-sm text-gray-500">
-            You don&apos;t have any farms yet. Add one to get started.
+            You don&apos;t have any farms yet. Add one to continue.
           </p>
         )}
       </div>
 
       {/* Add Farm Button */}
       <button
-        onClick={() => onAddFarm?.()}
+        onClick={() => navigate("/farms/add")}
         className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-full font-medium shadow-lg"
       >
         + Add Farm
       </button>
-    </div>
-  );
-}
-
-async function deleteFarm(id, onDeleted, setError) {
-  try {
-    if (!window.confirm("Delete this farm? This cannot be undone.")) return;
-    await apiFetch(`/farms/${id}`, { method: "DELETE" });
-    onDeleted?.();
-  } catch (err) {
-    console.error(err);
-    setError(err.message || "Failed to delete farm.");
-  }
-}
-
-function FarmCard({ farm, onSelect, onDeleted }) {
-  const [error, setError] = useState("");
-
-  return (
-    <div className="bg-white rounded-xl p-4 shadow-sm flex justify-between items-center gap-3">
-      <div
-        onClick={onSelect}
-        className="flex-1 cursor-pointer hover:opacity-90 transition"
-      >
-        <p className="font-semibold text-gray-800">{farm.name}</p>
-        <p className="text-xs text-gray-500">{farm.address}</p>
-      </div>
-      <div className="flex flex-col items-end gap-1">
-        <button
-          type="button"
-          onClick={onSelect}
-          className="text-xs text-blue-600 hover:underline"
-        >
-          View
-        </button>
-        <button
-          type="button"
-          onClick={() => deleteFarm(farm.id, onDeleted, setError)}
-          className="text-xs text-red-500 hover:underline"
-        >
-          Delete
-        </button>
-      </div>
-      {error && (
-        <p className="text-[10px] text-red-500 mt-1 text-right">{error}</p>
-      )}
     </div>
   );
 }

@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
 
-export default function Login({ onLoginSuccess, onSwitchToRegister }) {
-  const [identity, setIdentity] = useState("");   // email
+export default function Login() {
+  const navigate = useNavigate();
+
+  const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,16 +21,14 @@ export default function Login({ onLoginSuccess, onSwitchToRegister }) {
         method: "POST",
         body: JSON.stringify({
           email: identity,
-          password: password,
+          password,
         }),
       });
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      if (onLoginSuccess) {
-        onLoginSuccess(data);
-      }
+      navigate("/farms", { replace: true });
     } catch (err) {
       console.error(err);
       if (err.status === 401 || err.status === 403) {
@@ -57,7 +58,7 @@ export default function Login({ onLoginSuccess, onSwitchToRegister }) {
           />
         </div>
 
-        {/* Welcome Text */}
+        {/* Welcome */}
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
           <p className="text-sm text-gray-500">
@@ -65,23 +66,20 @@ export default function Login({ onLoginSuccess, onSwitchToRegister }) {
           </p>
         </div>
 
-        {/* Form */}
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {/* Identity */}
+          {/* Email */}
           <div>
             <label className="text-sm font-medium text-gray-600">
               Email
             </label>
-            <div className="mt-1 relative">
-              <input
-                type="email"
-                value={identity}
-                onChange={(e) => setIdentity(e.target.value)}
-                placeholder="Email"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
-            </div>
+            <input
+              type="email"
+              value={identity}
+              onChange={(e) => setIdentity(e.target.value)}
+              placeholder="Email"
+              className="mt-1 w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              required
+            />
           </div>
 
           {/* Password */}
@@ -108,14 +106,10 @@ export default function Login({ onLoginSuccess, onSwitchToRegister }) {
             </div>
           </div>
 
-          {/* Error */}
           {error && (
-            <div className="text-sm text-red-500">
-              {error}
-            </div>
+            <div className="text-sm text-red-500">{error}</div>
           )}
 
-          {/* Login Button */}
           <button
             type="submit"
             disabled={loading}
@@ -125,27 +119,11 @@ export default function Login({ onLoginSuccess, onSwitchToRegister }) {
           </button>
         </form>
 
-
-        {/* Divider */}
-        <div className="flex items-center my-6">
-          <div className="grow border-t"></div>
-          <span className="mx-3 text-xs text-gray-400">OR LOGIN WITH</span>
-          <div className="grow border-t"></div>
-        </div>
-
-        {/* Social Login */}
-        <div className="flex justify-center">
-          <button className="h-12 w-12 rounded-full border flex items-center justify-center hover:bg-gray-50">
-            <span className="text-green-500 text-xl">🐮</span>
-          </button>
-        </div>
-
-        {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-6">
           Don’t have an account?{" "}
           <button
             type="button"
-            onClick={onSwitchToRegister}
+            onClick={() => navigate("/register")}
             className="text-primary font-medium cursor-pointer"
           >
             Create an account
