@@ -2,9 +2,9 @@ name: Backend CI
 
 on:
   push:
-    branches: [ ci-test ]
+    branches: [ backend ]
   pull_request:
-    branches: [ ci-test ]
+    branches: [ backend ]
 
 jobs:
 
@@ -64,3 +64,4 @@ jobs:
           SPRING_DATASOURCE_USERNAME: root
           SPRING_DATASOURCE_PASSWORD: Pass123!
         run: mvn -B test
+
