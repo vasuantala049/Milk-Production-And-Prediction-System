@@ -1,5 +1,6 @@
 package com.example.backend.Entity;
 
+import com.example.backend.Entity.type.MilkSession;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -9,7 +10,11 @@ import java.time.LocalDate;
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-@Table(name = "milk_inventory")
+
+@Table(name = "milk_inventory",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"record_date", "farm_id", "session"})
+        })
 public class MilkInventory {
 
     @Id
@@ -18,7 +23,10 @@ public class MilkInventory {
 
     private LocalDate recordDate;
 
-    @Column(name = "milk_liters")
+    @Enumerated(EnumType.STRING)
+    private MilkSession session; // MORNING / EVENING
+
+    @Column(name = "milk_liters", nullable = false)
     private Double milkLiters;
 
     @ManyToOne
@@ -27,5 +35,5 @@ public class MilkInventory {
 
     @ManyToOne
     @JoinColumn(name = "entered_by", nullable = false)
-    private User enteredBy; // Milker
+    private User enteredBy;
 }

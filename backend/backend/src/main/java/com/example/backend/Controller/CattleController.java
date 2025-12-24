@@ -57,4 +57,9 @@ public class CattleController {
         cattleService.deleteCattle(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/count")
+    public Long getTotalCattle(){
+        return cattleService.getTotalCattle();
+    }
 }
