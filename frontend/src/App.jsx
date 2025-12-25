@@ -4,6 +4,8 @@ import Register from "./components/Register";
 import Dashboard from "./components/Dashboard";
 import YourFarms from "./components/YourFarms";
 import AddFarm from "./components/AddFarm";
+import Profile from "./components/Profile";
+import AddWorker from "./components/AddWorker";
 import CattleList from "./components/CattleList";
 import AddCattle from "./components/AddCattle";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -25,6 +27,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/farms" element={<YourFarms />} />
         <Route path="/farms/add" element={<AddFarm />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/farms/:farmId/add-worker" element={<AddWorker />} />
 
         {/* IMPORTANT: more specific route FIRST */}
         <Route path="/cattle/add/:farmId" element={<AddCattle />} />

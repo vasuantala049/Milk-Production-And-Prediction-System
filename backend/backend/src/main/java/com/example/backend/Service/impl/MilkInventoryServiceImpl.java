@@ -22,20 +22,15 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
     private final CattleRepository cattleRepository;
     private final MilkInventoryRepository milkInventoryRepository;
     private final CattleMilkEntryRepository cattleMilkEntryRepository;
+    private final com.example.backend.Service.FarmAccessService farmAccessService;
 
     @Override
     public void addTodayMilk(AddMilkInventoryRequestDto dto, User loggedInUser) {
 
-        // 1. Resolve farm from logged-in user (DO NOT trust request)
-        Farm farm = loggedInUser.getAssignedFarm();
-        if (farm == null) {
-            throw new RuntimeException("User not assigned to any farm");
-        }
-
-        // 2. Find cattle using farm + tagId (correct way)
-        Cattle cattle = cattleRepository
-                .findByFarm_IdAndTagId(farm.getId(), dto.getTagId().trim())
-                .orElseThrow(() -> new RuntimeException("Invalid tagId for this farm"));
+                // 1. Resolve farm and cattle using access rules (owner vs worker)
+                Cattle[] holder = new Cattle[1];
+                Farm farm = farmAccessService.resolveFarmForMilk(loggedInUser, dto.getTagId(), holder);
+                Cattle cattle = holder[0];
 
 
         LocalDate today = LocalDate.now();
@@ -48,9 +43,9 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
                         dto.getSession()
                 );
 
-        if (exists) {
-            throw new RuntimeException("Milk already entered for this cattle and session");
-        }
+                if (exists) {
+                        throw new RuntimeException("Milk already entered for this cattle and session");
+                }
 
         // 4. Save per-cattle milk entry (RAW DATA)
         CattleMilkEntry entry = CattleMilkEntry.builder()

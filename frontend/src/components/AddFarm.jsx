@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
 
 export default function AddFarm() {
   const navigate = useNavigate();
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (!stored) return;
+    const user = JSON.parse(stored);
+    if (user.role !== "FARM_OWNER") {
+      navigate("/farms");
+    }
+  }, []);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,7 +23,7 @@ export default function AddFarm() {
     const user = JSON.parse(localStorage.getItem("user"));
     await apiFetch("/farms", {
       method: "POST",
-      body: JSON.stringify({ name, address, ownerId: user.id }),
+      body: JSON.stringify({ name, address }),
     });
 
     navigate("/farms");

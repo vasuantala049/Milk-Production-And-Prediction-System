@@ -18,15 +18,16 @@ public class FarmController {
 
     private final FarmService farmService;
 
-    // CREATE farm (only OWNER)
-    @PostMapping
-    public ResponseEntity<FarmResponseDto> createFarm(
-            @RequestBody @Valid CreateFarmDto dto) {
+        // CREATE farm (only OWNER)
+        @PostMapping
+        public ResponseEntity<FarmResponseDto> createFarm(
+            @RequestBody @Valid CreateFarmDto dto,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
 
         return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(farmService.createFarm(dto));
-    }
+            .status(HttpStatus.CREATED)
+            .body(farmService.createFarm(dto, user));
+        }
 
     // GET farm by id
     @GetMapping("/{id}")
@@ -53,10 +54,31 @@ public class FarmController {
     @PatchMapping("/{id}")
     public ResponseEntity<FarmResponseDto> updateFarm(
             @PathVariable Long id,
-            @RequestBody FarmPatchDto patchDto) {
+            @RequestBody FarmPatchDto patchDto,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
 
-        return ResponseEntity.ok(farmService.patchFarm(id, patchDto));
+        return ResponseEntity.ok(farmService.patchFarm(id, patchDto, user));
     }
+
+    // GET farms for current logged-in user
+    @GetMapping("/me")
+    public ResponseEntity<List<FarmResponseDto>> getMyFarms(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
+
+        return ResponseEntity.ok(farmService.getMyFarms(user));
+    }
+
+    // Owner-only: assign a worker to this farm
+    @PostMapping("/{farmId}/assign-worker")
+    public ResponseEntity<Void> assignWorker(
+            @PathVariable Long farmId,
+            @RequestBody com.example.backend.DTO.AssignWorkerDto dto,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
+
+        farmService.assignWorkerToFarm(farmId, dto.getWorkerId(), user);
+        return ResponseEntity.ok().build();
+    }
+    
 
     // DELETE farm (only OWNER) - for now just deletes by id
     @DeleteMapping("/{id}")

@@ -36,12 +36,21 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <button
-          onClick={handleLogout}
-          className="text-sm text-gray-500 bg-green-300 hover:bg-green-500 hover:text-gray-800 transition px-3 py-1 rounded"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.location.href = '/profile'}
+            className="text-sm text-gray-700 bg-white px-3 py-1 rounded border"
+          >
+            Profile
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="text-sm text-gray-500 bg-green-300 hover:bg-green-500 hover:text-gray-800 transition px-3 py-1 rounded"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Greeting */}
