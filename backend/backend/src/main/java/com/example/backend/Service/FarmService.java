@@ -16,5 +16,7 @@ public interface FarmService {
 
     FarmResponseDto patchFarm(Long id, FarmPatchDto patchDto);
 
+    List<FarmResponseDto> getFarmsByWorker(Long workerId);
+
     void deleteFarm(Long id);
 }

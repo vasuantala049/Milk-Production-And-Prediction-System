@@ -1,5 +1,6 @@
 package com.example.backend.Entity;
 
+
 import com.example.backend.Entity.type.MilkSession;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,12 +14,14 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 @Table(
-        name = "milk_inventory",
+        name = "cattle_milk_entry",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"record_date", "farm_id", "session"})
+                @UniqueConstraint(
+                        columnNames = {"cattle_id", "record_date", "session"}
+                )
         }
 )
-public class MilkInventory {
+public class CattleMilkEntry {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,12 +37,18 @@ public class MilkInventory {
     @Column(name = "milk_liters", nullable = false)
     private Double milkLiters;
 
+    // 🔑 resolved from tagId internally
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cattle_id", nullable = false)
+    private Cattle cattle;
+
+    // tenant isolation
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "farm_id", nullable = false)
     private Farm farm;
 
-    // derived / audit info
+    // audit
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "entered_by")
+    @JoinColumn(name = "entered_by", nullable = false)
     private User enteredBy;
 }

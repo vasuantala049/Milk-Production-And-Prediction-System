@@ -42,6 +42,13 @@ public class FarmController {
         return ResponseEntity.ok(farmService.getFarmsByOwner(ownerId));
     }
 
+    @GetMapping("/worker/{workerId}")
+    public ResponseEntity<List<FarmResponseDto>> getFarmsByWorker(
+            @PathVariable Long workerId) {
+
+        return ResponseEntity.ok(farmService.getFarmsByWorker(workerId));
+    }
+
     // UPDATE farm (only OWNER)
     @PatchMapping("/{id}")
     public ResponseEntity<FarmResponseDto> updateFarm(

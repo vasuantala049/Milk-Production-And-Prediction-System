@@ -98,6 +98,16 @@ public class FarmServiceImpl implements FarmService {
     }
 
     @Override
+    public List<FarmResponseDto> getFarmsByWorker(Long workerId) {
+        User user = userRepository.findById(workerId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if (user.getAssignedFarm() == null) {
+            throw new IllegalStateException("Worker is not assigned to any farm");
+        }
+        return List.of(toResponseDto(user.getAssignedFarm()));
+    }
+
+    @Override
     public void deleteFarm(Long id) {
         if (!farmRepository.existsById(id)) {
             throw new IllegalArgumentException("Farm not found");
