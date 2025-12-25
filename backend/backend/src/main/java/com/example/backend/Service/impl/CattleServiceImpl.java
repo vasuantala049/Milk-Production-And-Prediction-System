@@ -88,6 +88,11 @@ public class CattleServiceImpl implements CattleService {
         cattleRepository.deleteById(id);
     }
 
+    @Override
+    public Long getTotalCattle() {
+        return (Long) cattleRepository.count();
+    }
+
     // -------- helper --------
     private CattleResponseDto toResponseDto(Cattle cattle) {
         return new CattleResponseDto(
