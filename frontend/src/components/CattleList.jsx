@@ -29,7 +29,7 @@ export default function CattleList() {
         <p className="italic text-gray-600">Add your first cattle</p>
       )}
 
-      <div className="space-y-3 mb-24">
+      <div className="space-y-3 mb-32">
         {cattle.map((c) => (
           <div key={c.id} className="bg-white p-4 rounded-xl shadow-sm">
             <p className="font-semibold">Tag: {c.tagId}</p>
@@ -40,9 +40,18 @@ export default function CattleList() {
         ))}
       </div>
 
+      {/* Add Milk Button */}
+      <button
+        onClick={() => navigate(`/milk/add/${farmId}`)}
+        className="fixed bottom-20 right-6 bg-blue-500 text-white px-5 py-3 rounded-full shadow-lg"
+      >
+        + Add Milk
+      </button>
+
+      {/* Add Cattle Button */}
       <button
         onClick={() => navigate(`/cattle/add/${farmId}`)}
-        className="fixed bottom-6 right-6 bg-green-500 text-white px-5 py-3 rounded-full"
+        className="fixed bottom-6 right-6 bg-green-500 text-white px-5 py-3 rounded-full shadow-lg"
       >
         + Add Cattle
       </button>
