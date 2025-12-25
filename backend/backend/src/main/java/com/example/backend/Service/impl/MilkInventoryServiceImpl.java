@@ -34,8 +34,9 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
 
         // 2. Find cattle using farm + tagId (correct way)
         Cattle cattle = cattleRepository
-                .findByFarmIdAndTagId(farm.getId(), dto.getTagId())
+                .findByFarm_IdAndTagId(farm.getId(), dto.getTagId().trim())
                 .orElseThrow(() -> new RuntimeException("Invalid tagId for this farm"));
+
 
         LocalDate today = LocalDate.now();
 

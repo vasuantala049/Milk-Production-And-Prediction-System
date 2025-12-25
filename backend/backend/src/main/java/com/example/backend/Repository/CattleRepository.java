@@ -12,6 +12,6 @@ import java.util.Optional;
 public interface CattleRepository extends JpaRepository<Cattle, Long> {
     List<Cattle> findByFarmId(Long farmId);
     Optional<Cattle> findByTagId(String tagId);
-    Optional<Cattle> findByFarmIdAndTagId(Long farmId, String tagId);
+    Optional<Cattle> findByFarm_IdAndTagId(Long farmId, String tagId);
 
 }

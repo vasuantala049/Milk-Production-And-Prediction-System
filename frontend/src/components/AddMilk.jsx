@@ -30,7 +30,7 @@ export default function AddMilk() {
     setLoading(true);
 
     try {
-      await apiFetch("/api/milk/today", {
+      await apiFetch("/milk/today", {
         method: "POST",
         body: JSON.stringify({
           tagId,
