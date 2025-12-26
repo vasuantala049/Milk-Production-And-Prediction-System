@@ -33,6 +33,7 @@ export default function AddMilk() {
       await apiFetch("/milk/today", {
         method: "POST",
         body: JSON.stringify({
+          farmId:sessionStorage.getItem("activeFarm") ? JSON.parse(sessionStorage.getItem("activeFarm")).id : Number(farmId),
           tagId,
           session,
           milkLiters: Number(milkLiters),

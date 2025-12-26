@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AddMilkInventoryRequestDto {
+    private Long farmId;
     private String tagId;           // scanned
     private MilkSession session;    // MORNING / EVENING
     private Double milkLiters;
