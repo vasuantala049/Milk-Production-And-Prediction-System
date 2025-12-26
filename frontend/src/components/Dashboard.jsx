@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useLayoutEffect } from "react";
 import { apiFetch } from "../api/client";
 
 export default function Dashboard() {
@@ -21,6 +21,19 @@ export default function Dashboard() {
   const [workerCount, setWorkerCount] = useState(null);
   const [activeCattleCount, setActiveCattleCount] = useState(null);
   const [milkHistory, setMilkHistory] = useState(null);
+  const [daysRange, setDaysRange] = useState(7);
+  const containerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    function measure() {
+      const w = containerRef.current ? containerRef.current.clientWidth : 0;
+      setContainerWidth(w || 0);
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -53,7 +66,7 @@ export default function Dashboard() {
     return () => { mounted = false; };
   }, [activeFarm?.id]);
 
-  // Fetch last 7 days milk history for chart
+  // Fetch milk history for selected daysRange
   useEffect(() => {
     let mounted = true;
     async function loadHistory(farmId, days = 7) {
@@ -69,9 +82,9 @@ export default function Dashboard() {
     }
 
     const farmId = activeFarm?.id;
-    if (farmId) loadHistory(farmId, 7);
+    if (farmId) loadHistory(farmId, daysRange);
     return () => { mounted = false; };
-  }, [activeFarm?.id]);
+  }, [activeFarm?.id, daysRange]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -194,10 +207,16 @@ export default function Dashboard() {
             Production Trends
           </h2>
           <div className="flex gap-2 text-sm">
-            <button className="px-3 py-1 rounded border text-gray-600">
+            <button
+              onClick={() => setDaysRange(7)}
+              className={`px-3 py-1 rounded border text-sm ${daysRange === 7 ? 'bg-white text-gray-800' : 'text-gray-600 bg-white'}`}
+            >
               7 Days
             </button>
-            <button className="px-3 py-1 rounded border text-gray-600">
+            <button
+              onClick={() => setDaysRange(30)}
+              className={`px-3 py-1 rounded border text-sm ${daysRange === 30 ? 'bg-white text-gray-800' : 'text-gray-600 bg-white'}`}
+            >
               30 Days
             </button>
           </div>
@@ -208,25 +227,66 @@ export default function Dashboard() {
             No chart data
           </div>
         ) : (
-          <div className="h-40 rounded-lg p-2 flex items-end gap-3">
-            {chartData.map((pt, idx) => {
-              const val = pt.total || 0;
-              const heightPct = maxTotal ? Math.round((val / maxTotal) * 100) : 0;
-              const label = (() => {
-                try {
-                  return new Date(pt.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                } catch (e) { return pt.date; }
-              })();
+          <div ref={containerRef} className="rounded-lg p-3 overflow-x-auto" style={{ background: '#fff', minHeight: 340 }}>
+            {(() => {
+              const n = chartData.length;
+              const is30 = daysRange > 7;
+              // choose visual sizes that look good on dashboard
+              const viewH = 280; // px height of svg (2x)
+              const pointSpacing = is30 ? 47.2 : 200; // px per point (increased spacing)
+              // make view width at least twice the card width so x-axis is 2x the visible area
+              const desiredFromPoints = Math.max(560, n * pointSpacing);
+              const doubleContainer = containerWidth ? Math.max(containerWidth * 2, 560) : 560;
+              const viewW = Math.max(desiredFromPoints, doubleContainer);
+              const padTop = 18;
+              const padBottom = 40;
+              const padLeft = 24;
+              const padRight = 24;
+              const plotH = viewH - padTop - padBottom;
+              const max = maxTotal || 1;
+
+              const pts = chartData.map((d, i) => {
+                const x = padLeft + (i * (viewW - padLeft - padRight)) / Math.max(1, n - 1);
+                const val = d.total || 0;
+                const y = padTop + (1 - val / max) * plotH;
+                return { x, y, val, label: d.date };
+              });
+
+              const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+              const areaPath = `${pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ')} L ${pts[pts.length - 1].x.toFixed(2)} ${padTop + plotH} L ${pts[0].x.toFixed(2)} ${padTop + plotH} Z`;
+
               return (
-                <div key={idx} className="flex-1 flex flex-col items-center">
-                  <div className="text-xs text-gray-600 mb-1">{Number(val).toFixed(1)}</div>
-                  <div className="w-full h-28 bg-gray-100 rounded-t-md flex items-end">
-                    <div style={{ height: `${heightPct}%` }} className="w-full bg-green-400 rounded-b-md transition-all" />
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">{label}</div>
+                <div style={{ width: `${viewW}px` }}>
+                  <svg viewBox={`0 0 ${viewW} ${viewH}`} preserveAspectRatio="xMinYMid meet" style={{ width: `${viewW}px`, height: `${viewH}px` }}>
+                    {/* grid lines */}
+                    {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
+                      const y = padTop + t * plotH;
+                      return <line key={i} x1={padLeft} x2={viewW - padRight} y1={y} y2={y} stroke="#e6f0ea" strokeWidth="0.8" />;
+                    })}
+
+                    {/* area */}
+                    <path d={areaPath} fill="#e6f9ec" stroke="none" />
+
+                    {/* line */}
+                    <path d={linePath} fill="none" stroke="#2ea53a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+
+                    {/* points and labels */}
+                    {pts.map((p, i) => (
+                      <g key={i}>
+                        <circle cx={p.x} cy={p.y} r={is30 ? 2.6 : 3.4} fill="#fff" stroke="#2ea53a" strokeWidth={is30 ? 1.1 : 1.4} />
+                        <circle cx={p.x} cy={p.y} r={is30 ? 1.4 : 2} fill="#2ea53a" />
+                        {/* show value only for 7-day or for last point when 30-day */}
+                        {((!is30) || i === pts.length - 1) && p.val !== 0 && (
+                          <text x={p.x} y={p.y - 12} fontSize="14" textAnchor="middle" fill="#2f6b35">{Number(p.val).toFixed(1)}</text>
+                        )}
+                        {/* x-axis label */}
+                        <text x={p.x} y={viewH - 10} fontSize="13" textAnchor="middle" fill="#6f9b73">{(() => { try { return new Date(p.label).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch (e) { return p.label; } })()}</text>
+                      </g>
+                    ))}
+                  </svg>
                 </div>
               );
-            })}
+            })()}
           </div>
         )}
       </div>
