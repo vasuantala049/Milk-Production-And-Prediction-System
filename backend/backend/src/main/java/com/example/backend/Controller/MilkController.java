@@ -21,12 +21,22 @@ public class MilkController {
     private final MilkInventoryService milkInventoryService; // ✅ final
 
     @PostMapping("/today")
-    public ResponseEntity<Void> addTodayMilk(
+    public ResponseEntity<?> addTodayMilk(
             @RequestBody AddMilkInventoryRequestDto dto,
             @AuthenticationPrincipal User user
     ) {
-        milkInventoryService.addTodayMilk(dto, user);
-        return ResponseEntity.ok().build();
+        try {
+            milkInventoryService.addTodayMilk(dto, user);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
+        }
+    }
+
+    // Simple error response wrapper
+    static class ErrorResponse {
+        public final String message;
+        public ErrorResponse(String message) { this.message = message; }
     }
 
     @GetMapping("/today")

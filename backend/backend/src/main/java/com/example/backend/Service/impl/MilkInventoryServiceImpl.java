@@ -32,6 +32,11 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
                 Farm farm = farmAccessService.resolveFarmForMilk(loggedInUser, dto.getTagId(), holder);
                 Cattle cattle = holder[0];
 
+                // 1.a Ensure cattle is active before accepting milk entries
+                if (cattle.getStatus() == null || !"ACTIVE".equalsIgnoreCase(cattle.getStatus())) {
+                        throw new IllegalArgumentException("Cannot add milk for cattle that is not ACTIVE");
+                }
+
 
         LocalDate today = LocalDate.now();
 
