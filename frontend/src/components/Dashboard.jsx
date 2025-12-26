@@ -18,24 +18,32 @@ export default function Dashboard() {
   const [morningMilk, setMorningMilk] = useState(null);
   const [eveningMilk, setEveningMilk] = useState(null);
   const [herdCount, setHerdCount] = useState(null);
+  const [workerCount, setWorkerCount] = useState(null);
+  const [activeCattleCount, setActiveCattleCount] = useState(null);
 
   useEffect(() => {
     let mounted = true;
     async function loadBreakdown(farmId) {
       try {
-        const [dto, count] = await Promise.all([
+        const [dto, herd, workers, activeCount] = await Promise.all([
           apiFetch(`/milk/today/breakdown?farmId=${farmId}`),
           apiFetch(`/farms/${farmId}/herd-count`),
+          apiFetch(`/farms/${farmId}/worker-count`),
+          apiFetch(`/farms/${farmId}/active-cattle-count`),
         ]);
         if (!mounted) return;
         setMorningMilk(dto?.morning ?? 0);
         setEveningMilk(dto?.evening ?? 0);
-        setHerdCount(count ?? 0);
+        setHerdCount(herd ?? 0);
+        setWorkerCount(workers ?? 0);
+        setActiveCattleCount(activeCount ?? 0);
       } catch (err) {
         if (!mounted) return;
         setMorningMilk(0);
         setEveningMilk(0);
         setHerdCount(0);
+        setWorkerCount(0);
+        setActiveCattleCount(0);
       }
     }
 
@@ -128,9 +136,15 @@ export default function Dashboard() {
           className="bg-white rounded-xl p-4 shadow-sm text-left hover:shadow-md transition"
         >
           <p className="text-xs text-gray-500 mb-1">Cattle</p>
-          <p className="font-semibold text-gray-800">
-            Manage Herd
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="font-semibold text-gray-800">Manage Herd</p>
+            <div className="ml-auto text-sm text-gray-500">
+              Total: <span className="font-semibold text-gray-800">{herdCount == null ? "—" : Number(herdCount).toFixed(0)}</span>
+            </div>
+          </div>
+            <div className="mt-1 text-sm text-gray-500">
+              Active: <span className="font-semibold text-gray-800">{activeCattleCount == null ? "—" : Number(activeCattleCount).toFixed(0)}</span>
+            </div>
           <p className="text-xs text-gray-400 mt-1">
             View and add cattle for the active farm.
           </p>
@@ -141,8 +155,12 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 gap-4 mb-8">
         <StatCard title="TODAY'S MILK (MORNING)" unit="L" value={morningMilk} />
         <StatCard title="TODAY'S MILK (EVENING)" unit="L" value={eveningMilk} />
-        <StatCard title="TOTAL HERD" unit="Head" value={herdCount} />
-        <StatCard title="SOLD REVENUE" unit="$" />
+        <StatCard
+          title="WORKERS"
+          unit="Workers"
+          value={workerCount}
+          onClick={() => activeFarm && navigate(`/workers/${activeFarm.id}`)}
+        />
       </div>
 
       {/* Production Trends (PLACEHOLDER KEPT) */}
@@ -179,9 +197,12 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ title, unit, value }) {
+function StatCard({ title, unit, value, onClick }) {
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm">
+    <div
+      className={`bg-white rounded-xl p-4 shadow-sm ${onClick ? 'cursor-pointer hover:shadow-md' : ''}`}
+      onClick={onClick}
+    >
       <p className="text-xs text-gray-500 mb-2">{title}</p>
       <div className="mb-1">
         {value === null || value === undefined ? (

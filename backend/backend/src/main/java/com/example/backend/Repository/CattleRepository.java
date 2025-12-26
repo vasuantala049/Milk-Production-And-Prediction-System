@@ -14,5 +14,6 @@ public interface CattleRepository extends JpaRepository<Cattle, Long> {
     long countByFarmId(Long farmId);
     Optional<Cattle> findByTagId(String tagId);
     Optional<Cattle> findByFarm_IdAndTagId(Long farmId, String tagId);
+    long countByFarmIdAndStatus(Long farmId, String status);
 
 }
