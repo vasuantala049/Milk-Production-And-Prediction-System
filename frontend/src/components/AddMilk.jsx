@@ -30,8 +30,20 @@ export default function AddMilk() {
     setLoading(true);
 
     try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setError("You must be logged in to perform this action");
+        setLoading(false);
+        navigate("/login");
+        return;
+      }
+
       await apiFetch("/milk/today", {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           tagId,
           session,
@@ -41,7 +53,12 @@ export default function AddMilk() {
 
       navigate(`/cattle/${farmId}`);
     } catch (err) {
-      setError("Enter valid tag ID");
+      if (err.status === 403 || err.status === 401) {
+        setError("Unauthorized — your session may have expired. Please login again.");
+        // don't auto-redirect; allow user to re-login manually
+      } else {
+        setError(err.message || "Request failed");
+      }
     } finally {
       setLoading(false);
     }
