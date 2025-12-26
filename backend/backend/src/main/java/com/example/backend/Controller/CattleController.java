@@ -20,12 +20,23 @@ public class CattleController {
 
     // CREATE cattle
     @PostMapping
-    public ResponseEntity<CattleResponseDto> createCattle(
+    public ResponseEntity<?> createCattle(
             @RequestBody @Valid CreateCattleDto dto) {
+        try {
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body(cattleService.createCattle(dto));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse(ex.getMessage()));
+        }
+    }
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(cattleService.createCattle(dto));
+    // Error response DTO for user-friendly errors
+    static class ErrorResponse {
+        public final String message;
+        public ErrorResponse(String message) { this.message = message; }
     }
 
     // GET cattle by id

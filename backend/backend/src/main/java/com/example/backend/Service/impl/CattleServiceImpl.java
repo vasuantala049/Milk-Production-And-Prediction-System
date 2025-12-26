@@ -26,9 +26,14 @@ public class CattleServiceImpl implements CattleService {
 
     @Override
     public CattleResponseDto createCattle(CreateCattleDto dto) {
-
         Farm farm = farmRepository.findById(dto.getFarmId())
                 .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+
+        // Prevent duplicate tagId in the same farm
+        boolean exists = cattleRepository.findByFarm_IdAndTagId(farm.getId(), dto.getTagId()).isPresent();
+        if (exists) {
+            throw new IllegalArgumentException("A cattle with this tagId already exists in this farm.");
+        }
 
         Cattle cattle = new Cattle();
         cattle.setTagId(dto.getTagId());
