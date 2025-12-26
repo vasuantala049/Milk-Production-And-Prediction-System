@@ -16,5 +16,5 @@ public interface UserService {
 
     UserResponseDto updateUser(Long id, @Valid CreateUserRequestDto request);
 
-    UserResponseDto patchUser(Long id, UserPatchDto patchDto);
+    UserResponseDto patchUser(Long id, UserPatchDto patchDto, com.example.backend.Entity.User loggedInUser);
 }

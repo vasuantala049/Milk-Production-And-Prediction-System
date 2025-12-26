@@ -11,6 +11,7 @@ import com.example.backend.Repository.UserRepository;
 import com.example.backend.Service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -22,6 +23,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final FarmRepository farmRepository;
     private final ModelMapper modelMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserResponseDto createNewUser(CreateUserRequestDto dto) {
@@ -30,6 +32,9 @@ public class UserServiceImpl implements UserService {
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
         user.setRole(dto.getRole());
+        if (dto.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
 
         switch (dto.getRole()) {
 
@@ -47,15 +52,15 @@ public class UserServiceImpl implements UserService {
             }
 
             case WORKER -> {
-                if (dto.getFarmId() == null) {
-                    throw new IllegalArgumentException("WORKER must be assigned to a farm");
+                // Worker can be created without being assigned to a farm.
+                if (dto.getFarmId() != null) {
+                    Farm farm = farmRepository.findById(dto.getFarmId())
+                            .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+                    user.setAssignedFarm(farm);
                 }
-
-                Farm farm = farmRepository.findById(dto.getFarmId())
-                        .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
-
-                user.setAssignedFarm(farm);
+                // worker created without farm; no code generation required
             }
+
 
             case BUYER -> {
                 // nothing extra
@@ -90,7 +95,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponseDto patchUser(Long id, UserPatchDto patchDto) {
+    public UserResponseDto patchUser(Long id, UserPatchDto patchDto, com.example.backend.Entity.User loggedInUser) {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -112,6 +117,11 @@ public class UserServiceImpl implements UserService {
 
             Farm farm = farmRepository.findById(patchDto.getFarmId())
                     .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+
+            // Only the owner of the farm can assign workers to it
+            if (loggedInUser.getRole() != UserRole.FARM_OWNER || !farm.getOwner().getId().equals(loggedInUser.getId())) {
+                throw new IllegalArgumentException("Only the farm owner can assign workers to this farm");
+            }
 
             user.setAssignedFarm(farm);
         }

@@ -44,9 +44,10 @@ public class UserController {
     @PatchMapping("/{id}")
     public ResponseEntity<UserResponseDto> patchUser(
             @PathVariable Long id,
-            @RequestBody UserPatchDto patchDto) {
+            @RequestBody UserPatchDto patchDto,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
 
-        return ResponseEntity.ok(userService.patchUser(id, patchDto));
+        return ResponseEntity.ok(userService.patchUser(id, patchDto, user));
     }
 
     @GetMapping("/db-test")

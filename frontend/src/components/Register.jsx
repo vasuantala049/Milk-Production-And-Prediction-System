@@ -30,7 +30,8 @@ export default function Register() {
         role === "FARM_OWNER"
           ? { name: farmName, address: farmAddress }
           : null,
-      farmId: role === "WORKER" && farmId ? Number(farmId) : null,
+      // Workers self-register without providing farmId; owners create workers from owner UI
+      farmId: null,
     };
 
     try {
@@ -128,16 +129,7 @@ export default function Register() {
             </>
           )}
 
-          {isWorker && (
-            <input
-              type="number"
-              className="w-full px-4 py-2 border rounded-lg"
-              placeholder="Assigned farm ID"
-              value={farmId}
-              onChange={(e) => setFarmId(e.target.value)}
-              required
-            />
-          )}
+          {/* Workers self-register without specifying a farm; owners assign workers from their UI. */}
 
           {error && (
             <div className="text-sm text-red-500">{error}</div>

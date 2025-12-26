@@ -46,12 +46,15 @@ public class AuthController {
         user.setRole(request.getRole());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        // 🔥 ROLE-BASED LOGIC (this was missing)
-        if (request.getRole() == UserRole.WORKER) {
-            Farm farm = farmRepository.findById(request.getFarmId())
-                    .orElseThrow(() -> new RuntimeException("Farm not found"));
-            user.setAssignedFarm(farm);
-        }
+                // 🔥 ROLE-BASED LOGIC (this was missing)
+                if (request.getRole() == UserRole.WORKER) {
+                        // If a farmId was provided (owner-driven), assign it; otherwise worker remains unassigned
+                        if (request.getFarmId() != null) {
+                                Farm farm = farmRepository.findById(request.getFarmId())
+                                                .orElseThrow(() -> new RuntimeException("Farm not found"));
+                                user.setAssignedFarm(farm);
+                        }
+                }
 
         if (request.getRole() == UserRole.FARM_OWNER) {
             Farm farm = new Farm();

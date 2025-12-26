@@ -18,7 +18,7 @@ export default function YourFarms() {
 
     const user = JSON.parse(storedUser);
 
-    apiFetch(`/farms/owner/${user.id}`)
+    apiFetch(`/farms/me`)
       .then((data) => {
         const list = data || [];
         setFarms(list);
@@ -117,6 +117,22 @@ export default function YourFarms() {
                 >
                   View
                 </button>
+                {(() => {
+                  const storedUser = localStorage.getItem("user");
+                  if (!storedUser) return null;
+                  const user = JSON.parse(storedUser);
+                  if (user.role !== "FARM_OWNER") return null;
+
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/farms/${farm.id}/add-worker`)}
+                      className="text-xs text-indigo-600 hover:underline"
+                    >
+                      Add Worker
+                    </button>
+                  );
+                })()}
                 <button
                   type="button"
                   onClick={() => handleDeleteFarm(farm.id)}
@@ -130,18 +146,36 @@ export default function YourFarms() {
 
         {!loading && !error && farms.length === 0 && (
           <p className="text-sm text-gray-500">
-            You don&apos;t have any farms yet. Add one to continue.
+            You don&apos;t have any farms yet.
+            {(() => {
+              const storedUser = localStorage.getItem("user");
+              if (!storedUser) return "";
+              const user = JSON.parse(storedUser);
+              return user.role === "WORKER"
+                ? " Your account is not assigned to a farm. Please contact your farm owner."
+                : " Add one to continue.";
+            })()}
           </p>
         )}
       </div>
 
       {/* Add Farm Button */}
-      <button
-        onClick={() => navigate("/farms/add")}
-        className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-full font-medium shadow-lg"
-      >
-        + Add Farm
-      </button>
+      {(() => {
+        const storedUser = localStorage.getItem("user");
+        if (!storedUser) return null;
+        const user = JSON.parse(storedUser);
+        // Only owners can add farms
+        if (user.role !== "FARM_OWNER") return null;
+
+        return (
+          <button
+            onClick={() => navigate("/farms/add")}
+            className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-full font-medium shadow-lg"
+          >
+            + Add Farm
+          </button>
+        );
+      })()}
     </div>
   );
 }
