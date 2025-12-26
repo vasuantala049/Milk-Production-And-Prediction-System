@@ -17,19 +17,25 @@ export default function Dashboard() {
 
   const [morningMilk, setMorningMilk] = useState(null);
   const [eveningMilk, setEveningMilk] = useState(null);
+  const [herdCount, setHerdCount] = useState(null);
 
   useEffect(() => {
     let mounted = true;
     async function loadBreakdown(farmId) {
       try {
-        const dto = await apiFetch(`/milk/today/breakdown?farmId=${farmId}`);
+        const [dto, count] = await Promise.all([
+          apiFetch(`/milk/today/breakdown?farmId=${farmId}`),
+          apiFetch(`/farms/${farmId}/herd-count`),
+        ]);
         if (!mounted) return;
         setMorningMilk(dto?.morning ?? 0);
         setEveningMilk(dto?.evening ?? 0);
+        setHerdCount(count ?? 0);
       } catch (err) {
         if (!mounted) return;
         setMorningMilk(0);
         setEveningMilk(0);
+        setHerdCount(0);
       }
     }
 
@@ -133,9 +139,9 @@ export default function Dashboard() {
 
       {/* Stats Cards (PLACEHOLDERS KEPT) */}
       <div className="grid grid-cols-2 gap-4 mb-8">
-        <StatCard title="TOTAL HERD" unit="Head" />
         <StatCard title="TODAY'S MILK (MORNING)" unit="L" value={morningMilk} />
         <StatCard title="TODAY'S MILK (EVENING)" unit="L" value={eveningMilk} />
+        <StatCard title="TOTAL HERD" unit="Head" value={herdCount} />
         <StatCard title="SOLD REVENUE" unit="$" />
       </div>
 
@@ -181,7 +187,7 @@ function StatCard({ title, unit, value }) {
         {value === null || value === undefined ? (
           <div className="h-6 bg-gray-100 rounded w-20"></div>
         ) : (
-          <p className="font-semibold text-lg text-gray-800">{Number(value).toFixed(1)}</p>
+          <p className="font-semibold text-lg text-gray-800">{unit === "Head" ? Number(value).toFixed(0) : Number(value).toFixed(1)}</p>
         )}
       </div>
       <p className="text-xs text-gray-400">{unit}</p>

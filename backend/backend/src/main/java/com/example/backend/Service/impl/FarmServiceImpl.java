@@ -25,6 +25,7 @@ public class FarmServiceImpl implements FarmService {
     private final FarmRepository farmRepository;
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
+    private final com.example.backend.Repository.CattleRepository cattleRepository;
 
 
     @Override
@@ -35,6 +36,15 @@ public class FarmServiceImpl implements FarmService {
                 .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
 
         return toResponseDto(farm);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getHerdCount(Long farmId) {
+        if (!farmRepository.existsById(farmId)) {
+            throw new IllegalArgumentException("Farm not found");
+        }
+        return cattleRepository.countByFarmId(farmId);
     }
 
     @Override

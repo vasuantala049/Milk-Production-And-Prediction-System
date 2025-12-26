@@ -86,4 +86,11 @@ public class FarmController {
         farmService.deleteFarm(id);
         return ResponseEntity.noContent().build();
     }
+
+    // GET herd count for a farm
+    @GetMapping("/{id}/herd-count")
+    public ResponseEntity<Long> getHerdCount(@PathVariable Long id) {
+        long count = farmService.getHerdCount(id);
+        return ResponseEntity.ok(count);
+    }
 }

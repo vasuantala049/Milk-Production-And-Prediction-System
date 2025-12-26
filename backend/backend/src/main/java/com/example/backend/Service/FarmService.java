@@ -23,4 +23,6 @@ public interface FarmService {
     List<FarmResponseDto> getFarmsByWorker(Long workerId);
 
     void deleteFarm(Long id);
+
+    long getHerdCount(Long farmId);
 }
