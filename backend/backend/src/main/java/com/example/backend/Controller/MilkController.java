@@ -5,6 +5,8 @@ import com.example.backend.Entity.User;
 import com.example.backend.Service.MilkInventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,5 +27,17 @@ public class MilkController {
     ) {
         milkInventoryService.addTodayMilk(dto, user);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/today")
+    public ResponseEntity<Double> getTodayTotal(@RequestParam Long farmId) {
+        Double total = milkInventoryService.getTodayTotal(farmId);
+        return ResponseEntity.ok(total);
+    }
+
+    @GetMapping("/today/breakdown")
+    public ResponseEntity<com.example.backend.DTO.TodayMilkBreakdownDto> getTodayBreakdown(@RequestParam Long farmId) {
+        com.example.backend.DTO.TodayMilkBreakdownDto dto = milkInventoryService.getTodayBreakdown(farmId);
+        return ResponseEntity.ok(dto);
     }
 }

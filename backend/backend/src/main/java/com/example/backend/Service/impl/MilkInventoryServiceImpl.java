@@ -81,4 +81,39 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
         milkInventoryRepository.save(inventory);
     }
 
+    @Override
+    public Double getTodayTotal(Long farmId) {
+        LocalDate today = LocalDate.now();
+
+        Double morning = milkInventoryRepository
+                .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.MORNING)
+                .map(MilkInventory::getMilkLiters)
+                .orElse(0.0);
+
+        Double evening = milkInventoryRepository
+                .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.EVENING)
+                .map(MilkInventory::getMilkLiters)
+                .orElse(0.0);
+
+        return morning + evening;
+    }
+        @Override
+        public com.example.backend.DTO.TodayMilkBreakdownDto getTodayBreakdown(Long farmId) {
+                LocalDate today = LocalDate.now();
+
+                Double morning = milkInventoryRepository
+                                .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.MORNING)
+                                .map(MilkInventory::getMilkLiters)
+                                .orElse(0.0);
+
+                Double evening = milkInventoryRepository
+                                .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.EVENING)
+                                .map(MilkInventory::getMilkLiters)
+                                .orElse(0.0);
+
+                return new com.example.backend.DTO.TodayMilkBreakdownDto(morning, evening);
+        }
+
+    
+
 }

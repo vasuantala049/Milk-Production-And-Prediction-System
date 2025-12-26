@@ -5,5 +5,7 @@ import com.example.backend.Entity.User;
 
 public interface MilkInventoryService {
     void addTodayMilk(AddMilkInventoryRequestDto dto, User loggedInUser);
+    Double getTodayTotal(Long farmId);
+    com.example.backend.DTO.TodayMilkBreakdownDto getTodayBreakdown(Long farmId);
 }
 

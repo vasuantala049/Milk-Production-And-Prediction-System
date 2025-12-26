@@ -1,10 +1,42 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { apiFetch } from "../api/client";
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  // ✅ Read active farm safely
-  const activeFarm = JSON.parse(localStorage.getItem("activeFarm"));
+  // ✅ Read active farm once (stable reference) and fetch breakdown by farmId
+  const [activeFarm] = useState(() => {
+    try {
+      const raw = localStorage.getItem("activeFarm");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [morningMilk, setMorningMilk] = useState(null);
+  const [eveningMilk, setEveningMilk] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadBreakdown(farmId) {
+      try {
+        const dto = await apiFetch(`/milk/today/breakdown?farmId=${farmId}`);
+        if (!mounted) return;
+        setMorningMilk(dto?.morning ?? 0);
+        setEveningMilk(dto?.evening ?? 0);
+      } catch (err) {
+        if (!mounted) return;
+        setMorningMilk(0);
+        setEveningMilk(0);
+      }
+    }
+
+    const farmId = activeFarm?.id;
+    if (farmId) loadBreakdown(farmId);
+    return () => { mounted = false; };
+  }, [activeFarm?.id]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -102,8 +134,8 @@ export default function Dashboard() {
       {/* Stats Cards (PLACEHOLDERS KEPT) */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <StatCard title="TOTAL HERD" unit="Head" />
-        <StatCard title="TODAY'S MILK" unit="L" />
-        <StatCard title="PREDICTED" unit="L" />
+        <StatCard title="TODAY'S MILK (MORNING)" unit="L" value={morningMilk} />
+        <StatCard title="TODAY'S MILK (EVENING)" unit="L" value={eveningMilk} />
         <StatCard title="SOLD REVENUE" unit="$" />
       </div>
 
@@ -141,11 +173,17 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ title, unit }) {
+function StatCard({ title, unit, value }) {
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm">
       <p className="text-xs text-gray-500 mb-2">{title}</p>
-      <div className="h-6 bg-gray-100 rounded w-20 mb-1"></div>
+      <div className="mb-1">
+        {value === null || value === undefined ? (
+          <div className="h-6 bg-gray-100 rounded w-20"></div>
+        ) : (
+          <p className="font-semibold text-lg text-gray-800">{Number(value).toFixed(1)}</p>
+        )}
+      </div>
       <p className="text-xs text-gray-400">{unit}</p>
     </div>
   );
