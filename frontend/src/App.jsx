@@ -8,6 +8,7 @@ import Profile from "./components/Profile";
 import AddWorker from "./components/AddWorker";
 import CattleList from "./components/CattleList";
 import AddCattle from "./components/AddCattle";
+import EditCattle from "./components/EditCattle";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AddMilk from "./components/AddMilk";
 import "./App.css";
@@ -32,6 +33,7 @@ function App() {
 
         {/* IMPORTANT: more specific route FIRST */}
         <Route path="/cattle/add/:farmId" element={<AddCattle />} />
+        <Route path="/cattle/edit/:farmId/:cattleId" element={<EditCattle />} />
         <Route path="/cattle/:farmId" element={<CattleList />} />
         <Route path="/milk/add/:farmId" element={<AddMilk />} />
 
