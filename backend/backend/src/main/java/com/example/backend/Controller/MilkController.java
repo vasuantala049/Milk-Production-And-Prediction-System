@@ -50,4 +50,12 @@ public class MilkController {
         com.example.backend.DTO.TodayMilkBreakdownDto dto = milkInventoryService.getTodayBreakdown(farmId);
         return ResponseEntity.ok(dto);
     }
+
+    @GetMapping("/history")
+    public ResponseEntity<java.util.List<com.example.backend.DTO.MilkHistoryDto>> getHistory(
+            @RequestParam Long farmId,
+            @RequestParam(defaultValue = "7") int days
+    ) {
+        return ResponseEntity.ok(milkInventoryService.getLastNDaysMilk(farmId, days));
+    }
 }

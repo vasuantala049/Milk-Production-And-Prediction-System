@@ -119,6 +119,28 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
                 return new com.example.backend.DTO.TodayMilkBreakdownDto(morning, evening);
         }
 
+        @Override
+        public java.util.List<com.example.backend.DTO.MilkHistoryDto> getLastNDaysMilk(Long farmId, int days) {
+                LocalDate today = LocalDate.now();
+                LocalDate fromDate = today.minusDays(days - 1);
+
+                java.util.List<Object[]> rows = milkInventoryRepository.findDailyTotals(farmId, fromDate);
+                java.util.Map<LocalDate, Double> map = new java.util.HashMap<>();
+                for (Object[] r : rows) {
+                        LocalDate d = (LocalDate) r[0];
+                        Double tot = (Double) r[1];
+                        map.put(d, tot == null ? 0.0 : tot);
+                }
+
+                java.util.List<com.example.backend.DTO.MilkHistoryDto> result = new java.util.ArrayList<>();
+                for (int i = 0; i < days; i++) {
+                        LocalDate d = fromDate.plusDays(i);
+                        Double t = map.getOrDefault(d, 0.0);
+                        result.add(new com.example.backend.DTO.MilkHistoryDto(d, t));
+                }
+                return result;
+        }
+
     
 
 }

@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [herdCount, setHerdCount] = useState(null);
   const [workerCount, setWorkerCount] = useState(null);
   const [activeCattleCount, setActiveCattleCount] = useState(null);
+  const [milkHistory, setMilkHistory] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -52,6 +53,26 @@ export default function Dashboard() {
     return () => { mounted = false; };
   }, [activeFarm?.id]);
 
+  // Fetch last 7 days milk history for chart
+  useEffect(() => {
+    let mounted = true;
+    async function loadHistory(farmId, days = 7) {
+      try {
+        const data = await apiFetch(`/milk/history?farmId=${farmId}&days=${days}`);
+        if (!mounted) return;
+        // expect array of { date, total }
+        setMilkHistory(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (!mounted) return;
+        setMilkHistory([]);
+      }
+    }
+
+    const farmId = activeFarm?.id;
+    if (farmId) loadHistory(farmId, 7);
+    return () => { mounted = false; };
+  }, [activeFarm?.id]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -70,6 +91,9 @@ export default function Dashboard() {
     navigate(`/cattle/${activeFarm.id}`);
   };
 
+  // prepare chart data
+  const chartData = milkHistory || [];
+  const maxTotal = chartData.length ? Math.max(...chartData.map(d => d.total || 0)) : 0;
   return (
     <div className="min-h-screen bg-[#f7faf7] px-6 py-4">
       {/* Top Bar */}
@@ -179,9 +203,32 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="h-40 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-          Chart Data From Backend
-        </div>
+        {chartData.length === 0 ? (
+          <div className="h-40 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
+            No chart data
+          </div>
+        ) : (
+          <div className="h-40 rounded-lg p-2 flex items-end gap-3">
+            {chartData.map((pt, idx) => {
+              const val = pt.total || 0;
+              const heightPct = maxTotal ? Math.round((val / maxTotal) * 100) : 0;
+              const label = (() => {
+                try {
+                  return new Date(pt.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                } catch (e) { return pt.date; }
+              })();
+              return (
+                <div key={idx} className="flex-1 flex flex-col items-center">
+                  <div className="text-xs text-gray-600 mb-1">{Number(val).toFixed(1)}</div>
+                  <div className="w-full h-28 bg-gray-100 rounded-t-md flex items-end">
+                    <div style={{ height: `${heightPct}%` }} className="w-full bg-green-400 rounded-b-md transition-all" />
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">{label}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Alerts (PLACEHOLDER KEPT) */}
