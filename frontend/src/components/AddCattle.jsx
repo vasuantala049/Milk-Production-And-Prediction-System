@@ -45,14 +45,11 @@ export default function AddCattle() {
         </button>
 
         {showScanner && (
-          <BarcodeScanner
-            onScan={(v) => {
-              setTagId(v);
-              setShowScanner(false);
-            }}
-            onClose={() => setShowScanner(false)}
-          />
-        )}
+                  <BarcodeScanner
+                    onScanSuccess={(value) => setTagId(value)}
+                    onClose={() => setShowScanner(false)}
+                  />
+                )}
 
         <input
           className="w-full mb-3 border p-2"

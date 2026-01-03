@@ -1,56 +1,71 @@
-import { useEffect } from "react";
-import {
-  Html5Qrcode,
-  Html5QrcodeSupportedFormats,
-} from "html5-qrcode";
+import { useEffect, useRef } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 
-export default function BarcodeScanner({ onScan, onClose }) {
+export default function QrScanner({ onScanSuccess, onClose }) {
+  const qrRef = useRef(null);
+  const startedRef = useRef(false);
+
   useEffect(() => {
-    const scanner = new Html5Qrcode("barcode-reader");
+    const startScanner = async () => {
+      const html5QrCode = new Html5Qrcode("qr-reader");
+      qrRef.current = html5QrCode;
 
-    scanner.start(
-      { facingMode: "environment" },
-      {
-        fps: 10,
-        qrbox: { width: 320, height: 120 },
+      await html5QrCode.start(
+        { facingMode: "environment" }, // back camera
+        {
+          fps: 10,
+          qrbox: 250, // square box
+        },
+        (decodedText) => {
+          onScanSuccess(decodedText);
+          stopScanner();
+        }
+      );
 
-        // ✅ ONLY CODE-128
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.CODE_128,
-        ],
-      },
-      (decodedText) => {
-        console.log("CODE-128 SCANNED:", decodedText);
-        onScan(decodedText);
-        scanner.stop().then(() => scanner.clear());
-      },
-      () => {}
-    ).catch((err) => {
-      console.error("Camera error:", err);
+      startedRef.current = true;
+    };
+
+    const stopScanner = async () => {
+      if (qrRef.current && startedRef.current) {
+        try {
+          await qrRef.current.stop();
+          await qrRef.current.clear();
+        } catch {}
+      }
+      qrRef.current = null;
+      startedRef.current = false;
+      onClose();
+    };
+
+    startScanner().catch(err => {
+      console.error("Scanner start failed:", err);
+      onClose();
     });
 
     return () => {
-      scanner.stop().catch(() => {});
+      stopScanner();
     };
-  }, [onScan]);
+  }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
-      <div className="bg-white p-4 rounded-lg w-[340px]">
-        <p className="text-xs text-gray-500 text-center mb-2">
-          Scan CODE-128 barcode
-        </p>
+    <div className="mt-4 border rounded-lg p-2 bg-gray-50">
+      <p className="text-sm text-gray-600 mb-2">
+        Align QR code inside the box
+      </p>
 
-        <div id="barcode-reader" />
+      {/* ⚠️ DO NOT set height */}
+      <div
+        id="qr-reader"
+        style={{ width: "100%" }}
+      />
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-3 w-full text-sm text-red-500"
-        >
-          Cancel
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="mt-2 text-sm text-red-600"
+      >
+        Stop Scan
+      </button>
     </div>
   );
 }

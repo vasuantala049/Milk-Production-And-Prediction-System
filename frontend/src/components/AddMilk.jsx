@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import BarcodeScanner from "../components/BarcodeScanner";
 
 export default function AddMilk() {
   const { farmId } = useParams();
@@ -9,9 +10,9 @@ export default function AddMilk() {
   const [tagId, setTagId] = useState("");
   const [session, setSession] = useState("");
   const [milkLiters, setMilkLiters] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,7 +34,9 @@ export default function AddMilk() {
       await apiFetch("/milk/today", {
         method: "POST",
         body: JSON.stringify({
-          farmId:sessionStorage.getItem("activeFarm") ? JSON.parse(sessionStorage.getItem("activeFarm")).id : Number(farmId),
+          farmId: sessionStorage.getItem("activeFarm")
+            ? JSON.parse(sessionStorage.getItem("activeFarm")).id
+            : Number(farmId),
           tagId,
           session,
           milkLiters: Number(milkLiters),
@@ -41,7 +44,7 @@ export default function AddMilk() {
       });
 
       navigate(`/cattle/${farmId}`);
-    } catch (err) {
+    } catch {
       setError("Enter valid tag ID");
     } finally {
       setLoading(false);
@@ -50,10 +53,7 @@ export default function AddMilk() {
 
   return (
     <div className="min-h-screen bg-[#f7faf7] px-6 py-6">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-4 text-gray-600"
-      >
+      <button onClick={() => navigate(-1)} className="mb-4 text-gray-600">
         ← Back
       </button>
 
@@ -65,15 +65,34 @@ export default function AddMilk() {
       >
         {/* Tag ID */}
         <div>
-          <label className="block text-sm font-medium mb-1">Tag ID</label>
-          <input
-            type="text"
-            value={tagId}
-            onChange={(e) => setTagId(e.target.value)}
-            placeholder="Scan or enter tag ID"
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
+          <label className="block text-sm font-medium mb-1">
+            Tag ID
+          </label>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={tagId}
+              onChange={(e) => setTagId(e.target.value)}
+              placeholder="Scan or enter tag ID"
+              className="flex-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-400"
+            />
+            <button type="button" onClick={() => setShowScanner(true)}>
+              Scan
+            </button>
+
+          </div>
         </div>
+
+        {/* BarcodeScanner Scanner */}
+        {showScanner && (
+          <BarcodeScanner
+            onScanSuccess={(value) => setTagId(value)}
+            onClose={() => setShowScanner(false)}
+          />
+        )}
+
+
 
         {/* Session */}
         <div>
@@ -83,7 +102,7 @@ export default function AddMilk() {
           <select
             value={session}
             onChange={(e) => setSession(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
+            className="w-full border rounded-lg px-3 py-2"
           >
             <option value="">Select session</option>
             <option value="MORNING">Morning</option>
@@ -101,14 +120,11 @@ export default function AddMilk() {
             step="0.1"
             value={milkLiters}
             onChange={(e) => setMilkLiters(e.target.value)}
-            placeholder="e.g. 8.5"
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+            className="w-full border rounded-lg px-3 py-2"
           />
         </div>
 
-        {error && (
-          <p className="text-red-600 text-sm font-medium">{error}</p>
-        )}
+        {error && <p className="text-red-600 text-sm">{error}</p>}
 
         <button
           type="submit"
