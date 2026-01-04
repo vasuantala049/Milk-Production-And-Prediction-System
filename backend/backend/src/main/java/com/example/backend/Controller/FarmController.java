@@ -86,4 +86,29 @@ public class FarmController {
         farmService.deleteFarm(id);
         return ResponseEntity.noContent().build();
     }
+
+    // GET herd count for a farm
+    @GetMapping("/{id}/herd-count")
+    public ResponseEntity<Long> getHerdCount(@PathVariable Long id) {
+        long count = farmService.getHerdCount(id);
+        return ResponseEntity.ok(count);
+    }
+
+    // GET worker count for a farm
+    @GetMapping("/{id}/worker-count")
+    public ResponseEntity<Long> getWorkerCount(@PathVariable Long id) {
+        long count = farmService.getWorkerCount(id);
+        return ResponseEntity.ok(count);
+    }
+
+    @GetMapping("/{id}/workers")
+    public ResponseEntity<java.util.List<com.example.backend.DTO.UserResponseDto>> getWorkers(@PathVariable Long id) {
+        return ResponseEntity.ok(farmService.getWorkersByFarm(id));
+    }
+
+    @GetMapping("/{id}/active-cattle-count")
+    public ResponseEntity<Long> getActiveCattleCount(@PathVariable Long id) {
+        long count = farmService.getActiveCattleCount(id);
+        return ResponseEntity.ok(count);
+    }
 }

@@ -31,7 +31,11 @@ export default function CattleList() {
 
       <div className="space-y-3 mb-32">
         {cattle.map((c) => (
-          <div key={c.id} className="bg-white p-4 rounded-xl shadow-sm">
+          <div
+            key={c.id}
+            className="bg-white p-4 rounded-xl shadow-sm cursor-pointer hover:shadow-md"
+            onClick={() => navigate(`/cattle/edit/${farmId}/${c.id}`)}
+          >
             <p className="font-semibold">Tag: {c.tagId}</p>
             <p className="text-xs text-gray-500">
               Breed: {c.breed || "N/A"} | Status: {c.status}

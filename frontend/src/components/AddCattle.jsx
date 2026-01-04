@@ -11,21 +11,29 @@ export default function AddCattle() {
   const [breed, setBreed] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [showScanner, setShowScanner] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    await apiFetch("/cattle", {
-      method: "POST",
-      body: JSON.stringify({
-        tagId,
-        breed,
-        status,
-        farmId: Number(farmId),
-      }),
-    });
-
-    navigate(`/cattle/${farmId}`);
+    setError("");
+    try {
+      await apiFetch("/cattle", {
+        method: "POST",
+        body: JSON.stringify({
+          tagId,
+          breed,
+          status,
+          farmId: Number(farmId),
+        }),
+      });
+      navigate(`/cattle/${farmId}`);
+    } catch (err) {
+      if (err.status === 409) {
+        setError("Cattle with this tag ID already exists in this farm.");
+      } else {
+        setError(err.message || "Failed to add cattle.");
+      }
+    }
   };
 
   return (
@@ -33,6 +41,9 @@ export default function AddCattle() {
       <button onClick={() => navigate(`/cattle/${farmId}`)}>← Back</button>
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl mt-4">
+        {error && (
+          <div className="mb-3 text-red-600 font-semibold">{error}</div>
+        )}
         <input
           className="w-full mb-3 border p-2"
           placeholder="Tag ID"

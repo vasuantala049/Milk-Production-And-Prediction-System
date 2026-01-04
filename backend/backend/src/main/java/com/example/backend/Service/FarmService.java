@@ -23,4 +23,9 @@ public interface FarmService {
     List<FarmResponseDto> getFarmsByWorker(Long workerId);
 
     void deleteFarm(Long id);
+
+    long getHerdCount(Long farmId);
+    long getWorkerCount(Long farmId);
+    java.util.List<com.example.backend.DTO.UserResponseDto> getWorkersByFarm(Long farmId);
+    long getActiveCattleCount(Long farmId);
 }
