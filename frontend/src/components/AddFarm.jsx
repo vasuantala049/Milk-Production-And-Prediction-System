@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import { TextField, Button, Card, CardContent } from '@mui/material';
 
 export default function AddFarm() {
   const navigate = useNavigate();
@@ -30,26 +31,20 @@ export default function AddFarm() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7faf7] px-6 py-4">
-      <button onClick={() => navigate("/farms")}>← Back</button>
+    <div className="min-h-screen bg-background px-4 py-6">
+      <div className="max-w-md mx-auto">
+        <Button onClick={() => navigate("/farms")} variant="text">← Back</Button>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl mt-4">
-        <input
-          className="w-full mb-3 border p-2"
-          placeholder="Farm name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          className="w-full mb-3 border p-2"
-          placeholder="Farm address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-        />
-        <button className="w-full bg-green-500 text-white py-2 rounded">
-          {loading ? "Saving..." : "Save Farm"}
-        </button>
-      </form>
+        <Card className="mt-4">
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <TextField fullWidth label="Farm name" value={name} onChange={(e) => setName(e.target.value)} />
+              <TextField fullWidth label="Farm address" value={address} onChange={(e) => setAddress(e.target.value)} />
+              <Button type="submit" variant="contained" color="success" fullWidth>{loading ? 'Saving...' : 'Save Farm'}</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

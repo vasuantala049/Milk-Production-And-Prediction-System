@@ -1,11 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef, useLayoutEffect } from "react";
 import { apiFetch } from "../api/client";
+import { Button, Avatar } from "@mui/material";
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  // ✅ Read active farm once (stable reference) and fetch breakdown by farmId
+  // ===== STATE (UNCHANGED) =====
   const [activeFarm] = useState(() => {
     try {
       const raw = localStorage.getItem("activeFarm");
@@ -22,17 +23,16 @@ export default function Dashboard() {
   const [activeCattleCount, setActiveCattleCount] = useState(null);
   const [milkHistory, setMilkHistory] = useState(null);
   const [daysRange, setDaysRange] = useState(7);
+
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
   useLayoutEffect(() => {
-    function measure() {
-      const w = containerRef.current ? containerRef.current.clientWidth : 0;
-      setContainerWidth(w || 0);
-    }
+    const measure = () =>
+      setContainerWidth(containerRef.current?.clientWidth || 0);
     measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
   }, []);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function Dashboard() {
           apiFetch(`/milk/today/breakdown?farmId=${farmId}`),
           apiFetch(`/farms/${farmId}/herd-count`),
           apiFetch(`/farms/${farmId}/worker-count`),
-          apiFetch(`/farms/${farmId}/active-cattle-count`),
+          apiFetch(`/farms/${farmId}/active-cattle-count`)
         ]);
         if (!mounted) return;
         setMorningMilk(dto?.morning ?? 0);
@@ -51,7 +51,7 @@ export default function Dashboard() {
         setHerdCount(herd ?? 0);
         setWorkerCount(workers ?? 0);
         setActiveCattleCount(activeCount ?? 0);
-      } catch (err) {
+      } catch {
         if (!mounted) return;
         setMorningMilk(0);
         setEveningMilk(0);
@@ -61,263 +61,186 @@ export default function Dashboard() {
       }
     }
 
-    const farmId = activeFarm?.id;
-    if (farmId) loadBreakdown(farmId);
+    if (activeFarm?.id) loadBreakdown(activeFarm.id);
     return () => { mounted = false; };
   }, [activeFarm?.id]);
 
-  // Fetch milk history for selected daysRange
   useEffect(() => {
     let mounted = true;
-    async function loadHistory(farmId, days = 7) {
+    async function loadHistory(farmId, days) {
       try {
         const data = await apiFetch(`/milk/history?farmId=${farmId}&days=${days}`);
         if (!mounted) return;
-        // expect array of { date, total }
         setMilkHistory(Array.isArray(data) ? data : []);
-      } catch (err) {
+      } catch {
         if (!mounted) return;
         setMilkHistory([]);
       }
     }
-
-    const farmId = activeFarm?.id;
-    if (farmId) loadHistory(farmId, daysRange);
+    if (activeFarm?.id) loadHistory(activeFarm.id, daysRange);
     return () => { mounted = false; };
   }, [activeFarm?.id, daysRange]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("activeFarm");
+    localStorage.clear();
     navigate("/login", { replace: true });
   };
 
   const handleManageHerd = () => {
-    // ✅ If no farm selected, force user to farms page
-    if (!activeFarm) {
-      navigate("/farms");
-      return;
-    }
-
-    // ✅ Correct navigation with farmId
-    navigate(`/cattle/${activeFarm.id}`);
+    if (!activeFarm) navigate("/farms");
+    else navigate(`/cattle/${activeFarm.id}`);
   };
 
-  // prepare chart data
   const chartData = milkHistory || [];
-  const maxTotal = chartData.length ? Math.max(...chartData.map(d => d.total || 0)) : 0;
+  const maxTotal = chartData.length
+    ? Math.max(...chartData.map(d => d.total || 0))
+    : 0;
+
   return (
-    <div className="min-h-screen bg-[#f7faf7] px-6 py-4">
-      {/* Top Bar */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-gray-200"></div>
-          <div>
-            <p className="text-xs text-gray-500">Welcome back</p>
-            <p className="font-semibold text-gray-800">DAIRYDASH</p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-200/60">
+      {/* HEADER */}
+      <header className="sticky top-0 z-30 bg-white border-b border-gray-300">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="p-1 rounded-full" style={{ background: 'linear-gradient(90deg, rgba(79,70,229,0.12), rgba(34,211,238,0.08))' }}>
+                <Avatar sx={{ bgcolor: "#eef2ff", color: "#4f46e5" }}>DF</Avatar>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Dashboard</p>
+                <h3 className="font-semibold text-gray-900">Active Farm: {activeFarm?.name || "None"}</h3>
+              </div>
+            </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => window.location.href = '/profile'}
-            className="text-sm text-gray-700 bg-white px-3 py-1 rounded border"
-          >
-            Profile
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="text-sm text-gray-500 bg-green-300 hover:bg-green-500 hover:text-gray-800 transition px-3 py-1 rounded"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {/* Greeting */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Good Morning,
-        </h1>
-        <p className="text-sm text-gray-500">
-          Here&apos;s what&apos;s happening on the farm today.
-        </p>
-
-        {activeFarm && (
-          <p className="text-xs text-gray-500 mt-1">
-            Active farm:{" "}
-            <span className="font-semibold">{activeFarm.name}</span>
-          </p>
-        )}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <button
-          onClick={() => navigate("/farms")}
-          className="bg-white rounded-xl p-4 shadow-sm text-left hover:shadow-md transition"
-        >
-          <p className="text-xs text-gray-500 mb-1">Farms</p>
-          <p className="font-semibold text-gray-800">
-            Manage Farms
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            View and manage your farms.
-          </p>
-        </button>
-
-        <button
-          onClick={handleManageHerd}
-          className="bg-white rounded-xl p-4 shadow-sm text-left hover:shadow-md transition"
-        >
-          <p className="text-xs text-gray-500 mb-1">Cattle</p>
-          <div className="flex items-center gap-3">
-            <p className="font-semibold text-gray-800">Manage Herd</p>
-            <div className="ml-auto text-sm text-gray-500">
-              Total: <span className="font-semibold text-gray-800">{herdCount == null ? "—" : Number(herdCount).toFixed(0)}</span>
+            <div className="flex gap-2">
+              <Button size="small" variant="outlined" onClick={() => navigate("/profile")}>Profile</Button>
+              <Button size="small" variant="contained" onClick={handleLogout} className="btn-primary">Logout</Button>
             </div>
           </div>
-            <div className="mt-1 text-sm text-gray-500">
-              Active: <span className="font-semibold text-gray-800">{activeCattleCount == null ? "—" : Number(activeCattleCount).toFixed(0)}</span>
-            </div>
-          <p className="text-xs text-gray-400 mt-1">
-            View and add cattle for the active farm.
-          </p>
-        </button>
-      </div>
-
-      {/* Stats Cards (PLACEHOLDERS KEPT) */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <StatCard title="TODAY'S MILK (MORNING)" unit="L" value={morningMilk} />
-        <StatCard title="TODAY'S MILK (EVENING)" unit="L" value={eveningMilk} />
-        <StatCard
-          title="WORKERS"
-          unit="Workers"
-          value={workerCount}
-          onClick={() => activeFarm && navigate(`/workers/${activeFarm.id}`)}
-        />
-      </div>
-
-      {/* Production Trends (PLACEHOLDER KEPT) */}
-      <div className="bg-white rounded-xl p-4 shadow-sm mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-semibold text-gray-800">
-            Production Trends
-          </h2>
-          <div className="flex gap-2 text-sm">
-            <button
-              onClick={() => setDaysRange(7)}
-              className={`px-3 py-1 rounded border text-sm ${daysRange === 7 ? 'bg-white text-gray-800' : 'text-gray-600 bg-white'}`}
-            >
-              7 Days
-            </button>
-            <button
-              onClick={() => setDaysRange(30)}
-              className={`px-3 py-1 rounded border text-sm ${daysRange === 30 ? 'bg-white text-gray-800' : 'text-gray-600 bg-white'}`}
-            >
-              30 Days
-            </button>
-          </div>
         </div>
+      </header>
 
-        {chartData.length === 0 ? (
-          <div className="h-40 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-            No chart data
+      <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
+        {/* ACTIONS */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ActionCard title="Manage Farms" subtitle="View and manage your farms" onClick={() => navigate("/farms")} />
+          <ActionCard title="Manage Herd" subtitle={`Active cattle: ${activeCattleCount ?? "—"}`} onClick={handleManageHerd} />
+        </section>
+
+        {/* STATS */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard label="Morning Milk" value={morningMilk} unit="L" />
+          <StatCard label="Evening Milk" value={eveningMilk} unit="L" />
+          <StatCard label="Workers" value={workerCount} unit="Workers" />
+        </section>
+
+        {/* GRAPH */}
+        <section className="bg-white rounded-2xl p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="font-semibold text-gray-900">Production Trends</h2>
+            <div className="flex gap-2">
+              {[7, 30].map(d => (
+                <button
+                  key={d}
+                  onClick={() => setDaysRange(d)}
+                  className={`px-3 py-1 rounded border text-sm transition
+                    ${daysRange === d
+                      ? "bg-gray-800 text-white"
+                      : "bg-white text-gray-600 hover:bg-gray-100"}
+                  `}
+                >
+                  {d} Days
+                </button>
+              ))}
+            </div>
           </div>
-        ) : (
-          <div ref={containerRef} className="rounded-lg p-3 overflow-x-auto" style={{ background: '#fff', minHeight: 340 }}>
-            {(() => {
-              const n = chartData.length;
-              const is30 = daysRange > 7;
-              // choose visual sizes that look good on dashboard
-              const viewH = 280; // px height of svg (2x)
-              const pointSpacing = is30 ? 47.2 : 200; // px per point (increased spacing)
-              // make view width at least twice the card width so x-axis is 2x the visible area
-              const desiredFromPoints = Math.max(560, n * pointSpacing);
-              const doubleContainer = containerWidth ? Math.max(containerWidth * 2, 560) : 560;
-              const viewW = Math.max(desiredFromPoints, doubleContainer);
-              const padTop = 18;
-              const padBottom = 40;
-              const padLeft = 24;
-              const padRight = 24;
-              const plotH = viewH - padTop - padBottom;
-              const max = maxTotal || 1;
 
-              const pts = chartData.map((d, i) => {
-                const x = padLeft + (i * (viewW - padLeft - padRight)) / Math.max(1, n - 1);
-                const val = d.total || 0;
-                const y = padTop + (1 - val / max) * plotH;
-                return { x, y, val, label: d.date };
-              });
+          {chartData.length === 0 ? (
+            <div className="h-40 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+              No chart data
+            </div>
+          ) : (
+            <div
+              ref={containerRef}
+              className="overflow-x-auto rounded-lg bg-gray-50 p-4"
+              style={{ minHeight: 340 }}
+            >
+              {(() => {
+                const n = chartData.length;
+                const viewH = 280;
+                const pointSpacing = daysRange > 7 ? 47 : 200;
+                const viewW = Math.max(containerWidth * 2, n * pointSpacing, 560);
+                const padTop = 18;
+                const padBottom = 40;
+                const padLeft = 24;
+                const plotH = viewH - padTop - padBottom;
+                const max = maxTotal || 1;
 
-              const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
-              const areaPath = `${pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ')} L ${pts[pts.length - 1].x.toFixed(2)} ${padTop + plotH} L ${pts[0].x.toFixed(2)} ${padTop + plotH} Z`;
+                const pts = chartData.map((d, i) => {
+                  const x = padLeft + (i * (viewW - padLeft * 2)) / Math.max(1, n - 1);
+                  const y = padTop + (1 - (d.total || 0) / max) * plotH;
+                  return { x, y, val: d.total, label: d.date };
+                });
 
-              return (
-                <div style={{ width: `${viewW}px` }}>
-                  <svg viewBox={`0 0 ${viewW} ${viewH}`} preserveAspectRatio="xMinYMid meet" style={{ width: `${viewW}px`, height: `${viewH}px` }}>
-                    {/* grid lines */}
-                    {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
-                      const y = padTop + t * plotH;
-                      return <line key={i} x1={padLeft} x2={viewW - padRight} y1={y} y2={y} stroke="#e6f0ea" strokeWidth="0.8" />;
-                    })}
+                const linePath = pts
+                  .map((p, i) => `${i ? "L" : "M"} ${p.x} ${p.y}`)
+                  .join(" ");
 
-                    {/* area */}
-                    <path d={areaPath} fill="#e6f9ec" stroke="none" />
+                const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${padTop + plotH} L ${pts[0].x} ${padTop + plotH} Z`;
 
-                    {/* line */}
-                    <path d={linePath} fill="none" stroke="#2ea53a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-
-                    {/* points and labels */}
+                return (
+                  <svg width={viewW} height={viewH}>
+                    <path d={areaPath} fill="#e5f5ea" />
+                    <path
+                      d={linePath}
+                      fill="none"
+                      stroke="#2f6b35"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
                     {pts.map((p, i) => (
                       <g key={i}>
-                        <circle cx={p.x} cy={p.y} r={is30 ? 2.6 : 3.4} fill="#fff" stroke="#2ea53a" strokeWidth={is30 ? 1.1 : 1.4} />
-                        <circle cx={p.x} cy={p.y} r={is30 ? 1.4 : 2} fill="#2ea53a" />
-                        {/* show value only for 7-day or for last point when 30-day */}
-                        {((!is30) || i === pts.length - 1) && p.val !== 0 && (
-                          <text x={p.x} y={p.y - 12} fontSize="14" textAnchor="middle" fill="#2f6b35">{Number(p.val).toFixed(1)}</text>
+                        <circle cx={p.x} cy={p.y} r="3" fill="#2f6b35" />
+                        {p.val !== 0 && (
+                          <text
+                            x={p.x}
+                            y={p.y - 10}
+                            textAnchor="middle"
+                            fontSize="12"
+                            fill="#2f6b35"
+                          >
+                            {Number(p.val).toFixed(1)}
+                          </text>
                         )}
-                        {/* x-axis label */}
-                        <text x={p.x} y={viewH - 10} fontSize="13" textAnchor="middle" fill="#6f9b73">{(() => { try { return new Date(p.label).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch (e) { return p.label; } })()}</text>
                       </g>
                     ))}
                   </svg>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-      </div>
-
-      {/* Alerts (PLACEHOLDER KEPT) */}
-      <div className="mb-20">
-        <h2 className="font-semibold text-gray-800 mb-3">
-          Production Alerts
-        </h2>
-        <div className="bg-white rounded-lg p-4 text-gray-400 text-sm shadow-sm">
-          Alerts will appear here
-        </div>
-      </div>
+                );
+              })()}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }
 
-function StatCard({ title, unit, value, onClick }) {
+/* ===== UI COMPONENTS ===== */
+
+function ActionCard({ title, subtitle, onClick }) {
   return (
-    <div
-      className={`bg-white rounded-xl p-4 shadow-sm ${onClick ? 'cursor-pointer hover:shadow-md' : ''}`}
-      onClick={onClick}
-    >
-      <p className="text-xs text-gray-500 mb-2">{title}</p>
-      <div className="mb-1">
-        {value === null || value === undefined ? (
-          <div className="h-6 bg-gray-100 rounded w-20"></div>
-        ) : (
-          <p className="font-semibold text-lg text-gray-800">{unit === "Head" ? Number(value).toFixed(0) : Number(value).toFixed(1)}</p>
-        )}
-      </div>
+    <div onClick={onClick} className="bg-white rounded-2xl p-5 cursor-pointer card-hover accent-gradient soft-border">
+      <p className="font-semibold text-gray-900">{title}</p>
+      <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+    </div>
+  );
+}
+
+function StatCard({ label, value, unit }) {
+  return (
+    <div className="bg-white rounded-2xl p-5 shadow-sm card-hover">
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-2xl font-semibold text-gray-900">{value == null ? "—" : Number(value).toFixed(1)}</p>
       <p className="text-xs text-gray-400">{unit}</p>
     </div>
   );
