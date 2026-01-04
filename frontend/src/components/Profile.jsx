@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api/client";
+import { Card, CardContent, Avatar } from '@mui/material';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -24,15 +25,21 @@ export default function Profile() {
   if (!user) return <p>No user found.</p>;
 
   return (
-    <div className="min-h-screen bg-[#f7faf7] px-6 py-6">
-      <div className="max-w-xl mx-auto bg-white rounded-xl p-6">
-        <h2 className="text-xl font-semibold mb-4">Profile</h2>
+    <div className="min-h-screen bg-background px-4 py-6">
+      <div className="max-w-xl mx-auto">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              <Avatar sx={{ bgcolor: '#eef2ff', color: '#4f46e5' }}>{(user.name || '').charAt(0)}</Avatar>
+              <div>
+                <h2 className="text-xl font-semibold">{user.name}</h2>
+                <p className="text-sm text-gray-500">{user.email}</p>
+              </div>
+            </div>
 
-        <p className="mb-2"><strong>Name:</strong> {user.name}</p>
-        <p className="mb-2"><strong>Email:</strong> {user.email}</p>
-        <p className="mb-2"><strong>Role:</strong> {user.role}</p>
-
-        {/* Worker code feature removed — owners should create/assign workers from their UI */}
+            <p className="mb-2"><strong>Role:</strong> {user.role}</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

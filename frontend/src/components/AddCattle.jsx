@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
 import BarcodeScanner from "./BarcodeScanner";
+import { TextField, Button, Card, CardContent } from '@mui/material';
 
 export default function AddCattle() {
   const { farmId } = useParams();
@@ -37,55 +38,39 @@ export default function AddCattle() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 px-6 py-4">
-      <button onClick={() => navigate(`/cattle/${farmId}`)}>← Back</button>
+    <div className="min-h-screen bg-background px-4 py-6">
+      <div className="max-w-md mx-auto">
+        <Button onClick={() => navigate(`/cattle/${farmId}`)} variant="text">← Back</Button>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl mt-4">
-        {error && (
-          <div className="mb-3 text-red-600 font-semibold">{error}</div>
-        )}
-        <input
-          className="w-full mb-3 border p-2"
-          placeholder="Tag ID"
-          value={tagId}
-          onChange={(e) => setTagId(e.target.value)}
-        />
+        <Card className="mt-4">
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && <div className="text-red-600 font-semibold">{error}</div>}
 
-        <button type="button" onClick={() => setShowScanner(true)}>
-          Scan
-        </button>
+              <TextField fullWidth label="Tag ID" value={tagId} onChange={(e) => setTagId(e.target.value)} />
 
-        {showScanner && (
-          <BarcodeScanner
-            onScan={(v) => {
-              setTagId(v);
-              setShowScanner(false);
-            }}
-            onClose={() => setShowScanner(false)}
-          />
-        )}
+              <div className="flex gap-2 items-center">
+                <Button type="button" variant="outlined" onClick={() => setShowScanner(true)}>Scan</Button>
+                <TextField label="Breed" value={breed} onChange={(e) => setBreed(e.target.value)} fullWidth />
+              </div>
 
-        <input
-          className="w-full mb-3 border p-2"
-          placeholder="Breed"
-          value={breed}
-          onChange={(e) => setBreed(e.target.value)}
-        />
+              <TextField select fullWidth label="Status" value={status} onChange={(e) => setStatus(e.target.value)} SelectProps={{ native: true }}>
+                <option value="ACTIVE">Active</option>
+                <option value="SICK">Sick</option>
+                <option value="SOLD">Sold</option>
+              </TextField>
 
-        <select
-          className="w-full mb-3 border p-2"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="ACTIVE">Active</option>
-          <option value="SICK">Sick</option>
-          <option value="SOLD">Sold</option>
-        </select>
+              <div className="flex gap-2">
+                <Button variant="contained" color="primary" type="submit" fullWidth>Save Cattle</Button>
+              </div>
 
-        <button className="w-full bg-green-500 text-white py-2 rounded">
-          Save Cattle
-        </button>
-      </form>
+              {showScanner && (
+                <BarcodeScanner onScan={(v) => { setTagId(v); setShowScanner(false); }} onClose={() => setShowScanner(false)} />
+              )}
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import { Card, CardContent, Button } from '@mui/material';
 
 export default function WorkersList() {
   const { farmId } = useParams();
@@ -16,22 +17,28 @@ export default function WorkersList() {
   }, [farmId]);
 
   return (
-    <div className="min-h-screen bg-[#f7faf7] px-6 py-4">
-      <button onClick={() => navigate("/dashboard")} className="mb-4 text-gray-600">← Back to Dashboard</button>
+    <div className="min-h-screen bg-background px-4 py-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-4">
+          <Button onClick={() => navigate('/dashboard')} variant="text">← Back to Dashboard</Button>
+        </div>
 
-      <h1 className="text-2xl font-bold mb-4">Workers</h1>
+        <h1 className="text-2xl font-bold mb-4">Workers</h1>
 
-      {!loading && workers.length === 0 && (
-        <p className="italic text-gray-600">No workers assigned to this farm</p>
-      )}
+        {!loading && workers.length === 0 && (
+          <p className="italic text-gray-600">No workers assigned to this farm</p>
+        )}
 
-      <div className="space-y-3 mb-32">
-        {workers.map((w) => (
-          <div key={w.id} className="bg-white p-4 rounded-xl shadow-sm">
-            <p className="font-semibold">{w.name}</p>
-            <p className="text-xs text-gray-500">{w.email}</p>
-          </div>
-        ))}
+        <div className="space-y-3 mb-32">
+          {workers.map((w) => (
+            <Card key={w.id} className="rounded-xl">
+              <CardContent>
+                <p className="font-semibold">{w.name}</p>
+                <p className="text-xs text-gray-500">{w.email}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );

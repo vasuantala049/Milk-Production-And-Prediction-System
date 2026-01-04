@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import {
+  TextField,
+  Button,
+  Card,
+  CardContent,
+  MenuItem
+} from "@mui/material";
 
 export default function AddMilk() {
   const { farmId } = useParams();
@@ -41,9 +48,7 @@ export default function AddMilk() {
 
       await apiFetch("/milk/today", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           tagId,
           session,
@@ -52,88 +57,95 @@ export default function AddMilk() {
       });
 
       navigate(`/cattle/${farmId}`);
-    } catch (err) {
-      if (err.status === 403 || err.status === 401) {
-        setError("Unauthorized — your session may have expired. Please login again.");
-        // don't auto-redirect; allow user to re-login manually
-      } else {
-        setError(err.message || "Request failed");
-      }
+    } catch {
+      setError("Failed to add milk record");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f7faf7] px-6 py-6">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-4 text-gray-600"
-      >
-        ← Back
-      </button>
-
-      <h1 className="text-2xl font-bold mb-6">Add Milk</h1>
-
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-xl shadow-sm space-y-4"
-      >
-        {/* Tag ID */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Tag ID</label>
-          <input
-            type="text"
-            value={tagId}
-            onChange={(e) => setTagId(e.target.value)}
-            placeholder="Scan or enter tag ID"
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
-        </div>
-
-        {/* Session */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Milk Session
-          </label>
-          <select
-            value={session}
-            onChange={(e) => setSession(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
-          >
-            <option value="">Select session</option>
-            <option value="MORNING">Morning</option>
-            <option value="EVENING">Evening</option>
-          </select>
-        </div>
-
-        {/* Milk Liters */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Milk (Liters)
-          </label>
-          <input
-            type="number"
-            step="0.1"
-            value={milkLiters}
-            onChange={(e) => setMilkLiters(e.target.value)}
-            placeholder="e.g. 8.5"
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
-        </div>
-
-        {error && (
-          <p className="text-red-600 text-sm font-medium">{error}</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-green-500 text-white py-2 rounded-lg font-semibold disabled:opacity-50"
+    <div className="min-h-screen bg-gray-200/60 px-4 py-10">
+      <div className="max-w-md mx-auto space-y-6">
+        {/* Back */}
+        <Button
+          onClick={() => navigate(`/cattle/${farmId}`)}
+          variant="text"
         >
-          {loading ? "Saving..." : "Save Milk Entry"}
-        </button>
-      </form>
+          ← Back to Cattle
+        </Button>
+
+        {/* Title */}
+        <div>
+          <h1 className="text-3xl font-semibold text-gray-900">
+            Add Milk Record
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Record today&apos;s milk production for a cattle
+          </p>
+        </div>
+
+        {/* Form */}
+        <Card className="rounded-2xl shadow-sm">
+          <CardContent className="p-7">
+            <form onSubmit={handleSubmit} className="space-y-7">
+              {error && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <TextField
+                  fullWidth
+                  label="Tag ID"
+                  value={tagId}
+                  onChange={(e) => setTagId(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <TextField
+                  select
+                  fullWidth
+                  label="Session"
+                  value={session}
+                  onChange={(e) => setSession(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                >
+                  <MenuItem value="">Select session</MenuItem>
+                  <MenuItem value="MORNING">Morning</MenuItem>
+                  <MenuItem value="EVENING">Evening</MenuItem>
+                </TextField>
+              </div>
+
+              <div>
+                <TextField
+                  fullWidth
+                  label="Milk (Liters)"
+                  value={milkLiters}
+                  onChange={(e) => setMilkLiters(e.target.value)}
+                  type="number"
+                  inputProps={{ min: 0, step: "0.1" }}
+                  placeholder="e.g. 5.5"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                variant="contained"
+                color="success"
+                fullWidth
+                disabled={loading}
+                className="!py-3 !rounded-xl"
+              >
+                {loading ? "Saving..." : "Add Milk"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
