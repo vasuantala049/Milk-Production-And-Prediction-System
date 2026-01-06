@@ -165,15 +165,16 @@ export default function YourFarms() {
           if (user.role !== "FARM_OWNER") return null;
 
           return (
-            <div className="fixed bottom-6 right-6">
-              <Button
-                variant="contained"
-                onClick={() => navigate("/farms/add")}
-                className="!rounded-full !px-6 !py-3 shadow-lg"
-              >
-                + Add Farm
-              </Button>
-            </div>
+          <div className="fixed bottom-6 right-6">
+  <Button
+    variant="contained"
+    onClick={() => navigate("/farms/add")}
+    className="!rounded-md !px-6 !py-3 shadow-md !font-semibold !text-sm hover:shadow-lg transition"
+  >
+    Add Farm
+  </Button>
+</div>
+
           );
         })()}
       </div>

@@ -69,26 +69,26 @@ export default function CattleList() {
         </div>
 
         {/* Floating Actions */}
-        <div className="fixed bottom-24 right-6">
-          <Button
-            variant="contained"
-            onClick={() => navigate(`/milk/add/${farmId}`)}
-            className="!rounded-full !px-5 !py-3 shadow-lg"
-          >
-            + Add Milk
-          </Button>
-        </div>
+<div className="fixed bottom-8 right-6 flex flex-col gap-3">
+  <Button
+    variant="contained"
+    onClick={() => navigate(`/milk/add/${farmId}`)}
+    className="!rounded-md !px-6 !py-3 shadow-md !font-semibold !text-sm"
+  >
+    Add Milk
+  </Button>
 
-        <div className="fixed bottom-8 right-6">
-          <Button
-            variant="contained"
-            color="success"
-            onClick={() => navigate(`/cattle/add/${farmId}`)}
-            className="!rounded-full !px-5 !py-3 shadow-lg"
-          >
-            + Add Cattle
-          </Button>
-        </div>
+  <Button
+    variant="contained"
+    color="success"
+    onClick={() => navigate(`/cattle/add/${farmId}`)}
+    className="!rounded-md !px-6 !py-3 shadow-md !font-semibold !text-sm"
+  >
+    Add Cattle
+  </Button>
+</div>
+
+
       </div>
     </div>
   );
