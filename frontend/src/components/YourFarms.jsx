@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { apiFetch } from "../api/client";
-import { Card, CardContent, Button } from "@mui/material";
+import { DashboardLayout } from "./layout/DashboardLayout";
+import { FarmCard } from "./dashboard/FarmCard";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Plus, Search, Trash2, Users as UsersIcon } from "lucide-react";
 
 export default function YourFarms() {
   const navigate = useNavigate();
   const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -27,20 +33,10 @@ export default function YourFarms() {
         }
       })
       .catch((err) => {
-        console.error(err);
         setError(err.message || "Failed to load farms.");
       })
       .finally(() => setLoading(false));
   }, []);
-
-  const handleBackToDashboard = () => {
-    if (farms.length === 0) {
-      setError("You need at least one farm to see the dashboard.");
-      return;
-    }
-    localStorage.setItem("activeFarm", JSON.stringify(farms[0]));
-    navigate("/dashboard");
-  };
 
   const handleViewFarm = (farm) => {
     localStorage.setItem("activeFarm", JSON.stringify(farm));
@@ -48,136 +44,132 @@ export default function YourFarms() {
   };
 
   const handleDeleteFarm = async (farmId) => {
-    if (!window.confirm("Delete this farm? This cannot be undone.")) return;
+    if (!window.confirm("Delete this farm?")) return;
     try {
       await apiFetch(`/farms/${farmId}`, { method: "DELETE" });
-      setFarms((prev) => {
-        const updated = prev.filter((f) => f.id !== farmId);
-        if (updated.length === 0) localStorage.removeItem("activeFarm");
-        return updated;
-      });
+      setFarms((prev) => prev.filter((f) => f.id !== farmId));
     } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to delete farm.");
+      alert(err.message || "Failed to delete farm");
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-200/60 px-4 py-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Back */}
-        <div>
-          <Button onClick={handleBackToDashboard} variant="text">
-            ← Back to Dashboard
-          </Button>
-        </div>
+  const filteredFarms = farms.filter(farm =>
+    farm.name?.toLowerCase().includes(search.toLowerCase()) ||
+    farm.address?.toLowerCase().includes(search.toLowerCase())
+  );
 
-        {/* Title */}
-        <div>
-          <h1 className="text-3xl font-semibold text-gray-900">
-            Your Farms
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Select a farm to continue to the dashboard
-          </p>
-        </div>
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        >
+          <div>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
+              Farms
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your dairy farms and track production
+            </p>
+          </div>
+          {user.role === "FARM_OWNER" && (
+            <Button onClick={() => navigate("/farms/add")} className="gap-2">
+              <Plus className="w-5 h-5" />
+              Add Farm
+            </Button>
+          )}
+        </motion.div>
+
+        {/* Search */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="relative max-w-md"
+        >
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            placeholder="Search farms..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 h-12"
+          />
+        </motion.div>
 
         {/* Loading / Error */}
         {loading && (
-          <div className="text-sm text-gray-500">
-            Loading farms…
-          </div>
+          <p className="text-muted-foreground">Loading farms…</p>
         )}
-
-        {error && !loading && (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive p-3 rounded-md">
             {error}
           </div>
         )}
 
-        {/* Farms List */}
-        <div className="space-y-3">
-          {farms.map((farm) => (
-            <Card
-              key={farm.id}
-              className="rounded-2xl card-hover soft-border bg-white"
-            >
-              <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <p className="font-semibold text-gray-900">
-                    {farm.name}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {farm.address || "No address provided"}
-                  </p>
+        {/* Farms Grid */}
+        {!loading && filteredFarms.length > 0 && (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredFarms.map((farm, index) => (
+              <motion.div
+                key={farm.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 + index * 0.05 }}
+                className="relative group"
+              >
+                <div
+                  onClick={() => handleViewFarm(farm)}
+                  className="cursor-pointer"
+                >
+                  <FarmCard farm={farm} />
                 </div>
-
-                <div className="flex gap-2">
+                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
-                    variant="contained"
-                    onClick={() => handleViewFarm(farm)}
-                    className="btn-primary"
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/farms/${farm.id}/add-worker`);
+                    }}
+                    className="h-8 w-8 p-0"
                   >
-                    Open
+                    <UsersIcon className="w-4 h-4" />
                   </Button>
-
                   <Button
-                    variant="outlined"
-                    onClick={() => navigate(`/farms/${farm.id}/add-worker`)}
-                    className="border border-gray-200"
+                    variant="destructive"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteFarm(farm.id);
+                    }}
+                    className="h-8 w-8 p-0"
                   >
-                    Add Worker
-                  </Button>
-
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => handleDeleteFarm(farm.id)}
-                  >
-                    Delete
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {!loading && !error && farms.length === 0 && (
-          <div className="text-sm text-gray-500 bg-white rounded-xl p-4 shadow-sm">
-            You don&apos;t have any farms yet.
-            {(() => {
-              const storedUser = localStorage.getItem("user");
-              if (!storedUser) return "";
-              const user = JSON.parse(storedUser);
-              return user.role === "WORKER"
-                ? " Your account is not assigned to a farm. Please contact your farm owner."
-                : " Add one to continue.";
-            })()}
+              </motion.div>
+            ))}
           </div>
         )}
 
-        {/* Add Farm (Owner only) */}
-        {(() => {
-          const storedUser = localStorage.getItem("user");
-          if (!storedUser) return null;
-          const user = JSON.parse(storedUser);
-          if (user.role !== "FARM_OWNER") return null;
-
-          return (
-          <div className="fixed bottom-6 right-6">
-  <Button
-    variant="contained"
-    onClick={() => navigate("/farms/add")}
-    className="!rounded-md !px-6 !py-3 shadow-md !font-semibold !text-sm hover:shadow-lg transition"
-  >
-    Add Farm
-  </Button>
-</div>
-
-          );
-        })()}
+        {/* Empty State */}
+        {!loading && filteredFarms.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-card border border-border rounded-xl p-12 text-center shadow-card"
+          >
+            <p className="text-muted-foreground">
+              {search ? "No farms found matching your search." : "You don't have any farms yet."}
+            </p>
+          </motion.div>
+        )}
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

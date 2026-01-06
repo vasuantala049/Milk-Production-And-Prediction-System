@@ -1,21 +1,176 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-	--bg: #f7faf7;
+/* Milk Farm Management Design System
+   Fresh, agricultural aesthetic with earthy tones */
+
+@layer base {
+  :root {
+    /* Core palette - Fresh sage green meets cream */
+    --background: 60 30% 98%;
+    --foreground: 150 25% 15%;
+
+    --card: 60 40% 99%;
+    --card-foreground: 150 25% 15%;
+
+    --popover: 60 40% 99%;
+    --popover-foreground: 150 25% 15%;
+
+    /* Primary - Fresh sage green */
+    --primary: 145 45% 42%;
+    --primary-foreground: 60 40% 99%;
+
+    /* Secondary - Warm cream */
+    --secondary: 42 55% 94%;
+    --secondary-foreground: 150 25% 20%;
+
+    /* Muted - Soft sage */
+    --muted: 145 20% 94%;
+    --muted-foreground: 150 15% 45%;
+
+    /* Accent - Earthy amber */
+    --accent: 35 85% 55%;
+    --accent-foreground: 35 90% 15%;
+
+    /* Status colors */
+    --success: 145 60% 40%;
+    --success-foreground: 60 40% 99%;
+    --warning: 42 95% 55%;
+    --warning-foreground: 35 90% 15%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 205 85% 55%;
+    --info-foreground: 0 0% 100%;
+
+    /* Pending status */
+    --pending: 42 95% 55%;
+    --pending-foreground: 35 90% 15%;
+
+    /* Available/healthy status */
+    --available: 145 60% 40%;
+    --available-foreground: 60 40% 99%;
+
+    --border: 145 20% 88%;
+    --input: 145 20% 88%;
+    --ring: 145 45% 42%;
+
+    --radius: 0.75rem;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(145 45% 42%) 0%, hsl(145 55% 35%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(60 40% 99%) 0%, hsl(60 30% 97%) 100%);
+    --gradient-warm: linear-gradient(135deg, hsl(42 55% 94%) 0%, hsl(35 60% 90%) 100%);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(150 25% 15% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(150 25% 15% / 0.07), 0 2px 4px -2px hsl(150 25% 15% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(150 25% 15% / 0.08), 0 4px 6px -4px hsl(150 25% 15% / 0.05);
+    --shadow-card: 0 1px 3px 0 hsl(150 25% 15% / 0.04), 0 1px 2px -1px hsl(150 25% 15% / 0.04);
+    --shadow-elevated: 0 20px 25px -5px hsl(150 25% 15% / 0.08), 0 8px 10px -6px hsl(150 25% 15% / 0.06);
+
+    /* Sidebar */
+    --sidebar-background: 145 25% 18%;
+    --sidebar-foreground: 60 30% 95%;
+    --sidebar-primary: 145 45% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 145 25% 25%;
+    --sidebar-accent-foreground: 60 30% 95%;
+    --sidebar-border: 145 20% 25%;
+    --sidebar-ring: 145 45% 55%;
+
+    /* Chart colors */
+    --chart-1: 145 60% 40%;
+    --chart-2: 35 85% 55%;
+    --chart-3: 205 85% 55%;
+    --chart-4: 280 60% 55%;
+    --chart-5: 0 72% 55%;
+  }
 }
 
-html, body, #root {
-	height: 100%;
-	margin: 0;
-	padding: 0;
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-tight;
+  }
 }
 
-body {
-	background-color: var(--bg);
-	color: #1f2937; /* text-gray-800 */
-	font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-}
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 
-/* small helper to reference background variable in Tailwind utilities when needed */
-.bg-background { background-color: var(--bg); }
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+
+  .gradient-warm {
+    background: var(--gradient-warm);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  /* Status utilities */
+  .status-available {
+    @apply bg-available text-available-foreground;
+  }
+
+  .status-pending {
+    @apply bg-pending text-pending-foreground;
+  }
+
+  .status-error {
+    @apply bg-destructive text-destructive-foreground;
+  }
+
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { 
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
