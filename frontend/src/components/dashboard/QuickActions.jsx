@@ -34,8 +34,8 @@ export function QuickActions() {
     },
     { 
       icon: Users, 
-      label: 'Assign Workers', 
-      href: farmId ? `/farms/${farmId}/add-worker` : '/farms', 
+      label: 'Manage Workers', 
+      href: farmId ? `/farms/${farmId}/workers` : '/farms', 
       variant: 'accent' 
     },
   ];

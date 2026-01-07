@@ -14,4 +14,7 @@ public interface FarmRepository extends JpaRepository<Farm, Long> {
 
     Optional<Farm> findByIdAndOwnerId(Long farmId, Long ownerId);
 
+    // Farms where a given worker is assigned
+    java.util.List<Farm> findByWorkers_Id(Long workerId);
+
 }

@@ -1,6 +1,9 @@
 package com.example.backend.Controller;
 
 import com.example.backend.DTO.AddMilkInventoryRequestDto;
+import com.example.backend.DTO.MilkHistoryDto;
+import com.example.backend.DTO.TodayMilkBreakdownDto;
+import com.example.backend.DTO.TodayMilkEntryDto;
 import com.example.backend.Entity.User;
 import com.example.backend.Service.MilkInventoryService;
 import lombok.RequiredArgsConstructor;
@@ -46,16 +49,24 @@ public class MilkController {
     }
 
     @GetMapping("/today/breakdown")
-    public ResponseEntity<com.example.backend.DTO.TodayMilkBreakdownDto> getTodayBreakdown(@RequestParam Long farmId) {
-        com.example.backend.DTO.TodayMilkBreakdownDto dto = milkInventoryService.getTodayBreakdown(farmId);
+    public ResponseEntity<TodayMilkBreakdownDto> getTodayBreakdown(@RequestParam Long farmId) {
+        TodayMilkBreakdownDto dto = milkInventoryService.getTodayBreakdown(farmId);
         return ResponseEntity.ok(dto);
     }
 
     @GetMapping("/history")
-    public ResponseEntity<java.util.List<com.example.backend.DTO.MilkHistoryDto>> getHistory(
+    public ResponseEntity<java.util.List<MilkHistoryDto>> getHistory(
             @RequestParam Long farmId,
             @RequestParam(defaultValue = "7") int days
     ) {
         return ResponseEntity.ok(milkInventoryService.getLastNDaysMilk(farmId, days));
+    }
+
+    @GetMapping("/today/entries")
+    public ResponseEntity<java.util.List<TodayMilkEntryDto>> getTodayEntries(
+            @RequestParam Long farmId,
+            @AuthenticationPrincipal User user
+    ) {
+        return ResponseEntity.ok(milkInventoryService.getTodayEntries(farmId, user));
     }
 }

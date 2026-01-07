@@ -43,9 +43,14 @@ public class User {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
-    @ManyToOne
-    @JoinColumn(name = "assigned_farm_id")
-    private Farm assignedFarm;
+    // Worker-farm assignments (many-to-many)
+    @ManyToMany
+    @JoinTable(
+            name = "farm_workers",
+            joinColumns = @JoinColumn(name = "worker_id"),
+            inverseJoinColumns = @JoinColumn(name = "farm_id")
+    )
+    private List<Farm> assignedFarms;
 
 
     // one user can own multiple farms

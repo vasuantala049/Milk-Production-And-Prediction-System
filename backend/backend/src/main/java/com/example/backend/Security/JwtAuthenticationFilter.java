@@ -49,8 +49,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (jwtTokenProvider.validateToken(jwt, userDetails)) {
 
-                // 🔑 LOAD ENTITY
-                User user = userRepository.findByEmail(userEmail)
+                // 🔑 LOAD ENTITY with assigned farms
+                User user = userRepository.findByEmailWithAssignedFarms(userEmail)
                         .orElseThrow();
 
                 UsernamePasswordAuthenticationToken authToken =

@@ -37,10 +37,12 @@ public class FarmAccessServiceImpl implements FarmAccessService {
 
         // WORKER
         if (user.getRole() == UserRole.WORKER) {
-            if (user.getAssignedFarm() == null) {
+            if (user.getAssignedFarms() == null || user.getAssignedFarms().isEmpty()) {
                 throw new IllegalArgumentException("Worker not assigned to any farm");
             }
-            if (!user.getAssignedFarm().getId().equals(cattleFarm.getId())) {
+            boolean hasAccess = user.getAssignedFarms().stream()
+                    .anyMatch(f -> f.getId().equals(cattleFarm.getId()));
+            if (!hasAccess) {
                 throw new IllegalArgumentException("Worker not assigned to this farm");
             }
             outCattleHolder[0] = cattle;

@@ -52,7 +52,9 @@ public class AuthController {
                         if (request.getFarmId() != null) {
                                 Farm farm = farmRepository.findById(request.getFarmId())
                                                 .orElseThrow(() -> new RuntimeException("Farm not found"));
-                                user.setAssignedFarm(farm);
+                                java.util.List<Farm> farms = new java.util.ArrayList<>();
+                                farms.add(farm);
+                                user.setAssignedFarms(farms);
                         }
                 }
 

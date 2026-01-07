@@ -181,8 +181,8 @@ export default function AddMilk() {
       await apiFetch("/milk/today", {
         method: "POST",
         body: JSON.stringify({
-          farmId: sessionStorage.getItem("activeFarm")
-            ? JSON.parse(sessionStorage.getItem("activeFarm")).id
+          farmId: localStorage.getItem("activeFarm")
+            ? JSON.parse(localStorage.getItem("activeFarm")).id
             : Number(farmId),
           tagId,
           session,
@@ -190,9 +190,9 @@ export default function AddMilk() {
         }),
       });
 
-      navigate(`/cattle/${farmId}`);
+      navigate("/dashboard");
     } catch (err) {
-      setError("Enter valid tag ID");
+      setError(err?.message || "Failed to add milk entry");
     } finally {
       setLoading(false);
     }

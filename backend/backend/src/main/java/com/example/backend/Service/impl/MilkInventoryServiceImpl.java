@@ -1,6 +1,9 @@
 package com.example.backend.Service.impl;
 
 import com.example.backend.DTO.AddMilkInventoryRequestDto;
+import com.example.backend.DTO.MilkHistoryDto;
+import com.example.backend.DTO.TodayMilkBreakdownDto;
+import com.example.backend.DTO.TodayMilkEntryDto;
 import com.example.backend.Entity.*;
 import com.example.backend.Entity.type.MilkSession;
 import com.example.backend.Entity.type.UserRole;
@@ -34,10 +37,19 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
 
         if (loggedInUser.getRole() == UserRole.WORKER) {
 
-            farm = loggedInUser.getAssignedFarm();
-            if (farm == null || !farm.getId().equals(dto.getFarmId())) {
+            if (loggedInUser.getAssignedFarms() == null || loggedInUser.getAssignedFarms().isEmpty()) {
+                throw new RuntimeException("Worker not assigned to any farm");
+            }
+
+            boolean hasAccess = loggedInUser.getAssignedFarms().stream()
+                    .anyMatch(f -> f.getId().equals(dto.getFarmId()));
+            if (!hasAccess) {
                 throw new RuntimeException("Worker not assigned to this farm");
             }
+
+            farm = farmRepository
+                    .findById(dto.getFarmId())
+                    .orElseThrow(() -> new RuntimeException("Farm not found"));
 
         } else if (loggedInUser.getRole() == UserRole.FARM_OWNER) {
 
@@ -125,7 +137,7 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
         return morning + evening;
     }
         @Override
-        public com.example.backend.DTO.TodayMilkBreakdownDto getTodayBreakdown(Long farmId) {
+        public TodayMilkBreakdownDto getTodayBreakdown(Long farmId) {
                 LocalDate today = LocalDate.now();
 
                 Double morning = milkInventoryRepository
@@ -138,11 +150,11 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
                                 .map(MilkInventory::getMilkLiters)
                                 .orElse(0.0);
 
-                return new com.example.backend.DTO.TodayMilkBreakdownDto(morning, evening);
+                return new TodayMilkBreakdownDto(morning, evening);
         }
 
         @Override
-        public java.util.List<com.example.backend.DTO.MilkHistoryDto> getLastNDaysMilk(Long farmId, int days) {
+        public java.util.List<MilkHistoryDto> getLastNDaysMilk(Long farmId, int days) {
                 LocalDate today = LocalDate.now();
                 LocalDate fromDate = today.minusDays(days - 1);
 
@@ -154,15 +166,40 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
                         map.put(d, tot == null ? 0.0 : tot);
                 }
 
-                java.util.List<com.example.backend.DTO.MilkHistoryDto> result = new java.util.ArrayList<>();
+                java.util.List<MilkHistoryDto> result = new java.util.ArrayList<>();
                 for (int i = 0; i < days; i++) {
                         LocalDate d = fromDate.plusDays(i);
                         Double t = map.getOrDefault(d, 0.0);
-                        result.add(new com.example.backend.DTO.MilkHistoryDto(d, t));
+                        result.add(new MilkHistoryDto(d, t));
                 }
                 return result;
         }
 
-    
+        @Override
+        public java.util.List<TodayMilkEntryDto> getTodayEntries(Long farmId, User user) {
+                LocalDate today = LocalDate.now();
+
+                java.util.List<CattleMilkEntry> entries;
+
+                if (user.getRole() == UserRole.WORKER) {
+                        // only entries entered by this worker for the given farm
+                        entries = cattleMilkEntryRepository
+                                .findByFarm_IdAndRecordDateAndEnteredBy_Id(farmId, today, user.getId());
+                } else {
+                        // owners/other roles get all entries for the farm
+                        entries = cattleMilkEntryRepository
+                                .findByFarm_IdAndRecordDate(farmId, today);
+                }
+
+                return entries.stream()
+                        .map(entry -> new TodayMilkEntryDto(
+                                entry.getCattle().getTagId(),
+                                entry.getCattle().getTagId(),
+                                entry.getSession(),
+                                entry.getMilkLiters()
+                        ))
+                        .collect(java.util.stream.Collectors.toList());
+        }
+
 
 }

@@ -56,7 +56,9 @@ public class UserServiceImpl implements UserService {
                 if (dto.getFarmId() != null) {
                     Farm farm = farmRepository.findById(dto.getFarmId())
                             .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
-                    user.setAssignedFarm(farm);
+                    java.util.List<Farm> farms = new java.util.ArrayList<>();
+                    farms.add(farm);
+                    user.setAssignedFarms(farms);
                 }
                 // worker created without farm; no code generation required
             }
@@ -97,7 +99,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponseDto patchUser(Long id, UserPatchDto patchDto, com.example.backend.Entity.User loggedInUser) {
 
-        User user = userRepository.findById(id)
+        User user = userRepository.findByIdWithAssignedFarms(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         if (patchDto.getName() != null) {
@@ -123,7 +125,15 @@ public class UserServiceImpl implements UserService {
                 throw new IllegalArgumentException("Only the farm owner can assign workers to this farm");
             }
 
-            user.setAssignedFarm(farm);
+            java.util.List<Farm> assigned = user.getAssignedFarms();
+            if (assigned == null) {
+                assigned = new java.util.ArrayList<>();
+                user.setAssignedFarms(assigned);
+            }
+            boolean alreadyAssigned = assigned.stream().anyMatch(f -> f.getId().equals(farm.getId()));
+            if (!alreadyAssigned) {
+                assigned.add(farm);
+            }
         }
 
         User saved = userRepository.save(user);

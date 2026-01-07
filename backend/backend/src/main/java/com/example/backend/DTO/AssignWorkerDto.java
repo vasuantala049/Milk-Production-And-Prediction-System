@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AssignWorkerDto {
-    private Long workerId;
+    private String email;
 }

@@ -18,7 +18,7 @@ public interface FarmService {
 
     List<FarmResponseDto> getMyFarms(com.example.backend.Entity.User loggedInUser);
 
-    void assignWorkerToFarm(Long farmId, Long workerId, com.example.backend.Entity.User loggedInUser);
+    void assignWorkerToFarm(Long farmId, String workerEmail, com.example.backend.Entity.User loggedInUser);
 
     List<FarmResponseDto> getFarmsByWorker(Long workerId);
 

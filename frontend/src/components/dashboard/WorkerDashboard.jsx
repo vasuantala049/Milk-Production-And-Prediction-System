@@ -15,32 +15,104 @@ export function WorkerDashboard() {
   const [cattle, setCattle] = useState([]);
   const [todayEntries, setTodayEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showEntries, setShowEntries] = useState(false);
 
+  // Resolve active farm from localStorage (if set) or fall back to first assigned farm
+  const [activeFarmId, setActiveFarmId] = useState(() => {
+    try {
+      const raw = localStorage.getItem("activeFarm");
+      return raw ? JSON.parse(raw).id : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const activeFarm =
+    assignedFarms.find((f) => f.id === activeFarmId) ||
+    (assignedFarms.length > 0 ? assignedFarms[0] : null);
+  const farmId = activeFarm?.id;
+
+  const refreshTodayEntries = async () => {
+    if (farmId) {
+      try {
+        const entriesData = await apiFetch(`/milk/today/entries?farmId=${farmId}`).catch(() => []);
+        setTodayEntries(Array.isArray(entriesData) ? entriesData : []);
+      } catch (err) {
+        setTodayEntries([]);
+      }
+    }
+  };
+
+  // Load farms assigned to this worker
   useEffect(() => {
     let mounted = true;
-    async function loadData() {
+    async function loadFarms() {
       try {
-        const [farmsData, cattleData] = await Promise.all([
-          apiFetch(`/farms/worker/${user.id}`).catch(() => []),
-          user.id ? apiFetch(`/cattle/farm/${user.farmId || ''}`).catch(() => []) : Promise.resolve([])
-        ]);
+        const farmsData = await apiFetch(`/farms/worker/${user.id}`).catch(() => []);
         if (!mounted) return;
         setAssignedFarms(Array.isArray(farmsData) ? farmsData : []);
-        setCattle(Array.isArray(cattleData) ? cattleData : []);
       } catch (err) {
         if (!mounted) return;
         setAssignedFarms([]);
+      }
+    }
+    if (user.id) loadFarms();
+    return () => {
+      mounted = false;
+    };
+  }, [user.id]);
+
+  // Persist active farm to localStorage when it changes
+  useEffect(() => {
+    if (activeFarm) {
+      localStorage.setItem("activeFarm", JSON.stringify(activeFarm));
+      if (activeFarmId !== activeFarm.id) {
+        setActiveFarmId(activeFarm.id);
+      }
+    }
+  }, [activeFarm, activeFarmId]);
+
+  // Load cattle + today's entries for current farm
+  useEffect(() => {
+    let mounted = true;
+    async function loadFarmData() {
+      if (!farmId) {
         setCattle([]);
+        setTodayEntries([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const [cattleData, entriesData] = await Promise.all([
+          apiFetch(`/cattle/farm/${farmId}`).catch(() => []),
+          apiFetch(`/milk/today/entries?farmId=${farmId}`).catch(() => [])
+        ]);
+        if (!mounted) return;
+        setCattle(Array.isArray(cattleData) ? cattleData : []);
+        setTodayEntries(Array.isArray(entriesData) ? entriesData : []);
+      } catch (err) {
+        if (!mounted) return;
+        setCattle([]);
+        setTodayEntries([]);
       } finally {
         if (mounted) setLoading(false);
       }
     }
-    if (user.id) loadData();
-    return () => { mounted = false; };
-  }, [user.id]);
+    loadFarmData();
+    return () => {
+      mounted = false;
+    };
+  }, [farmId]);
 
-  const activeFarm = assignedFarms.length > 0 ? assignedFarms[0] : null;
-  const farmId = activeFarm?.id;
+  // Refresh today's entries when window regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshTodayEntries();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [farmId]);
 
   return (
     <div className="space-y-6">
@@ -71,7 +143,13 @@ export function WorkerDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-card border border-border rounded-xl p-5 shadow-card"
+        className={cn(
+          "bg-card border border-border rounded-xl p-5 shadow-card",
+          todayEntries.length > 0 ? "cursor-pointer" : "cursor-default"
+        )}
+        onClick={() => {
+          if (todayEntries.length > 0) setShowEntries((prev) => !prev);
+        }}
       >
         <h3 className="font-semibold text-foreground mb-4">Today's Entry Status</h3>
         <div className="flex items-center gap-4">
@@ -99,6 +177,35 @@ export function WorkerDashboard() {
           </div>
         </div>
       </motion.div>
+
+      {showEntries && todayEntries.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-card border border-border rounded-xl p-5 shadow-card"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground">Today's Entries</h3>
+            <Button variant="outline" size="sm" onClick={() => setShowEntries(false)}>
+              Close
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {todayEntries.map((entry, idx) => (
+              <div key={`${entry.cattleTagId}-${entry.session}-${idx}`} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                <div className="flex flex-col">
+                  <span className="font-medium text-foreground">{entry.cattleTagId || "—"}</span>
+                  {entry.cattleName && <span className="text-xs text-muted-foreground">{entry.cattleName}</span>}
+                </div>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <Badge variant="outline">{entry.session}</Badge>
+                  <span>{entry.milkLiters} L</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Assigned Farms */}
       {assignedFarms.length > 0 && (

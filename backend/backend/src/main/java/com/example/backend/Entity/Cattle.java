@@ -31,4 +31,6 @@ public class Cattle {
     @ManyToOne
     @JoinColumn(name = "farm_id", nullable = false)
     private Farm farm;
+
+
 }

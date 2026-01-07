@@ -75,7 +75,7 @@ public class FarmController {
             @RequestBody com.example.backend.DTO.AssignWorkerDto dto,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
 
-        farmService.assignWorkerToFarm(farmId, dto.getWorkerId(), user);
+        farmService.assignWorkerToFarm(farmId, dto.getEmail(), user);
         return ResponseEntity.ok().build();
     }
     

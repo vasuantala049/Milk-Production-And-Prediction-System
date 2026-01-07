@@ -54,7 +54,7 @@ public class FarmServiceImpl implements FarmService {
         if (!farmRepository.existsById(farmId)) {
             throw new IllegalArgumentException("Farm not found");
         }
-        return userRepository.countByAssignedFarmIdAndRole(farmId, com.example.backend.Entity.type.UserRole.WORKER);
+        return userRepository.countByAssignedFarms_IdAndRole(farmId, com.example.backend.Entity.type.UserRole.WORKER);
     }
     
     @Override
@@ -63,7 +63,7 @@ public class FarmServiceImpl implements FarmService {
         if (!farmRepository.existsById(farmId)) {
             throw new IllegalArgumentException("Farm not found");
         }
-        java.util.List<com.example.backend.Entity.User> users = userRepository.findByAssignedFarmIdAndRole(farmId, com.example.backend.Entity.type.UserRole.WORKER);
+        java.util.List<com.example.backend.Entity.User> users = userRepository.findByAssignedFarms_IdAndRole(farmId, com.example.backend.Entity.type.UserRole.WORKER);
         return users.stream()
                 .map(u -> modelMapper.map(u, com.example.backend.DTO.UserResponseDto.class))
                 .toList();
@@ -94,10 +94,11 @@ public class FarmServiceImpl implements FarmService {
     public List<FarmResponseDto> getFarmsByWorker(Long workerId) {
         User user = userRepository.findById(workerId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        if (user.getAssignedFarm() == null) {
-            throw new IllegalStateException("Worker is not assigned to any farm");
+        if (user.getRole() != UserRole.WORKER) {
+            throw new IllegalArgumentException("User is not a WORKER");
         }
-        return List.of(toResponseDto(user.getAssignedFarm()));
+        java.util.List<Farm> farms = farmRepository.findByWorkers_Id(workerId);
+        return farms.stream().map(this::toResponseDto).toList();
     }
 
     @Override
@@ -146,10 +147,8 @@ public class FarmServiceImpl implements FarmService {
         }
 
         if (loggedInUser.getRole() == UserRole.WORKER) {
-            if (loggedInUser.getAssignedFarm() == null) {
-                throw new IllegalStateException("Worker is not assigned to any farm");
-            }
-            return List.of(toResponseDto(loggedInUser.getAssignedFarm()));
+            java.util.List<Farm> farms = farmRepository.findByWorkers_Id(loggedInUser.getId());
+            return farms.stream().map(this::toResponseDto).toList();
         }
 
         return List.of();
@@ -164,7 +163,7 @@ public class FarmServiceImpl implements FarmService {
     }
 
     @Override
-    public void assignWorkerToFarm(Long farmId, Long workerId, User loggedInUser) {
+    public void assignWorkerToFarm(Long farmId, String workerEmail, User loggedInUser) {
         Farm farm = farmRepository.findById(farmId)
                 .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
 
@@ -172,14 +171,23 @@ public class FarmServiceImpl implements FarmService {
             throw new IllegalArgumentException("Only the farm owner can assign workers to this farm");
         }
 
-        User worker = userRepository.findById(workerId)
+        User worker = userRepository.findByEmailWithAssignedFarms(workerEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Worker not found"));
 
         if (worker.getRole() != UserRole.WORKER) {
             throw new IllegalArgumentException("Target user is not a WORKER");
         }
 
-        worker.setAssignedFarm(farm);
+        // Add farm to worker's assignments (many-to-many)
+        java.util.List<Farm> assigned = worker.getAssignedFarms();
+        if (assigned == null) {
+            assigned = new java.util.ArrayList<>();
+            worker.setAssignedFarms(assigned);
+        }
+        boolean alreadyAssigned = assigned.stream().anyMatch(f -> f.getId().equals(farmId));
+        if (!alreadyAssigned) {
+            assigned.add(farm);
+        }
         userRepository.save(worker);
     }
     
