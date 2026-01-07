@@ -1,5 +1,11 @@
+
+
+
+
+import animate from "tailwindcss-animate";
+
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   darkMode: ["class"],
   content: [
     "./index.html",
@@ -18,7 +24,8 @@ module.exports = {
         sans: ["Inter", "system-ui", "sans-serif"],
         display: ["Outfit", "Inter", "system-ui", "sans-serif"],
       },
-      colors: {
+      // everything else stays EXACTLY the same
+       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -125,5 +132,5 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animate],
 };

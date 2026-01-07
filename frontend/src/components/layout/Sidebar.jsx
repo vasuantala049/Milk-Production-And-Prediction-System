@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '../../lib/utils';
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "../../lib/utils";
 import {
   LayoutDashboard,
   Warehouse,
@@ -11,15 +11,9 @@ import {
   Menu,
   X,
   Beef,
-} from 'lucide-react';
-import { Button } from '../ui/button';
-import { Avatar, AvatarFallback } from '../ui/avatar';
-
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: Warehouse, label: 'Farms', href: '/farms' },
-  { icon: Beef, label: 'Cattle', href: '/cattle' },
-];
+} from "lucide-react";
+import { Button } from "../ui/button";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 
 export function Sidebar() {
   const navigate = useNavigate();
@@ -34,6 +28,15 @@ export function Sidebar() {
     navigate("/login", { replace: true });
   };
 
+  const handleCattleClick = () => {
+    if (!activeFarm?.id) {
+      navigate("/farms");
+      return;
+    }
+    navigate(`/cattle/${activeFarm.id}`);
+    setIsMobileOpen(false);
+  };
+
   const NavContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
@@ -43,36 +46,64 @@ export function Sidebar() {
             <Milk className="w-6 h-6 text-sidebar-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-display font-bold text-lg text-sidebar-foreground">DairyFlow</h1>
-            <p className="text-xs text-sidebar-foreground/60">Farm Management</p>
+            <h1 className="font-display font-bold text-lg text-sidebar-foreground">
+              DairyFlow
+            </h1>
+            <p className="text-xs text-sidebar-foreground/60">
+              Farm Management
+            </p>
           </div>
         </Link>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
+        {/* Dashboard */}
+        <Link
+          to="/dashboard"
+          onClick={() => setIsMobileOpen(false)}
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+            "hover:bg-sidebar-accent",
+            location.pathname === "/dashboard"
+              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+              : "text-sidebar-foreground/80"
+          )}
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          <span className="font-medium">Dashboard</span>
+        </Link>
 
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              onClick={() => setIsMobileOpen(false)}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200",
-                "hover:bg-sidebar-accent",
-                isActive 
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground" 
-                  : "text-sidebar-foreground/80"
-              )}
-            >
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              <span className="font-medium flex-1">{item.label}</span>
-            </Link>
-          );
-        })}
+        {/* Farms */}
+        <Link
+          to="/farms"
+          onClick={() => setIsMobileOpen(false)}
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+            "hover:bg-sidebar-accent",
+            location.pathname.startsWith("/farms")
+              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+              : "text-sidebar-foreground/80"
+          )}
+        >
+          <Warehouse className="w-5 h-5" />
+          <span className="font-medium">Farms</span>
+        </Link>
+
+        {/* Cattle (FIXED) */}
+        <button
+          onClick={handleCattleClick}
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left",
+            "hover:bg-sidebar-accent",
+            location.pathname.startsWith("/cattle")
+              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+              : "text-sidebar-foreground/80"
+          )}
+        >
+          <Beef className="w-5 h-5" />
+          <span className="font-medium flex-1">Cattle</span>
+        </button>
       </nav>
 
       {/* User Section */}
@@ -80,16 +111,23 @@ export function Sidebar() {
         <div className="flex items-center gap-3 mb-4">
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground font-semibold">
-              {user?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
+              {user?.name?.charAt(0) ||
+                user?.email?.charAt(0) ||
+                "U"}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-sidebar-foreground truncate">{user?.name || user?.email || "User"}</p>
+            <p className="font-medium text-sidebar-foreground truncate">
+              {user?.name || user?.email || "User"}
+            </p>
             {activeFarm && (
-              <p className="text-xs text-sidebar-foreground/60 truncate">{activeFarm.name}</p>
+              <p className="text-xs text-sidebar-foreground/60 truncate">
+                {activeFarm.name}
+              </p>
             )}
           </div>
         </div>
+
         <Button
           variant="ghost"
           className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
@@ -116,7 +154,9 @@ export function Sidebar() {
           <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <Milk className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
-          <span className="font-display font-bold text-sidebar-foreground">DairyFlow</span>
+          <span className="font-display font-bold text-sidebar-foreground">
+            DairyFlow
+          </span>
         </div>
       </div>
 
@@ -135,7 +175,7 @@ export function Sidebar() {
               initial={{ x: -280 }}
               animate={{ x: 0 }}
               exit={{ x: -280 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="lg:hidden fixed left-0 top-0 bottom-0 w-[280px] bg-sidebar z-50"
             >
               <button
