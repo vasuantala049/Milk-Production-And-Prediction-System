@@ -1,5 +1,6 @@
 package com.example.backend.Entity;
 
+import com.example.backend.Entity.type.MilkSession;
 import com.example.backend.Entity.type.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -22,6 +23,8 @@ public class Orders {
     private Double quantity;
 
     private OrderStatus status; // PENDING / COMPLETED / CANCELLED
+
+    private MilkSession session; //MORNING / EVENING
 
     @ManyToOne
     @JoinColumn(name = "buyer_id", nullable = false)

@@ -2,7 +2,9 @@ package com.example.backend.Repository;
 
 import com.example.backend.Entity.MilkInventory;
 import com.example.backend.Entity.type.MilkSession;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -14,6 +16,18 @@ import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface MilkInventoryRepository extends JpaRepository<MilkInventory, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT m FROM MilkInventory m
+        WHERE m.farm.id = :farmId
+          AND m.recordDate = :date
+          AND m.session = :session
+    """)
+    Optional<MilkInventory> lockInventory(
+            @Param("farmId") Long farmId,
+            @Param("date") LocalDate date,
+            @Param("session") MilkSession session
+    );
 
     boolean existsByFarmIdAndRecordDateAndSession(
             Long farmId,

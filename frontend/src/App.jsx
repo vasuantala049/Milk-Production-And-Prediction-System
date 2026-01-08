@@ -12,6 +12,7 @@ import EditCattle from "./components/EditCattle";
 import WorkersList from "./components/WorkersList";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AddMilk from "./components/AddMilk";
+import BuyMilk from "./components/BuyMilk";
 import "./App.css";
 
 
@@ -38,6 +39,7 @@ function App() {
         <Route path="/cattle/:farmId" element={<CattleList />} />
         <Route path="/workers/:farmId" element={<WorkersList />} />
         <Route path="/milk/add/:farmId" element={<AddMilk />} />
+        <Route path="/buy-milk" element={<BuyMilk />} />
 
       </Route>
 

@@ -1,33 +1,35 @@
-# ---------- Stage 1: Build ----------
-FROM maven:3.9.9-eclipse-temurin-21 AS build
+# Stage 1 - build
+FROM maven:3.9.9-eclipse-temurin-24 AS build
+WORKDIR /workspace
 
-WORKDIR /app
-
-# Copy Maven wrapper & pom for dependency caching
+# cache dependencies
 COPY pom.xml .
 COPY .mvn .mvn
 COPY mvnw mvnw
-COPY mvnw.cmd mvnw.cmd
-
 RUN mvn -B dependency:go-offline
 
-# Copy application source
-COPY src src
+# copy source and build
+COPY src ./src
+RUN mvn -B package -DskipTests
 
-# Build application (skip tests)
-RUN mvn clean package -DskipTests
-
-
-# ---------- Stage 2: Runtime ----------
-FROM eclipse-temurin:21-jre-alpine
-
+# Stage 2 - runtime
+FROM eclipse-temurin:24-jre-jammy
+ARG JAR_FILE=target/*.jar
 WORKDIR /app
 
-# Copy JAR from build stage
-COPY --from=build /app/target/*.jar app.jar
+# copy built jar
+COPY --from=build /workspace/${JAR_FILE} app.jar
 
-# Spring Boot default port
+# create a non-root user
+RUN addgroup --system app && adduser --system --ingroup app app
+USER app
+
+# recommended JVM options (override with env when needed)
+ENV JAVA_OPTS="-Xms256m -Xmx512m -Dspring.profiles.active=prod"
+
 EXPOSE 8080
 
-# Run Spring Boot app
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# healthcheck (adjust if you use a custom actuator path)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD wget --quiet --spider http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar app.jar"]

@@ -8,7 +8,7 @@ import com.example.backend.Entity.*;
 import com.example.backend.Entity.type.MilkSession;
 import com.example.backend.Entity.type.UserRole;
 import com.example.backend.Repository.CattleMilkEntryRepository;
-
+import org.springframework.cache.annotation.Cacheable;
 import com.example.backend.Repository.CattleRepository;
 import com.example.backend.Repository.FarmRepository;
 import com.example.backend.Repository.MilkInventoryRepository;
@@ -136,24 +136,52 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
 
         return morning + evening;
     }
+
+    @Cacheable(
+            value = "todayMilkBreakdown",
+            key = "#farmId"
+    )
+    @Override
+    public TodayMilkBreakdownDto getTodayBreakdown(Long farmId) {
+        LocalDate today = LocalDate.now();
+
+        Double morning = milkInventoryRepository
+                .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.MORNING)
+                .map(MilkInventory::getMilkLiters)
+                .orElse(0.0);
+
+        Double evening = milkInventoryRepository
+                .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.EVENING)
+                .map(MilkInventory::getMilkLiters)
+                .orElse(0.0);
+
+        return new TodayMilkBreakdownDto(morning, evening);
+    }
+
+
+    @Cacheable(
+                value = "todayMilkBreakdown",
+                key = "#farmId "
+        )
         @Override
-        public TodayMilkBreakdownDto getTodayBreakdown(Long farmId) {
-                LocalDate today = LocalDate.now();
+        public TodayMilkBreakdownDto getTodayBreakdownForFarm(Long farmId) {
 
-                Double morning = milkInventoryRepository
-                                .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.MORNING)
-                                .map(MilkInventory::getMilkLiters)
-                                .orElse(0.0);
+            LocalDate today = LocalDate.now();
 
-                Double evening = milkInventoryRepository
-                                .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.EVENING)
-                                .map(MilkInventory::getMilkLiters)
-                                .orElse(0.0);
+            Double morning = milkInventoryRepository
+                    .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.MORNING)
+                    .map(MilkInventory::getMilkLiters)
+                    .orElse(0.0);
 
-                return new TodayMilkBreakdownDto(morning, evening);
+            Double evening = milkInventoryRepository
+                    .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.EVENING)
+                    .map(MilkInventory::getMilkLiters)
+                    .orElse(0.0);
+
+            return new TodayMilkBreakdownDto(morning, evening);
         }
 
-        @Override
+    @Override
         public java.util.List<MilkHistoryDto> getLastNDaysMilk(Long farmId, int days) {
                 LocalDate today = LocalDate.now();
                 LocalDate fromDate = today.minusDays(days - 1);
