@@ -37,7 +37,7 @@
 // }
 
 
-const API_BASE = import.meta.env.URL_BASE || "http://localhost:8080/api";
+const API_BASE = "http://localhost:8080/api" || import.meta.env.URL_BASE;
 
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem("token");

@@ -6,7 +6,11 @@ import { DashboardLayout } from "./layout/DashboardLayout";
 import { FarmCard } from "./dashboard/FarmCard";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Plus, Search, Trash2, Users as UsersIcon } from "lucide-react";
+
+import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
+import DeleteIcon from "@mui/icons-material/Delete";
+import PeopleIcon from "@mui/icons-material/People";
 
 export default function YourFarms() {
   const navigate = useNavigate();
@@ -53,9 +57,10 @@ export default function YourFarms() {
     }
   };
 
-  const filteredFarms = farms.filter(farm =>
-    farm.name?.toLowerCase().includes(search.toLowerCase()) ||
-    farm.address?.toLowerCase().includes(search.toLowerCase())
+  const filteredFarms = farms.filter(
+    (farm) =>
+      farm.name?.toLowerCase().includes(search.toLowerCase()) ||
+      farm.address?.toLowerCase().includes(search.toLowerCase())
   );
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -77,9 +82,10 @@ export default function YourFarms() {
               Manage your dairy farms and track production
             </p>
           </div>
+
           {user.role === "FARM_OWNER" && (
             <Button onClick={() => navigate("/farms/add")} className="gap-2">
-              <Plus className="w-5 h-5" />
+              <AddIcon fontSize="small" />
               Add Farm
             </Button>
           )}
@@ -92,7 +98,7 @@ export default function YourFarms() {
           transition={{ delay: 0.1 }}
           className="relative max-w-md"
         >
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search farms..."
             value={search}
@@ -102,9 +108,8 @@ export default function YourFarms() {
         </motion.div>
 
         {/* Loading / Error */}
-        {loading && (
-          <p className="text-muted-foreground">Loading farms…</p>
-        )}
+        {loading && <p className="text-muted-foreground">Loading farms…</p>}
+
         {error && (
           <div className="bg-destructive/10 border border-destructive/20 text-destructive p-3 rounded-md">
             {error}
@@ -128,6 +133,7 @@ export default function YourFarms() {
                 >
                   <FarmCard farm={farm} />
                 </div>
+
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
                     variant="outline"
@@ -138,8 +144,9 @@ export default function YourFarms() {
                     }}
                     className="h-8 w-8 p-0"
                   >
-                    <UsersIcon className="w-4 h-4" />
+                    <PeopleIcon fontSize="small" />
                   </Button>
+
                   <Button
                     variant="destructive"
                     size="sm"
@@ -149,7 +156,7 @@ export default function YourFarms() {
                     }}
                     className="h-8 w-8 p-0"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <DeleteIcon fontSize="small" />
                   </Button>
                 </div>
               </motion.div>
@@ -165,7 +172,9 @@ export default function YourFarms() {
             className="bg-card border border-border rounded-xl p-12 text-center shadow-card"
           >
             <p className="text-muted-foreground">
-              {search ? "No farms found matching your search." : "You don't have any farms yet."}
+              {search
+                ? "No farms found matching your search."
+                : "You don't have any farms yet."}
             </p>
           </motion.div>
         )}
