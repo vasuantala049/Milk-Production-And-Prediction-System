@@ -14,6 +14,8 @@ public interface FarmService {
 
     List<FarmResponseDto> getFarmsByOwner(Long ownerId);
 
+    List<FarmResponseDto> getAllFarms();
+
     FarmResponseDto patchFarm(Long id, FarmPatchDto patchDto, com.example.backend.Entity.User loggedInUser);
 
     List<FarmResponseDto> getMyFarms(com.example.backend.Entity.User loggedInUser);

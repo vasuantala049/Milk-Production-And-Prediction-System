@@ -30,6 +30,10 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
     private final FarmRepository farmRepository;
 
     @Override
+    @org.springframework.cache.annotation.Caching(evict = {
+        @org.springframework.cache.annotation.CacheEvict(value = "todayMilkBreakdown", key = "#dto.farmId"),
+        @org.springframework.cache.annotation.CacheEvict(value = "farmsList", allEntries = true)
+    })
     public void addTodayMilk(AddMilkInventoryRequestDto dto, User loggedInUser) {
 
         // 1. Resolve farm from logged-in user (DO NOT trust request)
@@ -159,27 +163,7 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
     }
 
 
-    @Cacheable(
-                value = "todayMilkBreakdown",
-                key = "#farmId "
-        )
-        @Override
-        public TodayMilkBreakdownDto getTodayBreakdownForFarm(Long farmId) {
 
-            LocalDate today = LocalDate.now();
-
-            Double morning = milkInventoryRepository
-                    .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.MORNING)
-                    .map(MilkInventory::getMilkLiters)
-                    .orElse(0.0);
-
-            Double evening = milkInventoryRepository
-                    .findByFarmIdAndRecordDateAndSession(farmId, today, MilkSession.EVENING)
-                    .map(MilkInventory::getMilkLiters)
-                    .orElse(0.0);
-
-            return new TodayMilkBreakdownDto(morning, evening);
-        }
 
     @Override
         public java.util.List<MilkHistoryDto> getLastNDaysMilk(Long farmId, int days) {

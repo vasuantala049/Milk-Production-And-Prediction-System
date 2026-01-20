@@ -26,13 +26,16 @@ export default function YourFarms() {
       setLoading(false);
       return;
     }
+    const storedUserObj = JSON.parse(storedUser);
 
-    apiFetch(`/farms/me`)
+    const endpoint = storedUserObj.role === "BUYER" ? "/farms" : "/farms/me";
+
+    apiFetch(endpoint)
       .then((data) => {
         const list = data || [];
         setFarms(list);
 
-        if (list.length > 0 && !localStorage.getItem("activeFarm")) {
+        if (list.length > 0 && !localStorage.getItem("activeFarm") && storedUserObj.role !== "BUYER") {
           localStorage.setItem("activeFarm", JSON.stringify(list[0]));
         }
       })
@@ -43,6 +46,11 @@ export default function YourFarms() {
   }, []);
 
   const handleViewFarm = (farm) => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user.role === "BUYER") {
+      navigate(`/buy-milk?farm=${farm.id}`);
+      return;
+    }
     localStorage.setItem("activeFarm", JSON.stringify(farm));
     navigate("/dashboard");
   };
@@ -79,7 +87,7 @@ export default function YourFarms() {
               Farms
             </h1>
             <p className="text-muted-foreground mt-1">
-              Manage your dairy farms and track production
+              {user.role === 'BUYER' ? "Find fresh milk near you" : "Manage your dairy farms and track production"}
             </p>
           </div>
 
@@ -134,31 +142,33 @@ export default function YourFarms() {
                   <FarmCard farm={farm} />
                 </div>
 
-                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/farms/${farm.id}/add-worker`);
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <PeopleIcon fontSize="small" />
-                  </Button>
+                {user.role !== "BUYER" && (
+                  <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/farms/${farm.id}/add-worker`);
+                      }}
+                      className="h-8 w-8 p-0"
+                    >
+                      <PeopleIcon fontSize="small" />
+                    </Button>
 
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteFarm(farm.id);
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </Button>
-                </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteFarm(farm.id);
+                      }}
+                      className="h-8 w-8 p-0"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </Button>
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>

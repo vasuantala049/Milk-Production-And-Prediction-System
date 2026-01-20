@@ -27,7 +27,10 @@ public class BuyMilkServiceImpl implements BuyMilkService {
     private final FarmRepository farmRepository;
 
     @Transactional
-    @CacheEvict(value = "todayMilkBreakdown", allEntries = true)
+    @org.springframework.cache.annotation.Caching(evict = {
+        @CacheEvict(value = "todayMilkBreakdown", key = "#dto.farmId"),
+        @CacheEvict(value = "farmsList", allEntries = true)
+    })
     @Override
     public OrderResponseDto buyMilk(MilkBuyDto dto, User user) {
 

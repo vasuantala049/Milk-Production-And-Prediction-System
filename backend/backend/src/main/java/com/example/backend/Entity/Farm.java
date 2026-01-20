@@ -20,6 +20,8 @@ public class Farm {
 
     private String address;
 
+    private Double pricePerLiter;
+
     @ManyToOne
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;

@@ -14,7 +14,7 @@ public interface MilkInventoryService {
     TodayMilkBreakdownDto getTodayBreakdown(Long farmId);
 
 
-    TodayMilkBreakdownDto getTodayBreakdownForFarm(Long farmId);
+
 
     java.util.List<MilkHistoryDto> getLastNDaysMilk(Long farmId, int days);
     java.util.List<TodayMilkEntryDto> getTodayEntries(Long farmId, User user);

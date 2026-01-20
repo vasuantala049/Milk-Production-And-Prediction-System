@@ -29,6 +29,12 @@ public class FarmController {
             .body(farmService.createFarm(dto, user));
         }
 
+    // GET all farms (Public/Customer)
+    @GetMapping
+    public ResponseEntity<List<FarmResponseDto>> getAllFarms() {
+        return ResponseEntity.ok(farmService.getAllFarms());
+    }
+
     // GET farm by id
     @GetMapping("/{id}")
     public ResponseEntity<FarmResponseDto> getFarm(@PathVariable Long id) {

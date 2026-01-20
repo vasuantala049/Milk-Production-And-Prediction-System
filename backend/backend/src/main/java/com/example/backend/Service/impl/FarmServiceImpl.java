@@ -89,6 +89,15 @@ public class FarmServiceImpl implements FarmService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    @org.springframework.cache.annotation.Cacheable(value = "farmsList")
+    public List<FarmResponseDto> getAllFarms() {
+        return farmRepository.findAll().stream()
+                .map(this::toResponseDto)
+                .toList();
+    }
+
 
     @Override
     public List<FarmResponseDto> getFarmsByWorker(Long workerId) {
@@ -192,10 +201,28 @@ public class FarmServiceImpl implements FarmService {
     }
     
 
+    private final com.example.backend.Repository.MilkInventoryRepository milkInventoryRepository;
+
     // ---------- helper ----------
     private FarmResponseDto toResponseDto(Farm farm) {
         FarmResponseDto dto = modelMapper.map(farm, FarmResponseDto.class);
         dto.setOwnerId(farm.getOwner().getId());
+        dto.setPricePerLiter(farm.getPricePerLiter());
+
+        // Calculate available milk (Today's Total)
+        java.time.LocalDate today = java.time.LocalDate.now();
+        Double morning = com.example.backend.Entity.type.MilkSession.MORNING != null ?
+                getMilkForSession(farm.getId(), today, com.example.backend.Entity.type.MilkSession.MORNING) : 0.0;
+        Double evening = com.example.backend.Entity.type.MilkSession.EVENING != null ?
+                getMilkForSession(farm.getId(), today, com.example.backend.Entity.type.MilkSession.EVENING) : 0.0;
+        dto.setAvailableMilk(morning + evening);
+
         return dto;
+    }
+
+    private Double getMilkForSession(Long farmId, java.time.LocalDate date, com.example.backend.Entity.type.MilkSession session) {
+         return milkInventoryRepository.findByFarmIdAndRecordDateAndSession(farmId, date, session)
+                 .map(com.example.backend.Entity.MilkInventory::getMilkLiters)
+                 .orElse(0.0);
     }
 }
