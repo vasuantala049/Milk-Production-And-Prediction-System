@@ -110,6 +110,10 @@ public class UserServiceImpl implements UserService {
             user.setEmail(patchDto.getEmail());
         }
 
+        if (patchDto.getLocation() != null) {
+            user.setLocation(patchDto.getLocation());
+        }
+
         // Only WORKER can be (re)assigned to a farm
         if (patchDto.getFarmId() != null) {
 

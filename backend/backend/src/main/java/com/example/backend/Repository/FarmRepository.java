@@ -17,4 +17,6 @@ public interface FarmRepository extends JpaRepository<Farm, Long> {
     // Farms where a given worker is assigned
     java.util.List<Farm> findByWorkers_Id(Long workerId);
 
+    List<Farm> findByAddressContainingIgnoreCase(String location);
+
 }

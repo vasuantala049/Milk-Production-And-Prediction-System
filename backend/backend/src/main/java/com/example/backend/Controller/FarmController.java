@@ -31,8 +31,15 @@ public class FarmController {
 
     // GET all farms (Public/Customer)
     @GetMapping
-    public ResponseEntity<List<FarmResponseDto>> getAllFarms() {
-        return ResponseEntity.ok(farmService.getAllFarms());
+    public ResponseEntity<List<FarmResponseDto>> getAllFarms(
+            @RequestParam(required = false) String location,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user
+    ) {
+        String searchLoc = location;
+        if (searchLoc == null && user != null) {
+            searchLoc = user.getLocation();
+        }
+        return ResponseEntity.ok(farmService.getAllFarms(searchLoc));
     }
 
     // GET farm by id

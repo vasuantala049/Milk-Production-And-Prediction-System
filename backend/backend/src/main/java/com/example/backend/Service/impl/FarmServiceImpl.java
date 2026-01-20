@@ -91,9 +91,15 @@ public class FarmServiceImpl implements FarmService {
 
     @Override
     @Transactional(readOnly = true)
-    @org.springframework.cache.annotation.Cacheable(value = "farmsList")
-    public List<FarmResponseDto> getAllFarms() {
-        return farmRepository.findAll().stream()
+    // removed @Cacheable per request
+    public List<FarmResponseDto> getAllFarms(String location) {
+        java.util.List<Farm> farms;
+        if (location != null && !location.trim().isEmpty()) {
+            farms = farmRepository.findByAddressContainingIgnoreCase(location.trim());
+        } else {
+            farms = farmRepository.findAll();
+        }
+        return farms.stream()
                 .map(this::toResponseDto)
                 .toList();
     }

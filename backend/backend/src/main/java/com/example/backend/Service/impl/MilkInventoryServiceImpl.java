@@ -31,8 +31,7 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
 
     @Override
     @org.springframework.cache.annotation.Caching(evict = {
-        @org.springframework.cache.annotation.CacheEvict(value = "todayMilkBreakdown", key = "#dto.farmId"),
-        @org.springframework.cache.annotation.CacheEvict(value = "farmsList", allEntries = true)
+        @org.springframework.cache.annotation.CacheEvict(value = "todayMilkBreakdown", key = "#dto.farmId")
     })
     public void addTodayMilk(AddMilkInventoryRequestDto dto, User loggedInUser) {
 
