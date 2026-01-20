@@ -149,7 +149,7 @@ export default function YourFarms() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/farms/${farm.id}/add-worker`);
+                        navigate(`/workers/${farm.id}`);
                       }}
                       className="h-8 w-8 p-0"
                     >

@@ -14,6 +14,8 @@ public class CreateCattleDto {
 
     private String breed;
 
+    private String type;
+
     @NotBlank
     private String status; // ACTIVE / SICK / SOLD
 

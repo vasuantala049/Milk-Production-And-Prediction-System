@@ -14,29 +14,23 @@ export function QuickActions() {
   const farmId = activeFarm?.id;
 
   const actions = [
-    { 
-      icon: Milk, 
-      label: 'Add Milk Entry', 
-      href: farmId ? `/milk/add/${farmId}` : '/farms', 
-      variant: 'primary' 
+    {
+      icon: Milk,
+      label: 'Add Milk Entry',
+      href: farmId ? `/milk/add/${farmId}` : '/farms',
+      variant: 'primary'
     },
-    { 
-      icon: Beef, 
-      label: 'Add Cattle', 
-      href: farmId ? `/cattle/add/${farmId}` : '/farms', 
-      variant: 'secondary' 
+    {
+      icon: Beef,
+      label: 'Add Cattle',
+      href: farmId ? `/cattle/add/${farmId}` : '/farms',
+      variant: 'secondary'
     },
-    { 
-      icon: Warehouse, 
-      label: 'Manage Farms', 
-      href: '/farms', 
-      variant: 'secondary' 
-    },
-    { 
-      icon: Users, 
-      label: 'Manage Workers', 
-      href: farmId ? `/farms/${farmId}/workers` : '/farms', 
-      variant: 'accent' 
+    {
+      icon: Warehouse,
+      label: 'Manage Farms',
+      href: '/farms',
+      variant: 'secondary'
     },
   ];
 

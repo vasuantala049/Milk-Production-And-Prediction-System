@@ -37,4 +37,6 @@ public interface CattleMilkEntryRepository extends JpaRepository<CattleMilkEntry
             LocalDate recordDate,
             Long enteredById
     );
+
+    java.util.List<CattleMilkEntry> findByCattle_Id(Long cattleId);
 }

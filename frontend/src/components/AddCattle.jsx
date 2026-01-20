@@ -99,11 +99,20 @@ import {
   Stack,
 } from "@mui/material";
 
+// Define cattle types and their breeds
+const CATTLE_TYPES = {
+  "COW": ["Holstein", "Jersey", "Guernsey", "Ayrshire", "Brown Swiss", "Milking Shorthorn", "Sahiwal", "Gir", "Red Sindhi"],
+  "BUFFALO": ["Murrah", "Nili Ravi", "Surti", "Jaffarabadi", "Bhadawari"],
+  "SHEEP": ["Merino", "Suffolk", "Dorper", "Rambouillet", "Lincoln", "Awassi"],
+  "GOAT": ["Saanen", "Toggenburg", "Alpine", "LaMancha", "Boer", "Nubian", "Angora"]
+};
+
 export default function AddCattle() {
   const { farmId } = useParams();
   const navigate = useNavigate();
 
   const [tagId, setTagId] = useState("");
+  const [type, setType] = useState("");
   const [breed, setBreed] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [showScanner, setShowScanner] = useState(false);
@@ -119,6 +128,7 @@ export default function AddCattle() {
         body: JSON.stringify({
           tagId,
           breed,
+          type,
           status,
           farmId: Number(farmId),
         }),
@@ -177,11 +187,36 @@ export default function AddCattle() {
                 )}
 
                 <TextField
+                  select
                   fullWidth
-                  label="Breed"
-                  value={breed}
-                  onChange={(e) => setBreed(e.target.value)}
-                />
+                  label="Type"
+                  value={type}
+                  onChange={(e) => {
+                    setType(e.target.value);
+                    setBreed(""); // Reset breed when type changes
+                  }}
+                >
+                  <MenuItem value="COW">Cow</MenuItem>
+                  <MenuItem value="BUFFALO">Buffalo</MenuItem>
+                  <MenuItem value="SHEEP">Sheep</MenuItem>
+                  <MenuItem value="GOAT">Goat</MenuItem>
+                </TextField>
+
+                {type && (
+                  <TextField
+                    select
+                    fullWidth
+                    label="Breed"
+                    value={breed}
+                    onChange={(e) => setBreed(e.target.value)}
+                  >
+                    {CATTLE_TYPES[type].map((breedOption) => (
+                      <MenuItem key={breedOption} value={breedOption}>
+                        {breedOption}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
 
                 <TextField
                   select
