@@ -174,6 +174,13 @@ export default function CattleList() {
                   {/* Details */}
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
+                      <span className="text-muted-foreground">Type</span>
+                      <span className="font-medium text-foreground">
+                        {c.type || "—"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between">
                       <span className="text-muted-foreground">Breed</span>
                       <span className="font-medium text-foreground">
                         {c.breed || "—"}
@@ -190,7 +197,7 @@ export default function CattleList() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Avg. Milk/Day</span>
                       <span className="font-semibold text-foreground">
-                        {c.avgMilkPerDay != null ? `${c.avgMilkPerDay}L` : "—"}
+                        {c.avgMilkPerDay != null ? `${c.avgMilkPerDay.toFixed(2)}L` : "—"}
                       </span>
                     </div>
                   </div>

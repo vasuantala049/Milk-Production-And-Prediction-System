@@ -81,6 +81,14 @@
 //     </div>
 //   );
 // }
+// Define cattle types and their breeds (same as AddCattle.jsx)
+const CATTLE_TYPES = {
+  "COW": ["Holstein", "Jersey", "Guernsey", "Ayrshire", "Brown Swiss", "Milking Shorthorn", "Sahiwal", "Gir", "Red Sindhi"],
+  "BUFFALO": ["Murrah", "Nili Ravi", "Surti", "Jaffarabadi", "Bhadawari"],
+  "SHEEP": ["Merino", "Suffolk", "Dorper", "Rambouillet", "Lincoln", "Awassi"],
+  "GOAT": ["Saanen", "Toggenburg", "Alpine", "LaMancha", "Boer", "Nubian", "Angora"]
+};
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
@@ -97,8 +105,6 @@ export default function EditCattle() {
   const { farmId, cattleId } = useParams();
   const navigate = useNavigate();
 
-  const [tagId, setTagId] = useState("");
-  const [breed, setBreed] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -110,8 +116,6 @@ export default function EditCattle() {
       try {
         const dto = await apiFetch(`/cattle/${cattleId}`);
         if (!mounted) return;
-        setTagId(dto.tagId || "");
-        setBreed(dto.breed || "");
         setStatus(dto.status || "ACTIVE");
       } catch (err) {
         setError(err.message || "Failed to load cattle");
@@ -133,7 +137,7 @@ export default function EditCattle() {
     try {
       await apiFetch(`/cattle/${cattleId}`, {
         method: "PATCH",
-        body: JSON.stringify({ breed, status }),
+        body: JSON.stringify({ status }),
       });
       navigate(`/cattle/${farmId}`);
     } catch (err) {
@@ -166,20 +170,6 @@ export default function EditCattle() {
             <form onSubmit={handleSubmit}>
               {/* 🔥 ALL spacing controlled here */}
               <Stack spacing={2}>
-                <TextField
-                  fullWidth
-                  label="Tag ID (cannot be changed)"
-                  value={tagId}
-                  InputProps={{ readOnly: true }}
-                />
-
-                <TextField
-                  fullWidth
-                  label="Breed"
-                  value={breed}
-                  onChange={(e) => setBreed(e.target.value)}
-                />
-
                 <TextField
                   select
                   fullWidth
