@@ -97,7 +97,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
             } catch (Exception e) {
                 log.error("Failed to generate order for subscription {}: {}", sub.getId(), e.getMessage());
-                // Don't rethrow, verify other subscriptions continue
+                // verify other subscriptions continue
             }
         }
     }

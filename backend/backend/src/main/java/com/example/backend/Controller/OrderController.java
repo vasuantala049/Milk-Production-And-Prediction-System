@@ -4,12 +4,17 @@ import com.example.backend.DTO.OrderResponseDto;
 import com.example.backend.Entity.Orders;
 import com.example.backend.Entity.User;
 import com.example.backend.Repository.OrdersRepository;
+import com.example.backend.Service.FarmAccessService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +25,7 @@ import java.util.stream.Collectors;
 public class OrderController {
 
     private final OrdersRepository ordersRepository;
+    private final FarmAccessService farmAccessService;
 
     @GetMapping("/my-orders")
     public ResponseEntity<List<OrderResponseDto>> getMyOrders(@AuthenticationPrincipal User user) {
@@ -33,6 +39,69 @@ public class OrderController {
                 order.getBuyer().getId(),
                 order.getFarm().getId()
         )).collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
+    }
+
+    /**
+     * Get all orders for a specific farm (owner/worker only)
+     */
+    @GetMapping("/farm/{farmId}")
+    public ResponseEntity<List<OrderResponseDto>> getFarmOrders(
+            @PathVariable Long farmId,
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size
+    ) {
+        // Verify user has access to this farm
+        farmAccessService.verifyFarmAccess(user, farmId);
+
+        List<Orders> orders;
+        if (page != null && size != null) {
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "orderDate"));
+            Page<Orders> orderPage = ordersRepository.findByFarm_Id(farmId, pageable);
+            orders = orderPage.getContent();
+        } else {
+            orders = ordersRepository.findByFarm_IdOrderByOrderDateDesc(farmId);
+        }
+
+        List<OrderResponseDto> dtos = orders.stream().map(order -> new OrderResponseDto(
+                order.getId(),
+                order.getOrderDate(),
+                order.getQuantity(),
+                order.getSession(),
+                order.getStatus(),
+                order.getBuyer().getId(),
+                order.getFarm().getId()
+        )).collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
+    }
+
+    /**
+     * Get orders for a farm within a date range
+     */
+    @GetMapping("/farm/{farmId}/date-range")
+    public ResponseEntity<List<OrderResponseDto>> getFarmOrdersByDateRange(
+            @PathVariable Long farmId,
+            @RequestParam LocalDate startDate,
+            @RequestParam LocalDate endDate,
+            @AuthenticationPrincipal User user
+    ) {
+        // Verify user has access to this farm
+        farmAccessService.verifyFarmAccess(user, farmId);
+
+        List<Orders> orders = ordersRepository.findByFarm_IdAndOrderDateBetween(farmId, startDate, endDate);
+
+        List<OrderResponseDto> dtos = orders.stream().map(order -> new OrderResponseDto(
+                order.getId(),
+                order.getOrderDate(),
+                order.getQuantity(),
+                order.getSession(),
+                order.getStatus(),
+                order.getBuyer().getId(),
+                order.getFarm().getId()
+        )).collect(Collectors.toList());
+
         return ResponseEntity.ok(dtos);
     }
 }

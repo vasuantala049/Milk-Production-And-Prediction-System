@@ -11,4 +11,10 @@ public interface FarmAccessService {
      * Throws IllegalArgumentException with clear messages on access errors.
      */
     Farm resolveFarmForMilk(User user, String tagId, Cattle[] outCattleHolder);
+    
+    /**
+     * Verify if user has access to view farm data (owner or assigned worker).
+     * Throws IllegalArgumentException if access is denied.
+     */
+    void verifyFarmAccess(User user, Long farmId);
 }

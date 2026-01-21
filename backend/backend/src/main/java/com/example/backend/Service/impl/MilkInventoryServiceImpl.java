@@ -1,6 +1,7 @@
 package com.example.backend.Service.impl;
 
 import com.example.backend.DTO.AddMilkInventoryRequestDto;
+import com.example.backend.DTO.MilkAvailabilityDto;
 import com.example.backend.DTO.MilkHistoryDto;
 import com.example.backend.DTO.TodayMilkBreakdownDto;
 import com.example.backend.DTO.TodayMilkEntryDto;
@@ -8,11 +9,13 @@ import com.example.backend.Entity.*;
 import com.example.backend.Entity.type.MilkSession;
 import com.example.backend.Entity.type.UserRole;
 import com.example.backend.Repository.CattleMilkEntryRepository;
+import com.example.backend.Service.MilkInventoryService;
 import org.springframework.cache.annotation.Cacheable;
+import com.example.backend.Repository.CattleMilkEntryRepository;
 import com.example.backend.Repository.CattleRepository;
 import com.example.backend.Repository.FarmRepository;
+import com.example.backend.Repository.MilkAllocationRepository;
 import com.example.backend.Repository.MilkInventoryRepository;
-import com.example.backend.Service.MilkInventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,12 +25,13 @@ import java.time.LocalDate;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class MilkInventoryServiceImpl implements MilkInventoryService {
+public class MilkInventoryServiceImpl implements    MilkInventoryService {
 
     private final CattleRepository cattleRepository;
     private final MilkInventoryRepository milkInventoryRepository;
     private final CattleMilkEntryRepository cattleMilkEntryRepository;
     private final FarmRepository farmRepository;
+    private final MilkAllocationRepository milkAllocationRepository;
 
     @Override
     @org.springframework.cache.annotation.Caching(evict = {
@@ -212,5 +216,27 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
                         .collect(java.util.stream.Collectors.toList());
         }
 
+        @Override
+        public MilkAvailabilityDto getAvailability(Long farmId, LocalDate date, MilkSession session) {
+                MilkInventory inventory = milkInventoryRepository
+                        .findByFarmIdAndRecordDateAndSession(farmId, date, session)
+                        .orElseThrow(() -> new IllegalStateException("Milk inventory not found"));
+
+                Double totalProduction = inventory.getMilkLiters();
+                Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
+                Double availableMilk = totalProduction - allocatedMilk;
+
+                return new MilkAvailabilityDto(totalProduction, allocatedMilk, availableMilk);
+        }
+
+        @Override
+        public Double getAvailableMilk(Long inventoryId) {
+                MilkInventory inventory = milkInventoryRepository.findById(inventoryId)
+                        .orElseThrow(() -> new IllegalStateException("Inventory not found"));
+                
+                Double totalProduction = inventory.getMilkLiters();
+                Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inventoryId);
+                return totalProduction - allocatedMilk;
+        }
 
 }

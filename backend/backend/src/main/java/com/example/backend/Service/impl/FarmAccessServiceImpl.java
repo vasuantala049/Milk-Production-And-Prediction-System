@@ -5,6 +5,7 @@ import com.example.backend.Entity.Farm;
 import com.example.backend.Entity.User;
 import com.example.backend.Entity.type.UserRole;
 import com.example.backend.Repository.CattleRepository;
+import com.example.backend.Repository.FarmRepository;
 import com.example.backend.Service.FarmAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 public class FarmAccessServiceImpl implements FarmAccessService {
 
     private final CattleRepository cattleRepository;
+    private final FarmRepository farmRepository;
 
     @Override
     public Farm resolveFarmForMilk(User user, String tagId, Cattle[] outCattleHolder) {
@@ -50,5 +52,28 @@ public class FarmAccessServiceImpl implements FarmAccessService {
         }
 
         throw new IllegalStateException("Unsupported role");
+    }
+
+    @Override
+    public void verifyFarmAccess(User user, Long farmId) {
+        Farm farm = farmRepository.findById(farmId)
+                .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+
+        // Check if user is the owner
+        if (user.getRole() == UserRole.FARM_OWNER && farm.getOwner().getId().equals(user.getId())) {
+            return;
+        }
+
+        // Check if user is an assigned worker
+        if (user.getRole() == UserRole.WORKER) {
+            boolean hasAccess = user.getAssignedFarms() != null && 
+                    user.getAssignedFarms().stream()
+                            .anyMatch(f -> f.getId().equals(farmId));
+            if (hasAccess) {
+                return;
+            }
+        }
+
+        throw new IllegalArgumentException("Access denied: You are not authorized to view this farm's data");
     }
 }

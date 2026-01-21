@@ -19,4 +19,9 @@ public interface FarmRepository extends JpaRepository<Farm, Long> {
 
     List<Farm> findByAddressContainingIgnoreCase(String location);
 
+    // City-based queries
+    List<Farm> findByCity(String city);
+    List<Farm> findByCityIgnoreCase(String city);
+    List<Farm> findByCityIn(List<String> cities);
+
 }

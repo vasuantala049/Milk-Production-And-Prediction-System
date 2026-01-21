@@ -3,11 +3,14 @@ package com.example.backend.Service.impl;
 import com.example.backend.DTO.MilkBuyDto;
 import com.example.backend.DTO.OrderResponseDto;
 import com.example.backend.Entity.Farm;
+import com.example.backend.Entity.MilkAllocation;
 import com.example.backend.Entity.MilkInventory;
 import com.example.backend.Entity.Orders;
 import com.example.backend.Entity.User;
+import com.example.backend.Entity.type.AllocationType;
 import com.example.backend.Entity.type.OrderStatus;
 import com.example.backend.Repository.FarmRepository;
+import com.example.backend.Repository.MilkAllocationRepository;
 import com.example.backend.Repository.MilkInventoryRepository;
 import com.example.backend.Repository.OrdersRepository;
 import com.example.backend.Service.BuyMilkService;
@@ -24,6 +27,7 @@ public class BuyMilkServiceImpl implements BuyMilkService {
 
     private final OrdersRepository ordersRepository;
     private final MilkInventoryRepository milkInventoryRepository;
+    private final MilkAllocationRepository milkAllocationRepository;
     private final FarmRepository farmRepository;
 
     @Transactional
@@ -58,14 +62,15 @@ public class BuyMilkServiceImpl implements BuyMilkService {
                         new IllegalStateException("Milk not available for selected session")
                 );
 
-        // 5. Check availability
-        if (inventory.getMilkLiters() < requestedQty) {
-            throw new IllegalStateException("Insufficient milk available");
-        }
+        // 5. Calculate available milk (total production - allocations)
+        Double totalProduction = inventory.getMilkLiters();
+        Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
+        Double availableMilk = totalProduction - allocatedMilk;
 
-        // 6. Deduct milk (IMPORTANT: write happens here)
-        inventory.setMilkLiters(inventory.getMilkLiters() - requestedQty);
-        milkInventoryRepository.save(inventory);
+        // 6. Check availability
+        if (availableMilk < requestedQty) {
+            throw new IllegalStateException("Insufficient milk available. Available: " + availableMilk + "L");
+        }
 
         // 7. Create order
         Orders order = new Orders();
@@ -78,7 +83,16 @@ public class BuyMilkServiceImpl implements BuyMilkService {
 
         ordersRepository.save(order);
 
-        // 8. Map to DTO and return
+        // 8. Create allocation record (instead of deducting from inventory)
+        MilkAllocation allocation = MilkAllocation.builder()
+                .milkInventory(inventory)
+                .quantity(requestedQty)
+                .type(AllocationType.ORDER)
+                .referenceId(order.getId())
+                .build();
+        milkAllocationRepository.save(allocation);
+
+        // 9. Map to DTO and return
         OrderResponseDto dto1 = new OrderResponseDto();
         dto1.setId(order.getId());
         dto1.setOrderDate(order.getOrderDate());

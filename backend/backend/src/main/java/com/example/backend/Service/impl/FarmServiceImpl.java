@@ -208,6 +208,7 @@ public class FarmServiceImpl implements FarmService {
     
 
     private final com.example.backend.Repository.MilkInventoryRepository milkInventoryRepository;
+    private final com.example.backend.Repository.MilkAllocationRepository milkAllocationRepository;
 
     // ---------- helper ----------
     private FarmResponseDto toResponseDto(Farm farm) {
@@ -227,8 +228,13 @@ public class FarmServiceImpl implements FarmService {
     }
 
     private Double getMilkForSession(Long farmId, java.time.LocalDate date, com.example.backend.Entity.type.MilkSession session) {
-         return milkInventoryRepository.findByFarmIdAndRecordDateAndSession(farmId, date, session)
-                 .map(com.example.backend.Entity.MilkInventory::getMilkLiters)
-                 .orElse(0.0);
+        return milkInventoryRepository.findByFarmIdAndRecordDateAndSession(farmId, date, session)
+                .map(inventory -> {
+                    // Calculate available milk: total production - allocations
+                    Double totalProduction = inventory.getMilkLiters();
+                    Double allocated = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
+                    return totalProduction - allocated;
+                })
+                .orElse(0.0);
     }
 }

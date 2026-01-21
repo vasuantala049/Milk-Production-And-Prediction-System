@@ -1,4 +1,5 @@
 package com.example.backend.Entity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -8,7 +9,9 @@ import java.util.List;
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-@Table(name = "farms")
+@Table(name = "farms", indexes = {
+        @Index(name = "idx_farm_city", columnList = "city")
+})
 public class Farm {
 
     @Id
@@ -18,6 +21,8 @@ public class Farm {
     @Column(nullable = false)
     private String name;
 
+    private String city;
+
     private String address;
 
     private Double pricePerLiter;
@@ -26,10 +31,12 @@ public class Farm {
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "farm", cascade = CascadeType.ALL)
     private List<Cattle> cattleList;
 
     // Workers assigned to this farm (many-to-many with users)
+    @JsonIgnore
     @ManyToMany(mappedBy = "assignedFarms")
     private List<User> workers;
 }

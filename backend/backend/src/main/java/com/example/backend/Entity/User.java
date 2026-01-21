@@ -1,5 +1,6 @@
 package com.example.backend.Entity;
 import com.example.backend.Entity.type.UserRole;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -13,7 +14,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "users")
+@Table(name = "users", indexes = {
+        @Index(name = "idx_user_city", columnList = "city")
+})
 public class User {
 
     @Id
@@ -32,6 +35,8 @@ public class User {
     @Column(nullable = true)
     private String location;
 
+    private String city;  // User's city for location-based farm filtering
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;
@@ -47,6 +52,7 @@ public class User {
     private LocalDateTime createdAt;
 
     // Worker-farm assignments (many-to-many)
+    @JsonIgnore
     @ManyToMany
     @JoinTable(
             name = "farm_workers",
@@ -57,10 +63,12 @@ public class User {
 
 
     // one user can own multiple farms
+    @JsonIgnore
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     private List<Farm> farms;
 
     // buyer side
+    @JsonIgnore
     @OneToMany(mappedBy = "buyer")
     private List<Orders> orders;
 }

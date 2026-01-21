@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/milk")
 public class MilkController {
 
-    private final MilkInventoryService milkInventoryService; // ✅ final
+    private final MilkInventoryService milkInventoryService;
 
     @PostMapping("/today")
     public ResponseEntity<?> addTodayMilk(
