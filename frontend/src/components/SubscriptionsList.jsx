@@ -114,7 +114,10 @@ const SubscriptionsList = ({ farmId }) => {
               {subscriptions.map((sub) => (
                 <TableRow key={sub.id} hover>
                   <TableCell>{sub.id}</TableCell>
-                  <TableCell>{sub.buyer?.id || 'N/A'}</TableCell>
+                  <TableCell>
+                    {sub.buyerId || 'N/A'}
+                    {sub.buyerName ? ` - ${sub.buyerName}` : ''}
+                  </TableCell>
                   <TableCell>{sub.quantity.toFixed(2)}</TableCell>
                   <TableCell>
                     <Chip

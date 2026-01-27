@@ -93,12 +93,19 @@ public class FarmServiceImpl implements FarmService {
     @Transactional(readOnly = true)
     // removed @Cacheable per request
     public List<FarmResponseDto> getAllFarms(String location) {
+        String trimmedLocation = location != null ? location.trim() : null;
+
         java.util.List<Farm> farms;
-        if (location != null && !location.trim().isEmpty()) {
-            farms = farmRepository.findByAddressContainingIgnoreCase(location.trim());
+        if (trimmedLocation != null && !trimmedLocation.isEmpty()) {
+            // Prefer searching by city first, then fall back to address
+            java.util.Set<Farm> result = new java.util.LinkedHashSet<>();
+            result.addAll(farmRepository.findByCityIgnoreCase(trimmedLocation));
+            result.addAll(farmRepository.findByAddressContainingIgnoreCase(trimmedLocation));
+            farms = new java.util.ArrayList<>(result);
         } else {
             farms = farmRepository.findAll();
         }
+
         return farms.stream()
                 .map(this::toResponseDto)
                 .toList();

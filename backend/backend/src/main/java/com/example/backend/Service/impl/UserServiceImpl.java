@@ -114,6 +114,14 @@ public class UserServiceImpl implements UserService {
             user.setLocation(patchDto.getLocation());
         }
 
+        if (patchDto.getCity() != null) {
+            user.setCity(patchDto.getCity());
+            // Keep legacy "location" in sync so existing code continues to work
+            if (user.getLocation() == null || user.getLocation().isEmpty()) {
+                user.setLocation(patchDto.getCity());
+            }
+        }
+
         // Only WORKER can be (re)assigned to a farm
         if (patchDto.getFarmId() != null) {
 

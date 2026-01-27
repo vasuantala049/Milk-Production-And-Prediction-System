@@ -1,14 +1,18 @@
 import { apiFetch } from './client';
 
 export const farmApi = {
-  // Get all farms
-  getAllFarms: async () => {
-    return apiFetch('/farms');
+  // Get all farms, optionally filtered by location (city/area/address)
+  getAllFarms: async (location) => {
+    let url = '/farms';
+    if (location && location.trim() !== '') {
+      url += `?location=${encodeURIComponent(location.trim())}`;
+    }
+    return apiFetch(url);
   },
 
-  // Get farms by city
+  // Get farms by city (backed by the same location parameter)
   getFarmsByCity: async (city) => {
-    return apiFetch(`/farms?city=${encodeURIComponent(city)}`);
+    return apiFetch(`/farms?location=${encodeURIComponent(city)}`);
   },
 
   // Get farm by ID
@@ -18,7 +22,7 @@ export const farmApi = {
 
   // Get farms owned by current user
   getMyFarms: async () => {
-    return apiFetch('/farms/my-farms');
+    return apiFetch('/farms/me');
   },
 
   // Create farm

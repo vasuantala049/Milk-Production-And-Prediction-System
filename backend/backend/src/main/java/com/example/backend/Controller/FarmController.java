@@ -37,7 +37,12 @@ public class FarmController {
     ) {
         String searchLoc = location;
         if (searchLoc == null && user != null) {
-            searchLoc = user.getLocation();
+            // Prefer the user's city if set, otherwise fall back to generic location
+            if (user.getCity() != null && !user.getCity().isEmpty()) {
+                searchLoc = user.getCity();
+            } else {
+                searchLoc = user.getLocation();
+            }
         }
         return ResponseEntity.ok(farmService.getAllFarms(searchLoc));
     }

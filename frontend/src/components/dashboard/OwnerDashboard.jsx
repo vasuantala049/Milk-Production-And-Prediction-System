@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { apiFetch } from "../../api/client";
+import { orderApi } from "../../api/orderApi";
 import { StatCard } from "./StatCard";
 import { QuickActions } from "./QuickActions";
 import {
@@ -32,6 +33,7 @@ export function OwnerDashboard() {
   const [milkHistory, setMilkHistory] = useState([]);
   const [farms, setFarms] = useState([]);
   const [daysRange, setDaysRange] = useState(7);
+  const [recentOrders, setRecentOrders] = useState([]);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -114,6 +116,32 @@ export function OwnerDashboard() {
     loadFarms();
     return () => (mounted = false);
   }, []);
+
+  /* ===========================
+     LOAD RECENT ORDERS (OWNER VIEW)
+     =========================== */
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadRecentOrders(farmId) {
+      try {
+        const data = await orderApi.getFarmOrders(farmId, 0, 5);
+        if (!mounted) return;
+        setRecentOrders(Array.isArray(data) ? data : []);
+      } catch {
+        if (!mounted) return;
+        setRecentOrders([]);
+      }
+    }
+
+    if (activeFarm?.id) {
+      loadRecentOrders(activeFarm.id);
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeFarm?.id]);
 
   return (
     <div className="space-y-6">
@@ -206,6 +234,55 @@ export function OwnerDashboard() {
 
             <div className="space-y-6">
               <QuickActions />
+
+              {/* Recent Orders */}
+              <div className="bg-card border border-border rounded-xl p-4 shadow-card">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-foreground text-sm">
+                    Recent Orders
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    Last {recentOrders.length} orders
+                  </span>
+                </div>
+
+                {recentOrders.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No orders for this farm yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {recentOrders.map((order) => (
+                      <div
+                        key={order.id}
+                        className="flex items-center justify-between text-xs border border-border/60 rounded-md px-2 py-1.5"
+                      >
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {order.quantity.toFixed(1)}L • {order.session}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {order.orderDate}
+                          </p>
+                        </div>
+                        <span
+                          className={cn(
+                            "px-2 py-0.5 rounded-full text-[10px] font-medium",
+                            order.status === "COMPLETED" &&
+                              "bg-emerald-50 text-emerald-700 border border-emerald-200",
+                            order.status === "PENDING" &&
+                              "bg-amber-50 text-amber-700 border border-amber-200",
+                            order.status === "CANCELLED" &&
+                              "bg-destructive/10 text-destructive border border-destructive/30"
+                          )}
+                        >
+                          {order.status.toLowerCase()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </>

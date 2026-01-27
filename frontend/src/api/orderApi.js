@@ -24,7 +24,8 @@ export const orderApi = {
 
   // Create order (buy milk)
   createOrder: async (orderData) => {
-    return apiFetch('/buy-milk', {
+    // Backend endpoint is /BuyMilk (note the casing)
+    return apiFetch('/BuyMilk', {
       method: 'POST',
       body: JSON.stringify(orderData),
     });

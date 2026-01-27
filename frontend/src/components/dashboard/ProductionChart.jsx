@@ -84,9 +84,10 @@ export function DailyProductionChart({ data = [] }) {
 
 export function FarmComparisonChart({ farmsData = [] }) {
   // Transform farms data into chart format
+  // Use availableMilk from FarmResponseDto as the comparison metric
   const chartData = farmsData.length > 0 ? farmsData.map(farm => ({
     name: farm.name || `Farm ${farm.id}`,
-    milk: farm.todayMilk || 0,
+    milk: farm.availableMilk || 0,
   })) : [];
 
   return (

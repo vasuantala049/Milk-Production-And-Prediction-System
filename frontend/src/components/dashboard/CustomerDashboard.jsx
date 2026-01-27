@@ -3,8 +3,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MapPin, ShoppingCart, Milk, Clock, CheckCircle, Pause, ChevronRight } from "lucide-react";
 import { apiFetch } from "../../api/client";
+import { farmApi } from "../../api/farmApi";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
+import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
 
 export function CustomerDashboard() {
@@ -14,13 +16,16 @@ export function CustomerDashboard() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [city, setCity] = useState(user.city || user.location || "");
+  const [savingCity, setSavingCity] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     async function loadData() {
       try {
         const [farmsData, subsData, ordersData] = await Promise.all([
-          apiFetch(`/farms`).catch(() => []),
+          // Prefer user's saved city/location if present, otherwise load all farms
+          farmApi.getAllFarms(user?.city || user?.location || "").catch(() => []),
           apiFetch(`/subscriptions/my-subscriptions`).catch(() => []),
           apiFetch(`/orders/my-orders`).catch(() => [])
         ]);
@@ -43,6 +48,25 @@ export function CustomerDashboard() {
   const activeSubscriptions = subscriptions.filter(s => s.status === 'ACTIVE');
   const recentOrders = orders.slice(0, 5);
 
+  async function handleSaveCity() {
+    if (!user?.id || !city) return;
+    try {
+      setSavingCity(true);
+      await apiFetch(`/users/${user.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ city, location: city }),
+      });
+
+      const updatedUser = { ...user, city, location: city };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      window.location.reload();
+    } catch (e) {
+      alert(e.message || "Failed to save city");
+    } finally {
+      setSavingCity(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -58,6 +82,26 @@ export function CustomerDashboard() {
           <p className="text-muted-foreground mt-1">
             Fresh milk from local farms, delivered to you
           </p>
+
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-muted-foreground" />
+              <Input
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Your city"
+                className="h-8 w-44"
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={savingCity || !city}
+              onClick={handleSaveCity}
+            >
+              {savingCity ? "Saving..." : "Save city"}
+            </Button>
+          </div>
         </div>
         <Button onClick={() => navigate("/buy-milk")} className="gap-2">
           <ShoppingCart className="w-5 h-5" />

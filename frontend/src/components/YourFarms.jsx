@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { apiFetch } from "../api/client";
+import { farmApi } from "../api/farmApi";
 import { DashboardLayout } from "./layout/DashboardLayout";
 import { FarmCard } from "./dashboard/FarmCard";
 import { Button } from "./ui/button";
@@ -18,6 +19,7 @@ export default function YourFarms() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [area, setArea] = useState("");
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -28,22 +30,34 @@ export default function YourFarms() {
     }
     const storedUserObj = JSON.parse(storedUser);
 
-    const endpoint = storedUserObj.role === "BUYER" ? "/farms" : "/farms/me";
+    async function loadFarms() {
+      try {
+        setLoading(true);
+        setError("");
 
-    apiFetch(endpoint)
-      .then((data) => {
-        const list = data || [];
+        let list = [];
+        if (storedUserObj.role === "BUYER") {
+          // Buyers can filter farms by area/city/address
+          list = await farmApi.getAllFarms(area);
+        } else {
+          list = await farmApi.getMyFarms();
+        }
+
+        list = list || [];
         setFarms(list);
 
         if (list.length > 0 && !localStorage.getItem("activeFarm") && storedUserObj.role !== "BUYER") {
           localStorage.setItem("activeFarm", JSON.stringify(list[0]));
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         setError(err.message || "Failed to load farms.");
-      })
-      .finally(() => setLoading(false));
-  }, []);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadFarms();
+  }, [area]);
 
   const handleViewFarm = (farm) => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -104,15 +118,28 @@ export default function YourFarms() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="relative max-w-md"
+          className="flex flex-col sm:flex-row gap-3 max-w-3xl"
         >
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search farms..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-12"
-          />
+          {user.role === "BUYER" && (
+            <div className="flex-1 relative">
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by area, city, or address..."
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                className="pl-10 h-12"
+              />
+            </div>
+          )}
+          <div className="flex-1 relative">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search farms..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 h-12"
+            />
+          </div>
         </motion.div>
 
         {/* Loading / Error */}
