@@ -11,7 +11,6 @@ import java.util.Optional;
 public interface FarmRepository extends JpaRepository<Farm, Long> {
     List<Farm> findByOwnerId(Long ownerId);
 
-
     Optional<Farm> findByIdAndOwnerId(Long farmId, Long ownerId);
 
     // Farms where a given worker is assigned
@@ -21,7 +20,15 @@ public interface FarmRepository extends JpaRepository<Farm, Long> {
 
     // City-based queries
     List<Farm> findByCity(String city);
+
     List<Farm> findByCityIgnoreCase(String city);
+
     List<Farm> findByCityIn(List<String> cities);
 
+    // Filtered by selling status
+    List<Farm> findByIsSellingTrue();
+
+    List<Farm> findByCityIgnoreCaseAndIsSellingTrue(String city);
+
+    List<Farm> findByAddressContainingIgnoreCaseAndIsSellingTrue(String address);
 }

@@ -11,6 +11,7 @@ import {
   Menu,
   X,
   Beef,
+  ShoppingBag,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -105,6 +106,24 @@ export function Sidebar() {
             <Beef className="w-5 h-5" />
             <span className="font-medium flex-1">Cattle</span>
           </button>
+        )}
+
+        {/* My Orders - Visible only to BUYERS */}
+        {user?.role === "BUYER" && (
+          <Link
+            to="/my-orders"
+            onClick={() => setIsMobileOpen(false)}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+              "hover:bg-sidebar-accent",
+              location.pathname === "/my-orders"
+                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                : "text-sidebar-foreground/80"
+            )}
+          >
+            <ShoppingBag className="w-5 h-5" />
+            <span className="font-medium">My Orders</span>
+          </Link>
         )}
       </nav>
 

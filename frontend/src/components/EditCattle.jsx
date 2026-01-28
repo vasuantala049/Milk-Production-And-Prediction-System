@@ -179,7 +179,7 @@ export default function EditCattle() {
                 >
                   <MenuItem value="ACTIVE">Active</MenuItem>
                   <MenuItem value="SICK">Sick</MenuItem>
-                  <MenuItem value="SOLD">Sold</MenuItem>
+                  <MenuItem value="INACTIVE">Inactive</MenuItem>
                 </TextField>
 
                 {/* Buttons row */}

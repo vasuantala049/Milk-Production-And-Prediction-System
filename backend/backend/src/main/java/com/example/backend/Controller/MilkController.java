@@ -26,8 +26,7 @@ public class MilkController {
     @PostMapping("/today")
     public ResponseEntity<?> addTodayMilk(
             @RequestBody AddMilkInventoryRequestDto dto,
-            @AuthenticationPrincipal User user
-    ) {
+            @AuthenticationPrincipal User user) {
         try {
             milkInventoryService.addTodayMilk(dto, user);
             return ResponseEntity.ok().build();
@@ -39,7 +38,10 @@ public class MilkController {
     // Simple error response wrapper
     static class ErrorResponse {
         public final String message;
-        public ErrorResponse(String message) { this.message = message; }
+
+        public ErrorResponse(String message) {
+            this.message = message;
+        }
     }
 
     @GetMapping("/today")
@@ -57,16 +59,23 @@ public class MilkController {
     @GetMapping("/history")
     public ResponseEntity<java.util.List<MilkHistoryDto>> getHistory(
             @RequestParam Long farmId,
-            @RequestParam(defaultValue = "7") int days
-    ) {
+            @RequestParam(defaultValue = "7") int days) {
         return ResponseEntity.ok(milkInventoryService.getLastNDaysMilk(farmId, days));
     }
 
     @GetMapping("/today/entries")
     public ResponseEntity<java.util.List<TodayMilkEntryDto>> getTodayEntries(
             @RequestParam Long farmId,
-            @AuthenticationPrincipal User user
-    ) {
+            @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(milkInventoryService.getTodayEntries(farmId, user));
+    }
+
+    @GetMapping("/availability")
+    public ResponseEntity<com.example.backend.DTO.MilkAvailabilityDto> getAvailability(
+            @RequestParam Long farmId,
+            @RequestParam String date,
+            @RequestParam com.example.backend.Entity.type.MilkSession session) {
+        java.time.LocalDate localDate = java.time.LocalDate.parse(date);
+        return ResponseEntity.ok(milkInventoryService.getAvailability(farmId, localDate, session));
     }
 }

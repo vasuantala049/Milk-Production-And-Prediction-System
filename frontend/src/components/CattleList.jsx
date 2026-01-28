@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, Plus, Milk as MilkIcon } from "lucide-react";
+import { Search, Plus, Milk as MilkIcon, Trash2 } from "lucide-react";
 import { apiFetch } from "../api/client";
 import { DashboardLayout } from "./layout/DashboardLayout";
 import { Button } from "./ui/button";
@@ -47,6 +47,17 @@ export default function CattleList() {
       return matchesSearch && matchesStatus;
     });
   }, [cattle, search, status]);
+
+  const handleDeleteCattle = async (cattleId) => {
+    if (!confirm("Are you sure you want to delete this cattle?")) return;
+
+    try {
+      await apiFetch(`/cattle/${cattleId}`, { method: "DELETE" });
+      setCattle(cattle.filter((c) => c.id !== cattleId));
+    } catch (err) {
+      alert(err.message || "Failed to delete cattle");
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -97,7 +108,7 @@ export default function CattleList() {
               className="pl-10 h-12"
             />
           </div>
-          
+
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="w-full sm:w-40 h-12">
               <SelectValue placeholder="Status" />
@@ -159,16 +170,30 @@ export default function CattleList() {
                       )}
                     </div>
 
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        c.status === "ACTIVE" && "bg-success/10 border-success/30 text-success",
-                        c.status === "SICK" && "bg-destructive/10 border-destructive/30 text-destructive",
-                        c.status === "INACTIVE" && "bg-muted border-muted text-muted-foreground"
-                      )}
-                    >
-                      {c.status || "—"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          c.status === "ACTIVE" && "bg-success/10 border-success/30 text-success",
+                          c.status === "SICK" && "bg-destructive/10 border-destructive/30 text-destructive",
+                          c.status === "INACTIVE" && "bg-muted border-muted text-muted-foreground"
+                        )}
+                      >
+                        {c.status || "—"}
+                      </Badge>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCattle(c.id);
+                        }}
+                        className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Details */}

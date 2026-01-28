@@ -1,4 +1,5 @@
 package com.example.backend.Entity;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
@@ -6,8 +7,10 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 @Table(name = "farms", indexes = {
         @Index(name = "idx_farm_city", columnList = "city")
@@ -24,6 +27,9 @@ public class Farm {
     private String city;
 
     private String address;
+
+    @Builder.Default
+    private boolean isSelling = false;
 
     private Double pricePerLiter;
 

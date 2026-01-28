@@ -4,6 +4,7 @@ import Register from "./components/Register";
 import Dashboard from "./components/Dashboard";
 import YourFarms from "./components/YourFarms";
 import AddFarm from "./components/AddFarm";
+import EditFarm from "./components/EditFarm";
 import Profile from "./components/Profile";
 import AddWorker from "./components/AddWorker";
 import CattleList from "./components/CattleList";
@@ -13,6 +14,8 @@ import WorkersList from "./components/WorkersList";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AddMilk from "./components/AddMilk";
 import BuyMilk from "./components/BuyMilk";
+import PendingOrders from "./components/PendingOrders";
+import MyOrders from "./components/MyOrders";
 import "./App.css";
 
 
@@ -28,6 +31,7 @@ function App() {
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/edit-farm/:farmId" element={<EditFarm />} />
         <Route path="/farms" element={<YourFarms />} />
         <Route path="/farms/add" element={<AddFarm />} />
         <Route path="/profile" element={<Profile />} />
@@ -40,6 +44,8 @@ function App() {
         <Route path="/workers/:farmId" element={<WorkersList />} />
         <Route path="/milk/add/:farmId" element={<AddMilk />} />
         <Route path="/buy-milk" element={<BuyMilk />} />
+        <Route path="/farms/:farmId/pending-orders" element={<PendingOrders />} />
+        <Route path="/my-orders" element={<MyOrders />} />
 
       </Route>
 

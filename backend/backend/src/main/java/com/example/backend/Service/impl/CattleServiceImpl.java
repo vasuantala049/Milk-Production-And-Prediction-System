@@ -89,9 +89,14 @@ public class CattleServiceImpl implements CattleService {
 
     @Override
     public void deleteCattle(Long id) {
-
         if (!cattleRepository.existsById(id)) {
             throw new IllegalArgumentException("Cattle not found");
+        }
+
+        // Delete related milk entries first to avoid constraint violation
+        List<CattleMilkEntry> entries = cattleMilkEntryRepository.findByCattle_Id(id);
+        if (!entries.isEmpty()) {
+            cattleMilkEntryRepository.deleteAll(entries);
         }
 
         cattleRepository.deleteById(id);
@@ -114,8 +119,7 @@ public class CattleServiceImpl implements CattleService {
                 cattle.getType(),
                 cattle.getStatus(),
                 avgMilkPerDay,
-                cattle.getFarm().getId()
-        );
+                cattle.getFarm().getId());
     }
 
     private Double calculateAverageMilkPerDay(Long cattleId) {

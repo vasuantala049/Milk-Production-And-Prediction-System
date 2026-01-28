@@ -5,6 +5,7 @@ import com.example.backend.Entity.Orders;
 import com.example.backend.Entity.User;
 import com.example.backend.Repository.OrdersRepository;
 import com.example.backend.Service.FarmAccessService;
+import com.example.backend.Service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +27,7 @@ public class OrderController {
 
     private final OrdersRepository ordersRepository;
     private final FarmAccessService farmAccessService;
+    private final OrderService orderService;
 
     @GetMapping("/my-orders")
     public ResponseEntity<List<OrderResponseDto>> getMyOrders(@AuthenticationPrincipal User user) {
@@ -37,8 +39,7 @@ public class OrderController {
                 order.getSession(),
                 order.getStatus(),
                 order.getBuyer().getId(),
-                order.getFarm().getId()
-        )).collect(Collectors.toList());
+                order.getFarm().getId())).collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
     }
 
@@ -50,8 +51,7 @@ public class OrderController {
             @PathVariable Long farmId,
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size
-    ) {
+            @RequestParam(required = false) Integer size) {
         // Verify user has access to this farm
         farmAccessService.verifyFarmAccess(user, farmId);
 
@@ -71,8 +71,7 @@ public class OrderController {
                 order.getSession(),
                 order.getStatus(),
                 order.getBuyer().getId(),
-                order.getFarm().getId()
-        )).collect(Collectors.toList());
+                order.getFarm().getId())).collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
     }
@@ -85,8 +84,7 @@ public class OrderController {
             @PathVariable Long farmId,
             @RequestParam LocalDate startDate,
             @RequestParam LocalDate endDate,
-            @AuthenticationPrincipal User user
-    ) {
+            @AuthenticationPrincipal User user) {
         // Verify user has access to this farm
         farmAccessService.verifyFarmAccess(user, farmId);
 
@@ -99,9 +97,41 @@ public class OrderController {
                 order.getSession(),
                 order.getStatus(),
                 order.getBuyer().getId(),
-                order.getFarm().getId()
-        )).collect(Collectors.toList());
+                order.getFarm().getId())).collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
+    }
+
+    /**
+     * Get pending orders for a farm (owner/worker only)
+     */
+    @GetMapping("/farm/{farmId}/pending")
+    public ResponseEntity<List<OrderResponseDto>> getPendingOrders(
+            @PathVariable Long farmId,
+            @AuthenticationPrincipal User user) {
+        List<OrderResponseDto> pendingOrders = orderService.getPendingOrders(farmId, user);
+        return ResponseEntity.ok(pendingOrders);
+    }
+
+    /**
+     * Approve a pending order
+     */
+    @PatchMapping("/{orderId}/approve")
+    public ResponseEntity<OrderResponseDto> approveOrder(
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal User user) {
+        OrderResponseDto approvedOrder = orderService.approveOrder(orderId, user);
+        return ResponseEntity.ok(approvedOrder);
+    }
+
+    /**
+     * Reject a pending order
+     */
+    @PatchMapping("/{orderId}/reject")
+    public ResponseEntity<Void> rejectOrder(
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal User user) {
+        orderService.rejectOrder(orderId, user);
+        return ResponseEntity.noContent().build();
     }
 }

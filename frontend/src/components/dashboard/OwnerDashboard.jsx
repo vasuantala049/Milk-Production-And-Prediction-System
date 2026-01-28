@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
 import { apiFetch } from "../../api/client";
 import { orderApi } from "../../api/orderApi";
 import { StatCard } from "./StatCard";
@@ -9,9 +11,10 @@ import {
   DailyProductionChart,
   FarmComparisonChart,
 } from "./ProductionChart";
-import { Milk, Beef, Users, Warehouse } from "lucide-react";
+import { Milk, Beef, Users, Warehouse, Store, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
+import { Badge } from "../ui/badge";
 
 export function OwnerDashboard() {
   const navigate = useNavigate();
@@ -34,6 +37,7 @@ export function OwnerDashboard() {
   const [farms, setFarms] = useState([]);
   const [daysRange, setDaysRange] = useState(7);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [isToggling, setIsToggling] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -143,6 +147,31 @@ export function OwnerDashboard() {
     };
   }, [activeFarm?.id]);
 
+  const handleToggleSelling = async (farm) => {
+    if (isToggling) return;
+    try {
+      setIsToggling(true);
+      const currentStatus = farm.isSelling === true || farm.selling === true;
+      const newStatus = !currentStatus;
+
+      await apiFetch(`/farms/${farm.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isSelling: newStatus }),
+      });
+      // Update local state and localStorage
+      const updatedFarm = { ...farm, isSelling: newStatus, selling: newStatus };
+      localStorage.setItem("activeFarm", JSON.stringify(updatedFarm));
+      window.location.reload(); // Simplest way to sync across components
+    } catch (err) {
+      alert(err.message || "Failed to update selling status");
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
+  // Robust check for selling status
+  const currentIsSelling = activeFarm?.isSelling === true || activeFarm?.selling === true;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -160,6 +189,37 @@ export function OwnerDashboard() {
               ? `Here's what's happening at ${activeFarm.name} today`
               : "Here's what's happening across your farms today"}
           </p>
+          {activeFarm && (
+            <div className="flex items-center gap-2 mt-2">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "font-medium",
+                  currentIsSelling
+                    ? "border-primary text-primary bg-primary/5"
+                    : "border-muted-foreground/30 text-muted-foreground bg-muted/5"
+                )}
+              >
+                {currentIsSelling ? "Selling ON" : "Selling OFF"}
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isToggling}
+                className="h-7 text-[10px] gap-1.5 min-w-[100px]"
+                onClick={() => handleToggleSelling(activeFarm)}
+              >
+                {isToggling ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : currentIsSelling ? (
+                  <ShoppingBagIcon sx={{ fontSize: 14 }} />
+                ) : (
+                  <StorefrontIcon sx={{ fontSize: 14 }} />
+                )}
+                {isToggling ? "Updating..." : currentIsSelling ? "Stop Selling" : "Start Selling"}
+              </Button>
+            </div>
+          )}
         </div>
 
         {!activeFarm && (
@@ -269,11 +329,11 @@ export function OwnerDashboard() {
                           className={cn(
                             "px-2 py-0.5 rounded-full text-[10px] font-medium",
                             order.status === "COMPLETED" &&
-                              "bg-emerald-50 text-emerald-700 border border-emerald-200",
+                            "bg-emerald-50 text-emerald-700 border border-emerald-200",
                             order.status === "PENDING" &&
-                              "bg-amber-50 text-amber-700 border border-amber-200",
+                            "bg-amber-50 text-amber-700 border border-amber-200",
                             order.status === "CANCELLED" &&
-                              "bg-destructive/10 text-destructive border border-destructive/30"
+                            "bg-destructive/10 text-destructive border border-destructive/30"
                           )}
                         >
                           {order.status.toLowerCase()}

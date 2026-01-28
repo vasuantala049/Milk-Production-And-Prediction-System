@@ -26,7 +26,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final FarmRepository farmRepository;
-    private final BuyMilkService buyMilkService; 
+    private final BuyMilkService buyMilkService;
 
     @Override
     @Transactional
@@ -34,12 +34,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         Farm farm = farmRepository.findById(dto.getFarmId())
                 .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
 
+        // Validate time-based slot restrictions for same-day subscriptions
+        LocalDate startDate = dto.getStartDate() != null ? dto.getStartDate() : LocalDate.now();
+        if (startDate.equals(LocalDate.now())) {
+            validateTimeSlot(dto.getSession());
+        }
+
         Subscription subscription = Subscription.builder()
                 .buyer(user)
                 .farm(farm)
                 .quantity(dto.getQuantity())
                 .session(dto.getSession())
-                .startDate(dto.getStartDate() != null ? dto.getStartDate() : LocalDate.now())
+                .startDate(startDate)
                 .status(SubscriptionStatus.ACTIVE)
                 .build();
 
@@ -50,9 +56,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     public Subscription cancelSubscription(Long id, User user) {
         Subscription subscription = subscriptionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Subscription not found"));
-        
+
         if (!subscription.getBuyer().getId().equals(user.getId())) {
-             throw new IllegalArgumentException("Not authorized to cancel this subscription");
+            throw new IllegalArgumentException("Not authorized to cancel this subscription");
         }
 
         subscription.setStatus(SubscriptionStatus.CANCELLED);
@@ -98,6 +104,25 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             } catch (Exception e) {
                 log.error("Failed to generate order for subscription {}: {}", sub.getId(), e.getMessage());
                 // verify other subscriptions continue
+            }
+        }
+    }
+
+    /**
+     * Validates time-based slot restrictions for same-day subscriptions
+     */
+    private void validateTimeSlot(com.example.backend.Entity.type.MilkSession session) {
+        java.time.LocalTime now = java.time.LocalTime.now();
+
+        if (session == com.example.backend.Entity.type.MilkSession.MORNING) {
+            // Morning slot (6 AM - 10 AM) cannot be selected after 10 AM
+            if (now.isAfter(java.time.LocalTime.of(10, 0))) {
+                throw new IllegalStateException("Morning slot (6 AM - 10 AM) cannot be selected after 10:00 AM");
+            }
+        } else if (session == com.example.backend.Entity.type.MilkSession.EVENING) {
+            // Evening slot (4 PM - 8 PM) cannot be selected after 8 PM
+            if (now.isAfter(java.time.LocalTime.of(20, 0))) {
+                throw new IllegalStateException("Evening slot (4 PM - 8 PM) cannot be selected after 8:00 PM");
             }
         }
     }

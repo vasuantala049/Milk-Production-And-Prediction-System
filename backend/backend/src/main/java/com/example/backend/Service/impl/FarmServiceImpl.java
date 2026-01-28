@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -26,8 +25,7 @@ public class FarmServiceImpl implements FarmService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
     private final com.example.backend.Repository.CattleRepository cattleRepository;
-    
-
+    private final com.example.backend.Service.MilkInventoryService milkInventoryService;
 
     @Override
     @Transactional(readOnly = true)
@@ -56,14 +54,15 @@ public class FarmServiceImpl implements FarmService {
         }
         return userRepository.countByAssignedFarms_IdAndRole(farmId, com.example.backend.Entity.type.UserRole.WORKER);
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public java.util.List<com.example.backend.DTO.UserResponseDto> getWorkersByFarm(Long farmId) {
         if (!farmRepository.existsById(farmId)) {
             throw new IllegalArgumentException("Farm not found");
         }
-        java.util.List<com.example.backend.Entity.User> users = userRepository.findByAssignedFarms_IdAndRole(farmId, com.example.backend.Entity.type.UserRole.WORKER);
+        java.util.List<com.example.backend.Entity.User> users = userRepository.findByAssignedFarms_IdAndRole(farmId,
+                com.example.backend.Entity.type.UserRole.WORKER);
         return users.stream()
                 .map(u -> modelMapper.map(u, com.example.backend.DTO.UserResponseDto.class))
                 .toList();
@@ -99,18 +98,17 @@ public class FarmServiceImpl implements FarmService {
         if (trimmedLocation != null && !trimmedLocation.isEmpty()) {
             // Prefer searching by city first, then fall back to address
             java.util.Set<Farm> result = new java.util.LinkedHashSet<>();
-            result.addAll(farmRepository.findByCityIgnoreCase(trimmedLocation));
-            result.addAll(farmRepository.findByAddressContainingIgnoreCase(trimmedLocation));
+            result.addAll(farmRepository.findByCityIgnoreCaseAndIsSellingTrue(trimmedLocation));
+            result.addAll(farmRepository.findByAddressContainingIgnoreCaseAndIsSellingTrue(trimmedLocation));
             farms = new java.util.ArrayList<>(result);
         } else {
-            farms = farmRepository.findAll();
+            farms = farmRepository.findByIsSellingTrue();
         }
 
         return farms.stream()
                 .map(this::toResponseDto)
                 .toList();
     }
-
 
     @Override
     public List<FarmResponseDto> getFarmsByWorker(Long workerId) {
@@ -155,6 +153,10 @@ public class FarmServiceImpl implements FarmService {
 
         if (patchDto.getAddress() != null) {
             farm.setAddress(patchDto.getAddress());
+        }
+
+        if (patchDto.getIsSelling() != null) {
+            farm.setSelling(patchDto.getIsSelling());
         }
 
         Farm saved = farmRepository.save(farm);
@@ -212,32 +214,42 @@ public class FarmServiceImpl implements FarmService {
         }
         userRepository.save(worker);
     }
-    
 
-    private final com.example.backend.Repository.MilkInventoryRepository milkInventoryRepository;
     private final com.example.backend.Repository.MilkAllocationRepository milkAllocationRepository;
 
     // ---------- helper ----------
     private FarmResponseDto toResponseDto(Farm farm) {
         FarmResponseDto dto = modelMapper.map(farm, FarmResponseDto.class);
         dto.setOwnerId(farm.getOwner().getId());
-        dto.setPricePerLiter(farm.getPricePerLiter());
+        dto.setPricePerLiter(farm.getPricePerLiter() != null ? farm.getPricePerLiter() : 0.0);
 
-        // Calculate available milk (Today's Total)
+        // Use MilkInventoryService for consistency
+        Double todayMilk = milkInventoryService.getTodayTotal(farm.getId());
+        dto.setTodayMilk(todayMilk != null ? todayMilk : 0.0);
+
+        // Calculate available (Today - All Allocations)
         java.time.LocalDate today = java.time.LocalDate.now();
-        Double morning = com.example.backend.Entity.type.MilkSession.MORNING != null ?
-                getMilkForSession(farm.getId(), today, com.example.backend.Entity.type.MilkSession.MORNING) : 0.0;
-        Double evening = com.example.backend.Entity.type.MilkSession.EVENING != null ?
-                getMilkForSession(farm.getId(), today, com.example.backend.Entity.type.MilkSession.EVENING) : 0.0;
-        dto.setAvailableMilk(morning + evening);
+        double morningAvail = getAvailableForSession(farm.getId(), today,
+                com.example.backend.Entity.type.MilkSession.MORNING);
+        double eveningAvail = getAvailableForSession(farm.getId(), today,
+                com.example.backend.Entity.type.MilkSession.EVENING);
+        dto.setAvailableMilk(morningAvail + eveningAvail);
+
+        // Populate herd and worker counts
+        dto.setHerdCount(cattleRepository.countByFarmId(farm.getId()));
+        dto.setWorkerCount(userRepository.countByAssignedFarms_IdAndRole(farm.getId(),
+                com.example.backend.Entity.type.UserRole.WORKER));
+        dto.setSelling(farm.isSelling());
 
         return dto;
     }
 
-    private Double getMilkForSession(Long farmId, java.time.LocalDate date, com.example.backend.Entity.type.MilkSession session) {
+    private final com.example.backend.Repository.MilkInventoryRepository milkInventoryRepository;
+
+    private Double getAvailableForSession(Long farmId, java.time.LocalDate date,
+            com.example.backend.Entity.type.MilkSession session) {
         return milkInventoryRepository.findByFarmIdAndRecordDateAndSession(farmId, date, session)
                 .map(inventory -> {
-                    // Calculate available milk: total production - allocations
                     Double totalProduction = inventory.getMilkLiters();
                     Double allocated = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
                     return totalProduction - allocated;

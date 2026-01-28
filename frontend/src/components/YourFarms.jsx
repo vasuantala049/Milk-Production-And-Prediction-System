@@ -12,6 +12,10 @@ import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PeopleIcon from "@mui/icons-material/People";
+import EditIcon from "@mui/icons-material/Edit";
+import ReceiptIcon from "@mui/icons-material/Receipt";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
 
 export default function YourFarms() {
   const navigate = useNavigate();
@@ -20,6 +24,7 @@ export default function YourFarms() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [area, setArea] = useState("");
+  const [togglingFarms, setTogglingFarms] = useState(new Set());
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -76,6 +81,33 @@ export default function YourFarms() {
       setFarms((prev) => prev.filter((f) => f.id !== farmId));
     } catch (err) {
       alert(err.message || "Failed to delete farm");
+    }
+  };
+
+  const handleToggleSelling = async (farm) => {
+    if (togglingFarms.has(farm.id)) return;
+
+    try {
+      setTogglingFarms(prev => new Set(prev).add(farm.id));
+      const currentStatus = farm.isSelling === true || farm.selling === true;
+      const newStatus = !currentStatus;
+
+      await apiFetch(`/farms/${farm.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isSelling: newStatus }),
+      });
+      // Update local state
+      setFarms((prev) =>
+        prev.map((f) => (f.id === farm.id ? { ...f, isSelling: newStatus, selling: newStatus } : f))
+      );
+    } catch (err) {
+      alert(err.message || "Failed to update selling status");
+    } finally {
+      setTogglingFarms(prev => {
+        const next = new Set(prev);
+        next.delete(farm.id);
+        return next;
+      });
     }
   };
 
@@ -166,11 +198,29 @@ export default function YourFarms() {
                   onClick={() => handleViewFarm(farm)}
                   className="cursor-pointer"
                 >
-                  <FarmCard farm={farm} />
+                  <FarmCard
+                    farm={farm}
+                    onToggleSelling={() => user.role === 'FARM_OWNER' && handleToggleSelling(farm)}
+                    isToggling={togglingFarms.has(farm.id)}
+                  />
                 </div>
 
                 {user.role !== "BUYER" && (
                   <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log("Navigating to edit farm:", farm.id);
+                        if (farm.id) navigate(`/edit-farm/${farm.id}`);
+                      }}
+                      className="h-8 w-8 p-0"
+                    >
+                      <EditIcon fontSize="small" />
+                    </Button>
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -181,6 +231,19 @@ export default function YourFarms() {
                       className="h-8 w-8 p-0"
                     >
                       <PeopleIcon fontSize="small" />
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/farms/${farm.id}/pending-orders`);
+                      }}
+                      className="h-8 w-8 p-0"
+                      title="Pending Orders"
+                    >
+                      <ReceiptIcon fontSize="small" />
                     </Button>
 
                     <Button

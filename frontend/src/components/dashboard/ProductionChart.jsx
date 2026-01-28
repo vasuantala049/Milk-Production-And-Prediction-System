@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -43,21 +43,21 @@ export function DailyProductionChart({ data = [] }) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="date" 
+              <XAxis
+                dataKey="date"
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
               />
-              <YAxis 
+              <YAxis
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(value) => `${value}L`}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
                   backgroundColor: 'hsl(var(--popover))',
                   border: '1px solid hsl(var(--border))',
@@ -66,10 +66,10 @@ export function DailyProductionChart({ data = [] }) {
                 }}
                 labelStyle={{ color: 'hsl(var(--foreground))' }}
               />
-              <Line 
-                type="monotone" 
-                dataKey="liters" 
-                stroke="hsl(var(--primary))" 
+              <Line
+                type="monotone"
+                dataKey="liters"
+                stroke="hsl(var(--primary))"
                 strokeWidth={3}
                 dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
                 activeDot={{ r: 6, strokeWidth: 0 }}
@@ -87,7 +87,7 @@ export function FarmComparisonChart({ farmsData = [] }) {
   // Use availableMilk from FarmResponseDto as the comparison metric
   const chartData = farmsData.length > 0 ? farmsData.map(farm => ({
     name: farm.name || `Farm ${farm.id}`,
-    milk: farm.availableMilk || 0,
+    milk: farm.todayMilk || 0,
   })) : [];
 
   return (
@@ -101,21 +101,21 @@ export function FarmComparisonChart({ farmsData = [] }) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="name" 
+              <XAxis
+                dataKey="name"
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
               />
-              <YAxis 
+              <YAxis
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(value) => `${value}L`}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
                   backgroundColor: 'hsl(var(--popover))',
                   border: '1px solid hsl(var(--border))',

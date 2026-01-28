@@ -3,11 +3,9 @@ package com.example.backend.Service.impl;
 import com.example.backend.DTO.MilkBuyDto;
 import com.example.backend.DTO.OrderResponseDto;
 import com.example.backend.Entity.Farm;
-import com.example.backend.Entity.MilkAllocation;
 import com.example.backend.Entity.MilkInventory;
 import com.example.backend.Entity.Orders;
 import com.example.backend.Entity.User;
-import com.example.backend.Entity.type.AllocationType;
 import com.example.backend.Entity.type.OrderStatus;
 import com.example.backend.Repository.FarmRepository;
 import com.example.backend.Repository.MilkAllocationRepository;
@@ -32,8 +30,8 @@ public class BuyMilkServiceImpl implements BuyMilkService {
 
     @Transactional
     @org.springframework.cache.annotation.Caching(evict = {
-        @CacheEvict(value = "todayMilkBreakdown", key = "#dto.farmId"),
-        @CacheEvict(value = "farmsList", allEntries = true)
+            @CacheEvict(value = "todayMilkBreakdown", key = "#dto.farmId"),
+            @CacheEvict(value = "farmsList", allEntries = true)
     })
     @Override
     public OrderResponseDto buyMilk(MilkBuyDto dto, User user) {
@@ -51,46 +49,43 @@ public class BuyMilkServiceImpl implements BuyMilkService {
             throw new IllegalArgumentException("Quantity must be greater than zero");
         }
 
-        // 4. Fetch available milk for session + date
+        // 4. Validate time-based slot restrictions (for today's date only)
+        LocalDate orderDate = dto.getDate();
+        if (orderDate.equals(LocalDate.now())) {
+            validateTimeSlot(dto.getSession());
+        }
+
+        // 5. Fetch available milk for session + date to verify availability
         MilkInventory inventory = milkInventoryRepository
                 .lockInventory(
                         farm.getId(),
                         dto.getDate(),
-                        dto.getSession()
-                )
-                .orElseThrow(() ->
-                        new IllegalStateException("Milk not available for selected session")
-                );
+                        dto.getSession())
+                .orElseThrow(() -> new IllegalStateException("Milk not available for selected session"));
 
-        // 5. Calculate available milk (total production - allocations)
+        // 6. Calculate available milk (total production - allocations)
         Double totalProduction = inventory.getMilkLiters();
         Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
         Double availableMilk = totalProduction - allocatedMilk;
 
-        // 6. Check availability
+        // 7. Check availability
         if (availableMilk < requestedQty) {
             throw new IllegalStateException("Insufficient milk available. Available: " + availableMilk + "L");
         }
 
-        // 7. Create order
+        // 8. Create order with PENDING status (awaiting owner approval)
         Orders order = new Orders();
         order.setOrderDate(LocalDate.now());
         order.setQuantity(requestedQty);
         order.setSession(dto.getSession());
-        order.setStatus(OrderStatus.COMPLETED);
+        order.setStatus(OrderStatus.PENDING); // Changed from COMPLETED to PENDING
         order.setBuyer(buyer);
         order.setFarm(farm);
 
         ordersRepository.save(order);
 
-        // 8. Create allocation record (instead of deducting from inventory)
-        MilkAllocation allocation = MilkAllocation.builder()
-                .milkInventory(inventory)
-                .quantity(requestedQty)
-                .type(AllocationType.ORDER)
-                .referenceId(order.getId())
-                .build();
-        milkAllocationRepository.save(allocation);
+        // NOTE: Allocation will be created when owner approves the order
+        // This prevents allocating milk for orders that may be rejected
 
         // 9. Map to DTO and return
         OrderResponseDto dto1 = new OrderResponseDto();
@@ -103,5 +98,24 @@ public class BuyMilkServiceImpl implements BuyMilkService {
         dto1.setFarmId(farm != null ? farm.getId() : null);
 
         return dto1;
+    }
+
+    /**
+     * Validates time-based slot restrictions for same-day orders
+     */
+    private void validateTimeSlot(com.example.backend.Entity.type.MilkSession session) {
+        java.time.LocalTime now = java.time.LocalTime.now();
+
+        if (session == com.example.backend.Entity.type.MilkSession.MORNING) {
+            // Morning slot (6 AM - 10 AM) cannot be selected after 10 AM
+            if (now.isAfter(java.time.LocalTime.of(10, 0))) {
+                throw new IllegalStateException("Morning slot (6 AM - 10 AM) cannot be selected after 10:00 AM");
+            }
+        } else if (session == com.example.backend.Entity.type.MilkSession.EVENING) {
+            // Evening slot (4 PM - 8 PM) cannot be selected after 8 PM
+            if (now.isAfter(java.time.LocalTime.of(20, 0))) {
+                throw new IllegalStateException("Evening slot (4 PM - 8 PM) cannot be selected after 8:00 PM");
+            }
+        }
     }
 }

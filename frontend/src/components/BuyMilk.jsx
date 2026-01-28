@@ -10,29 +10,96 @@ import { Input } from "./ui/input";
 export default function BuyMilk() {
   const [searchParams] = useSearchParams();
   const [quantity, setQuantity] = useState("");
-  const [session, setSession] = useState("MORNING");
+  const [session, setSession] = useState("MORNING"); // Internal session state
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState(""); // For one-time buy UI
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [farmId, setFarmId] = useState(searchParams.get("farm") || "");
   const [farm, setFarm] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [isSubscription, setIsSubscription] = useState(false);
+  const [availableQty, setAvailableQty] = useState(null);
 
+  // Load farm details
   useEffect(() => {
     if (!farmId) {
       setFarm(null);
       return;
     }
     apiFetch(`/farms/${farmId}`)
-      .then((data) => {
-        setFarm(data);
-      })
+      .then((data) => setFarm(data))
       .catch(() => setFarm(null));
   }, [farmId]);
+
+  // Check Availability
+  useEffect(() => {
+    if (farmId && date && session) {
+      apiFetch(`/milk/availability?farmId=${farmId}&date=${date}&session=${session}`)
+        .then((data) => setAvailableQty(data.availableMilk))
+        .catch(() => setAvailableQty(null));
+    }
+  }, [farmId, date, session]);
+
+  // Generate Time Slots for One-time Buy
+  const timeSlots = React.useMemo(() => {
+    if (isSubscription) return [];
+
+    const slots = [];
+    const now = new Date();
+    const isToday = date === now.toISOString().slice(0, 10);
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    // Helper to create slot objects
+    const addSlot = (hour, minute, sessionType) => {
+      // Logic to filter past slots if today
+      if (isToday) {
+        if (hour < currentHour) return;
+        if (hour === currentHour && minute <= currentMinute) return;
+      }
+
+      const timeLabel = new Date(0, 0, 0, hour, minute).toLocaleTimeString([], {
+        hour: 'numeric', minute: '2-digit', hour12: true
+      });
+
+      slots.push({
+        value: `${hour}:${minute === 0 ? "00" : minute}`,
+        label: timeLabel,
+        session: sessionType
+      });
+    };
+
+    // Morning Slots (6 AM to 12 PM) - 30 min intervals
+    for (let h = 6; h < 12; h++) {
+      addSlot(h, 0, "MORNING");
+      addSlot(h, 30, "MORNING");
+    }
+    // Add 12:00 PM as last morning slot? 
+    // "to 12 pm from the current time" -> usually implies upto 12. Let's include 12:00 PM as boundary if needed, 
+    // but typical morning session ends around noon. Let's add 12:00 PM.
+    addSlot(12, 0, "MORNING");
+
+    // Evening Slots (4 PM to 8 PM)
+    for (let h = 16; h < 20; h++) {
+      addSlot(h, 0, "EVENING");
+      addSlot(h, 30, "EVENING");
+    }
+    // Add 8:00 PM boundary
+    addSlot(20, 0, "EVENING");
+
+    return slots;
+  }, [date, isSubscription]);
+
 
   const parsedQuantity = parseFloat(quantity) || 0;
   const pricePerLiter = farm?.pricePerLiter || 0;
   const estimatedTotal = parsedQuantity > 0 ? parsedQuantity * pricePerLiter : null;
+
+  // Subscription Time Restrictions Logic
+  const isToday = date === new Date().toISOString().slice(0, 10);
+  const currentHour = new Date().getHours();
+  const isMorningDisabled = isToday && currentHour >= 10;
+  const isEveningDisabled = isToday && currentHour >= 20;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -40,17 +107,22 @@ export default function BuyMilk() {
     setLoading(true);
 
     try {
+      if (!isSubscription && !selectedTimeSlot) {
+        throw new Error("Please select a time slot.");
+      }
+
       const parsedFarmId = parseInt(farmId, 10);
       const parsedQty = parseFloat(quantity);
 
-      if (!parsedFarmId || Number.isNaN(parsedFarmId)) {
-        throw new Error("Please select a valid farm.");
-      }
-      if (!parsedQty || Number.isNaN(parsedQty) || parsedQty <= 0) {
-        throw new Error("Quantity must be greater than 0.");
-      }
-      if (new Date(date) < new Date(new Date().toISOString().slice(0, 10))) {
-        throw new Error("Date cannot be in the past.");
+      if (!parsedFarmId || Number.isNaN(parsedFarmId)) throw new Error("Please select a valid farm.");
+      if (!parsedQty || Number.isNaN(parsedQty) || parsedQty <= 0) throw new Error("Quantity must be greater than 0.");
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (date < todayStr) throw new Error("Date cannot be in the past.");
+
+      // Check available quantity
+      if (availableQty !== null && parsedQty > availableQty) {
+        throw new Error(`Insufficient milk available. Only ${availableQty.toFixed(1)}L remaining.`);
       }
 
       if (isSubscription) {
@@ -61,19 +133,21 @@ export default function BuyMilk() {
           startDate: date,
         };
         const sub = await subscriptionApi.createSubscription(payload);
-        setMessage({ type: "success", text: `Subscription created (id: ${sub.id})` });
+        setMessage({ type: "success", text: `Subscription created successfully! (ID: ${sub.id})` });
       } else {
         const payload = {
           farmId: parsedFarmId,
           quantity: parsedQty,
-          session,
+          session, // Session is updated when time slot changes
           date,
         };
 
         const order = await orderApi.createOrder(payload);
-        setMessage({ type: "success", text: `Order created (id: ${order.id})` });
+        setMessage({
+          type: "success",
+          text: `Order sent for approval! Owner will review. (ID: ${order.id})`
+        });
       }
-
       setQuantity("");
     } catch (err) {
       setMessage({ type: "error", text: err.message || "Request failed" });
@@ -81,6 +155,18 @@ export default function BuyMilk() {
       setLoading(false);
     }
   }
+
+  // Handle time slot change for one-time buy
+  const handleTimeSlotChange = (e) => {
+    const val = e.target.value;
+    setSelectedTimeSlot(val);
+
+    // Find session for this slot
+    const slot = timeSlots.find(s => s.value === val);
+    if (slot) {
+      setSession(slot.session);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
@@ -92,7 +178,7 @@ export default function BuyMilk() {
               <CardDescription>
                 {farm
                   ? `From ${farm.name}${farm.city ? ` • ${farm.city}` : ""}`
-                  : "Choose a farm and quantity to continue."}
+                  : "Choose a farm and quantity."}
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -125,7 +211,7 @@ export default function BuyMilk() {
                   type="number"
                   value={farmId}
                   onChange={(e) => setFarmId(e.target.value)}
-                  placeholder="Enter farm ID from farms list"
+                  placeholder="Enter farm ID"
                   required
                 />
               </div>
@@ -144,18 +230,59 @@ export default function BuyMilk() {
                   onChange={(e) => setQuantity(e.target.value)}
                   required
                 />
+                {availableQty !== null && (
+                  <p className={`text-xs ${availableQty > 0 ? "text-emerald-600" : "text-destructive"}`}>
+                    Available: {availableQty.toFixed(1)} Liters
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium text-foreground">Session</label>
-                <select
-                  value={session}
-                  onChange={(e) => setSession(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <option value="MORNING">Morning (6 AM - 10 AM)</option>
-                  <option value="EVENING">Evening (4 PM - 8 PM)</option>
-                </select>
+                <label className="text-sm font-medium text-foreground">
+                  {isSubscription ? "Session" : "Time Slot"}
+                </label>
+
+                {isSubscription ? (
+                  // Subscription Session Select
+                  <>
+                    <select
+                      value={session}
+                      onChange={(e) => setSession(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="MORNING" disabled={isMorningDisabled}>
+                        Morning (6 AM - 10 AM){isMorningDisabled ? " - Unavailable" : ""}
+                      </option>
+                      <option value="EVENING" disabled={isEveningDisabled}>
+                        Evening (4 PM - 8 PM){isEveningDisabled ? " - Unavailable" : ""}
+                      </option>
+                    </select>
+                    {(isMorningDisabled && session === "MORNING") || (isEveningDisabled && session === "EVENING") ? (
+                      <p className="text-xs text-amber-600">
+                        ⚠️ This slot cannot be selected after cutoff time.
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  // One-time Buy Time Slot Select
+                  <select
+                    value={selectedTimeSlot}
+                    onChange={handleTimeSlotChange}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    required
+                  >
+                    <option value="">Select a time...</option>
+                    {timeSlots.length > 0 ? (
+                      timeSlots.map((slot) => (
+                        <option key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled>No slots available for today</option>
+                    )}
+                  </select>
+                )}
               </div>
             </div>
 
@@ -173,15 +300,10 @@ export default function BuyMilk() {
 
             <div className="mt-2 text-sm text-muted-foreground space-y-1">
               {farm && (
-                <p>
-                  Price: <span className="font-medium">₹{pricePerLiter.toFixed(2)}</span> per liter
-                </p>
+                <p>Price: <span className="font-medium">₹{pricePerLiter.toFixed(2)}</span> / L</p>
               )}
-              {estimatedTotal !== null && farm && (
-                <p>
-                  Estimated {isSubscription ? "daily" : "order"} total:{" "}
-                  <span className="font-semibold">₹{estimatedTotal.toFixed(2)}</span>
-                </p>
+              {estimatedTotal !== null && (
+                <p>Total: <span className="font-semibold">₹{estimatedTotal.toFixed(2)}</span></p>
               )}
             </div>
 
@@ -191,13 +313,8 @@ export default function BuyMilk() {
               </Button>
 
               {message && (
-                <div
-                  className={`text-sm rounded-md px-3 py-2 ${
-                    message.type === "error"
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-emerald-50 text-emerald-700"
-                  }`}
-                >
+                <div className={`text-sm rounded-md px-3 py-2 ${message.type === "error" ? "bg-destructive/10 text-destructive" : "bg-emerald-50 text-emerald-700"
+                  }`}>
                   {message.text}
                 </div>
               )}
