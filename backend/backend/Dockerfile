@@ -5,14 +5,19 @@ FROM maven:3.9.9-eclipse-temurin-24 AS build
 
 WORKDIR /workspace
 
+# Copy Maven wrapper & pom first (cache-friendly)
 COPY pom.xml .
+COPY mvnw .
 COPY .mvn .mvn
-COPY mvnw mvnw
 
+# Download dependencies
 RUN mvn -B -ntp dependency:go-offline
 
-COPY src ./src
-RUN mvn -B -ntp package -DskipTests
+# Copy source code
+COPY src src
+
+# Build application
+RUN mvn -B -ntp clean package -Dmaven.test.skip=true
 
 
 # =========================
@@ -22,11 +27,14 @@ FROM eclipse-temurin:24-jdk
 
 WORKDIR /app
 
+# Copy jar from build stage
 COPY --from=build /workspace/target/*.jar app.jar
 
+# Run as non-root user
 RUN addgroup --system app && adduser --system --ingroup app app
 USER app
 
+# JVM options
 ENV JAVA_TOOL_OPTIONS="\
 -XX:MaxRAMPercentage=75.0 \
 -XX:InitialRAMPercentage=50.0 \

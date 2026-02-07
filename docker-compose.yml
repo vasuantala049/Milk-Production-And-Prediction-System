@@ -1,8 +1,8 @@
-version: "3.9"
+
 
 services:
   mysql:
-    image: mysql:8.4
+    image: mysql:8.0
     container_name: milk-mysql
     restart: unless-stopped
     environment:
@@ -29,12 +29,19 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://milk-mysql:3306/mpps
       SPRING_DATASOURCE_USERNAME: milkuser
       SPRING_DATASOURCE_PASSWORD: vasu@2005
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      JWT_SECRET: fgsdfg45sg8srgefyuegf7b548h516aret4hd6f6sg461gfhdf
+      JWT_EXPIRATION: 86400000
+      SPRING_DATA_REDIS_HOST: milk-redis
+      SPRING_DATA_REDIS_PORT: 6379
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/users/db-test"]
       interval: 15s
@@ -52,6 +59,17 @@ services:
         condition: service_healthy
     ports:
       - "3000:80"
+  redis:
+    image: redis:7-alpine
+    container_name: milk-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   mysql_data:
