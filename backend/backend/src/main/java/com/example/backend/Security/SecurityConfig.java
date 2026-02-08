@@ -46,15 +46,13 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("//auth/**").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/milk/**").authenticated()
                         .requestMatchers("/cattle/**").authenticated()
-                        .requestMatchers("/users/**","/users/db-test").permitAll() // Allow registration
-                        .anyRequest().authenticated()
-                )
+                        .requestMatchers("/users/**", "/users/db-test").permitAll() // Allow registration
+                        .anyRequest().authenticated())
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -91,7 +89,8 @@ public class SecurityConfig {
         }
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With", "Cache-Control"));
+        configuration.setAllowedHeaders(
+                List.of("Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With", "Cache-Control"));
         configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(List.of("Authorization"));
 
@@ -100,4 +99,3 @@ public class SecurityConfig {
         return source;
     }
 }
-
