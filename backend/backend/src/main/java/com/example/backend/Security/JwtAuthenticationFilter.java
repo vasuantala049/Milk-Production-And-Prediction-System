@@ -25,7 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
     private final UserRepository userRepository; // ✅ ADD THIS
-
+    
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,

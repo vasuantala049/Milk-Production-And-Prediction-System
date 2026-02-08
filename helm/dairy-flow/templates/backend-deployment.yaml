@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://mysql:3306/mpps"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "milkuser"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "vasu@2005"
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: "com.mysql.cj.jdbc.Driver"
+            - name: JWT_SECRET
+              value: "{{ .Values.jwt.secret }}"
+            - name: JWT_EXPIRATION
+              value: "{{ .Values.jwt.expiration }}"
+            - name: SPRING_DATA_REDIS_HOST
+              value: "{{ .Values.redis.host }}"
+            - name: SPRING_DATA_REDIS_PORT
+              value: "{{ .Values.redis.port }}"

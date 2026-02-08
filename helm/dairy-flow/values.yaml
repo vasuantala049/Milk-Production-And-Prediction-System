@@ -1,0 +1,32 @@
+mysql:
+  image: mysql:8.0
+  database: mpps
+  user: milkuser
+  password: vasu@2005
+  rootPassword: vasu@2005
+  port: 3306
+
+redis:
+  image: redis:7-alpine
+  port: 6379
+  host: redis
+
+backend:
+  image:
+    repository: vasu049/dairy-flow-backend
+    tag: latest
+  port: 8080
+
+jwt:
+  secret: fgsdfg45sg8srgefyuegf7b548h516aret4hd6f6sg461gfhdf
+  expiration: "86400000"
+
+frontend:
+  image:
+    repository: vasu049/dairy-flow-frontend
+    tag: latest
+  port: 80
+  env:
+  - name: VITE_API_BASE_URL
+    value: "http://backend:8080/api"
+

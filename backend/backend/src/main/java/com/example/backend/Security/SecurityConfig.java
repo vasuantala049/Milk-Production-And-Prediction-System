@@ -46,10 +46,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("//auth/**").permitAll()
                         .requestMatchers("/milk/**").authenticated()
                         .requestMatchers("/cattle/**").authenticated()
-                        .requestMatchers("/users","/users/db-test").permitAll() // Allow registration
+                        .requestMatchers("/users/**","/users/db-test").permitAll() // Allow registration
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
