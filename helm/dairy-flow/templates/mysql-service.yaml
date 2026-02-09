@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: mysql
 spec:
+  clusterIP: None        # 🔑 REQUIRED for StatefulSet
   selector:
     app: mysql
   ports:
