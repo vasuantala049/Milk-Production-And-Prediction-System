@@ -86,7 +86,7 @@
 //     </div>
 //   );
 // }
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
 import BarcodeScanner from "./BarcodeScanner";
@@ -110,6 +110,13 @@ const CATTLE_TYPES = {
 export default function AddCattle() {
   const { farmId } = useParams();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user.role !== "FARM_OWNER") {
+      navigate(`/cattle/${farmId}`);
+    }
+  }, [navigate, farmId]);
 
   const [tagId, setTagId] = useState("");
   const [type, setType] = useState("");

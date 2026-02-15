@@ -200,12 +200,12 @@ export default function YourFarms() {
                 >
                   <FarmCard
                     farm={farm}
-                    onToggleSelling={() => user.role === 'FARM_OWNER' && handleToggleSelling(farm)}
+                    onToggleSelling={user.role === "FARM_OWNER" ? () => handleToggleSelling(farm) : undefined}
                     isToggling={togglingFarms.has(farm.id)}
                   />
                 </div>
 
-                {user.role !== "BUYER" && (
+                {user.role === "FARM_OWNER" && (
                   <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button
                       variant="outline"

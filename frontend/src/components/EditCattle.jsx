@@ -110,6 +110,12 @@ export default function EditCattle() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user.role !== "FARM_OWNER") {
+      navigate(`/cattle/${farmId}`);
+      return;
+    }
+
     let mounted = true;
 
     async function load() {
@@ -128,7 +134,7 @@ export default function EditCattle() {
     return () => {
       mounted = false;
     };
-  }, [cattleId]);
+  }, [cattleId, navigate, farmId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

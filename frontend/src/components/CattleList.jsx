@@ -26,6 +26,9 @@ export default function CattleList() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
 
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isOwner = user.role === "FARM_OWNER";
+
   useEffect(() => {
     setLoading(true);
     apiFetch(`/cattle/farm/${farmId}`)
@@ -85,10 +88,12 @@ export default function CattleList() {
               <MilkIcon className="w-4 h-4" />
               Add Milk
             </Button>
-            <Button onClick={() => navigate(`/cattle/add/${farmId}`)} className="gap-2">
-              <Plus className="w-5 h-5" />
-              Add Cattle
-            </Button>
+            {isOwner && (
+              <Button onClick={() => navigate(`/cattle/add/${farmId}`)} className="gap-2">
+                <Plus className="w-5 h-5" />
+                Add Cattle
+              </Button>
+            )}
           </div>
         </motion.div>
 
@@ -155,8 +160,11 @@ export default function CattleList() {
               transition={{ delay: 0.25 + index * 0.03 }}
             >
               <Card
-                onClick={() => navigate(`/cattle/edit/${farmId}/${c.id}`)}
-                className="rounded-xl cursor-pointer transition-all hover:shadow-elevated hover:border-primary/30"
+                onClick={() => isOwner && navigate(`/cattle/edit/${farmId}/${c.id}`)}
+                className={cn(
+                  "rounded-xl transition-all",
+                  isOwner ? "cursor-pointer hover:shadow-elevated hover:border-primary/30" : "cursor-default"
+                )}
               >
                 <CardContent className="p-5 space-y-4">
                   {/* Top Row */}
@@ -182,17 +190,19 @@ export default function CattleList() {
                         {c.status || "—"}
                       </Badge>
 
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteCattle(c.id);
-                        }}
-                        className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {isOwner && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCattle(c.id);
+                          }}
+                          className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
 

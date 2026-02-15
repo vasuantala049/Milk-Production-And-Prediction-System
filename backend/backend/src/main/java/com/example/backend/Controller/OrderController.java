@@ -117,9 +117,10 @@ public class OrderController {
      * Approve a pending order
      */
     @PatchMapping("/{orderId}/approve")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
     public ResponseEntity<OrderResponseDto> approveOrder(
             @PathVariable Long orderId,
-            @AuthenticationPrincipal User user) {
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
         OrderResponseDto approvedOrder = orderService.approveOrder(orderId, user);
         return ResponseEntity.ok(approvedOrder);
     }
@@ -128,9 +129,10 @@ public class OrderController {
      * Reject a pending order
      */
     @PatchMapping("/{orderId}/reject")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
     public ResponseEntity<Void> rejectOrder(
             @PathVariable Long orderId,
-            @AuthenticationPrincipal User user) {
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
         orderService.rejectOrder(orderId, user);
         return ResponseEntity.noContent().build();
     }

@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -52,17 +53,9 @@ public class UserServiceImpl implements UserService {
             }
 
             case WORKER -> {
-                // Worker can be created without being assigned to a farm.
-                if (dto.getFarmId() != null) {
-                    Farm farm = farmRepository.findById(dto.getFarmId())
-                            .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
-                    java.util.List<Farm> farms = new java.util.ArrayList<>();
-                    farms.add(farm);
-                    user.setAssignedFarms(farms);
-                }
-                // worker created without farm; no code generation required
+                throw new IllegalArgumentException(
+                        "Public registration for Workers is not allowed. Please ask the Farm Owner to add you.");
             }
-
 
             case BUYER -> {
                 // nothing extra
@@ -133,7 +126,8 @@ public class UserServiceImpl implements UserService {
                     .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
 
             // Only the owner of the farm can assign workers to it
-            if (loggedInUser.getRole() != UserRole.FARM_OWNER || !farm.getOwner().getId().equals(loggedInUser.getId())) {
+            if (loggedInUser.getRole() != UserRole.FARM_OWNER
+                    || !farm.getOwner().getId().equals(loggedInUser.getId())) {
                 throw new IllegalArgumentException("Only the farm owner can assign workers to this farm");
             }
 

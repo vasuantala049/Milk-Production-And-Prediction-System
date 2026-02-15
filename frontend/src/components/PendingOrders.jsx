@@ -128,25 +128,27 @@ export default function PendingOrders() {
                                             </div>
                                         </div>
 
-                                        <div className="flex gap-2">
-                                            <Button
-                                                onClick={() => handleApprove(order.id)}
-                                                disabled={processingId === order.id}
-                                                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                                            >
-                                                <CheckCircleIcon fontSize="small" className="mr-2" />
-                                                {processingId === order.id ? "Processing..." : "Approve"}
-                                            </Button>
-                                            <Button
-                                                onClick={() => handleReject(order.id)}
-                                                disabled={processingId === order.id}
-                                                variant="destructive"
-                                                className="flex-1"
-                                            >
-                                                <CancelIcon fontSize="small" className="mr-2" />
-                                                Reject
-                                            </Button>
-                                        </div>
+                                        {JSON.parse(localStorage.getItem("user") || "{}").role === "FARM_OWNER" && (
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    onClick={() => handleApprove(order.id)}
+                                                    disabled={processingId === order.id}
+                                                    className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                                                >
+                                                    <CheckCircleIcon fontSize="small" className="mr-2" />
+                                                    {processingId === order.id ? "Processing..." : "Approve"}
+                                                </Button>
+                                                <Button
+                                                    onClick={() => handleReject(order.id)}
+                                                    disabled={processingId === order.id}
+                                                    variant="destructive"
+                                                    className="flex-1"
+                                                >
+                                                    <CancelIcon fontSize="small" className="mr-2" />
+                                                    Reject
+                                                </Button>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </motion.div>

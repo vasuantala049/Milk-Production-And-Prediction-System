@@ -12,13 +12,20 @@ export default function AddWorker() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user.role !== "FARM_OWNER") {
+      navigate("/farms");
+    }
+  }, [navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      await apiFetch("/users", {
+      await apiFetch(`/farms/${farmId}/workers`, {
         method: "POST",
         body: JSON.stringify({
           name,

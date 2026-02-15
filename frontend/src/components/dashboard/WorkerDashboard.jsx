@@ -165,13 +165,13 @@ export function WorkerDashboard() {
           </div>
           <div>
             <p className="font-medium text-foreground">
-              {todayEntries.length > 0 
-                ? `${todayEntries.length} entries recorded` 
+              {todayEntries.length > 0
+                ? `${todayEntries.length} entries recorded`
                 : 'No entries yet today'}
             </p>
             <p className="text-sm text-muted-foreground">
-              {todayEntries.length > 0 
-                ? `Keep up the good work!` 
+              {todayEntries.length > 0
+                ? `Keep up the good work!`
                 : 'Start recording milk collection'}
             </p>
           </div>
@@ -233,7 +233,7 @@ export function WorkerDashboard() {
                     Active
                   </Badge>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center gap-2">
                     <Beef className="w-4 h-4 text-muted-foreground" />
@@ -260,15 +260,33 @@ export function WorkerDashboard() {
         >
           <h3 className="font-semibold text-foreground mb-4">Cattle for Milking</h3>
           <div className="divide-y divide-border">
-            {cattle.slice(0, 5).map((c) => {
-              const hasEntry = todayEntries.some(e => e.cattleTagId === c.tagId);
-              return (
+            {cattle
+              .map((c) => {
+                // Check which sessions are completed for this cattle
+                const hasMorning = todayEntries.some(
+                  e => e.cattleTagId === c.tagId && e.session === "MORNING"
+                );
+                const hasEvening = todayEntries.some(
+                  e => e.cattleTagId === c.tagId && e.session === "EVENING"
+                );
+
+                return {
+                  cattle: c,
+                  hasMorning,
+                  hasEvening,
+                  hasPendingSession: !hasMorning || !hasEvening
+                };
+              })
+              // Filter out cattle with both sessions complete
+              .filter(item => item.hasPendingSession)
+              .slice(0, 10)
+              .map(({ cattle: c, hasMorning, hasEvening }) => (
                 <div key={c.id} className="py-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       "w-2 h-2 rounded-full",
                       c.status === "ACTIVE" ? "bg-success" :
-                      c.status === "SICK" ? "bg-destructive" : "bg-muted"
+                        c.status === "SICK" ? "bg-destructive" : "bg-muted"
                     )} />
                     <div>
                       <p className="font-medium text-foreground">
@@ -278,20 +296,22 @@ export function WorkerDashboard() {
                       <p className="text-sm text-muted-foreground">{c.breed || "—"} • Avg {c.avgMilkPerDay != null ? `${c.avgMilkPerDay}L` : "—"}/day</p>
                     </div>
                   </div>
-                  {hasEntry ? (
-                    <Badge className="bg-success/10 text-success border-success/30">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Done
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-muted-foreground">
-                      <Clock className="w-3 h-3 mr-1" />
-                      Pending
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {!hasMorning && (
+                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Morning
+                      </Badge>
+                    )}
+                    {!hasEvening && (
+                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Evening
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
+              ))}
           </div>
         </motion.div>
       )}

@@ -1,4 +1,5 @@
 package com.example.backend.Controller;
+
 import com.example.backend.DTO.*;
 import com.example.backend.Service.CattleService;
 import com.example.backend.Service.FarmService;
@@ -18,8 +19,9 @@ public class CattleController {
 
     private final CattleService cattleService;
 
-    // CREATE cattle
+    // CREATE cattle (only OWNER)
     @PostMapping
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
     public ResponseEntity<?> createCattle(
             @RequestBody @Valid CreateCattleDto dto) {
         try {
@@ -36,7 +38,10 @@ public class CattleController {
     // Error response DTO for user-friendly errors
     static class ErrorResponse {
         public final String message;
-        public ErrorResponse(String message) { this.message = message; }
+
+        public ErrorResponse(String message) {
+            this.message = message;
+        }
     }
 
     // GET cattle by id
@@ -53,8 +58,9 @@ public class CattleController {
         return ResponseEntity.ok(cattleService.getCattleByFarm(farmId));
     }
 
-    // PATCH cattle
+    // PATCH cattle (only OWNER)
     @PatchMapping("/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
     public ResponseEntity<CattleResponseDto> patchCattle(
             @PathVariable Long id,
             @RequestBody CattlePatchDto patchDto) {
@@ -62,15 +68,16 @@ public class CattleController {
         return ResponseEntity.ok(cattleService.patchCattle(id, patchDto));
     }
 
-    // DELETE cattle
+    // DELETE cattle (only OWNER)
     @DeleteMapping("/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
     public ResponseEntity<Void> deleteCattle(@PathVariable Long id) {
         cattleService.deleteCattle(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/count")
-    public Long getTotalCattle(){
+    public Long getTotalCattle() {
         return cattleService.getTotalCattle();
     }
 }

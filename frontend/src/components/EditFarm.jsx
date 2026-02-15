@@ -21,6 +21,12 @@ export default function EditFarm() {
     });
 
     useEffect(() => {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        if (user.role !== "FARM_OWNER") {
+            navigate("/farms");
+            return;
+        }
+
         console.log("EditFarm mounted. FarmID:", farmId);
         setLoading(true);
         apiFetch(`/farms/${farmId}`)
@@ -34,7 +40,7 @@ export default function EditFarm() {
                 setError(err.message || "Failed to load farm details.");
             })
             .finally(() => setLoading(false));
-    }, [farmId]);
+    }, [farmId, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

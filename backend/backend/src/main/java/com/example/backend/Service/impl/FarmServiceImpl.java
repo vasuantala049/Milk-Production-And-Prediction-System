@@ -256,4 +256,34 @@ public class FarmServiceImpl implements FarmService {
                 })
                 .orElse(0.0);
     }
+
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Override
+    public com.example.backend.DTO.UserResponseDto createWorkerForFarm(Long farmId,
+            com.example.backend.DTO.CreateUserRequestDto dto, User loggedInUser) {
+        Farm farm = farmRepository.findById(farmId)
+                .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+
+        if (!farm.getOwner().getId().equals(loggedInUser.getId())) {
+            throw new IllegalArgumentException("Only the farm owner can create workers for this farm");
+        }
+
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            throw new IllegalArgumentException("User with this email already exists.");
+        }
+
+        User user = new User();
+        user.setName(dto.getName());
+        user.setEmail(dto.getEmail());
+        user.setRole(UserRole.WORKER);
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+
+        java.util.List<Farm> assigned = new java.util.ArrayList<>();
+        assigned.add(farm);
+        user.setAssignedFarms(assigned);
+
+        User saved = userRepository.save(user);
+        return modelMapper.map(saved, com.example.backend.DTO.UserResponseDto.class);
+    }
 }
