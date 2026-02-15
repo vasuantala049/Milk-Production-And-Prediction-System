@@ -26,3 +26,5 @@ frontend:
     repository: vasu049/dairy-flow-frontend
     tag: latest
   port: 80
+ingress:
+  enabled: true
