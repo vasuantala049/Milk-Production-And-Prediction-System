@@ -4,6 +4,13 @@ metadata:
   name: backend
 spec:
   replicas: 1
+
+  strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 1
+
   selector:
     matchLabels:
       app: backend
@@ -35,3 +42,11 @@ spec:
               value: "{{ .Values.redis.host }}"
             - name: SPRING_DATA_REDIS_PORT
               value: "{{ .Values.redis.port }}"
+
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
