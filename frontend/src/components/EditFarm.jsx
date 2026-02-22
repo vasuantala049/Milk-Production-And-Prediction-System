@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/client";
-import { DashboardLayout } from "./layout/DashboardLayout";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -62,14 +61,14 @@ export default function EditFarm() {
 
     if (loading) {
         return (
-            <DashboardLayout>
+            
                 <p className="text-muted-foreground">Loading farm details...</p>
-            </DashboardLayout>
+            
         );
     }
 
     return (
-        <DashboardLayout>
+        
             <div className="max-w-2xl mx-auto space-y-6">
                 <Button
                     variant="ghost"
@@ -131,6 +130,6 @@ export default function EditFarm() {
                     </Card>
                 </motion.div>
             </div>
-        </DashboardLayout>
+        
     );
 }

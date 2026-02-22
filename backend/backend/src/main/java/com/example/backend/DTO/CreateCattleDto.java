@@ -19,6 +19,8 @@ public class CreateCattleDto {
     @NotBlank
     private String status; // ACTIVE / SICK / SOLD
 
+    private String shed;
+
     @NotNull
     private Long farmId;
 }

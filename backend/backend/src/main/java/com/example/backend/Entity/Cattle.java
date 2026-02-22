@@ -28,6 +28,8 @@ public class Cattle {
     private Long weight;
     private String status; // ACTIVE / SICK / SOLD
 
+    private String shed;
+
     @ManyToOne
     @JoinColumn(name = "farm_id", nullable = false)
     private Farm farm;

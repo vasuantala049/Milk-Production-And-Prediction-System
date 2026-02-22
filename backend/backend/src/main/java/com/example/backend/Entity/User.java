@@ -44,6 +44,8 @@ public class User {
     @Column(name = "oauth_provider")
     private String oauthProvider;
 
+    private String shed;
+
     @Column(name = "oauth_provider_id")
     private String oauthProviderId;
 

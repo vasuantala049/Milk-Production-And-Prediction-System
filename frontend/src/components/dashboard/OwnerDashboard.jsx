@@ -37,6 +37,7 @@ export function OwnerDashboard() {
   const [farms, setFarms] = useState([]);
   const [daysRange, setDaysRange] = useState(7);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [todayEntries, setTodayEntries] = useState([]);
   const [isToggling, setIsToggling] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -140,6 +141,32 @@ export function OwnerDashboard() {
 
     if (activeFarm?.id) {
       loadRecentOrders(activeFarm.id);
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeFarm?.id]);
+
+  /* ===========================
+     LOAD TODAY ENTRIES (OWNER VIEW)
+     =========================== */
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadTodayEntries(farmId) {
+      try {
+        const data = await apiFetch(`/milk/today/entries?farmId=${farmId}`);
+        if (!mounted) return;
+        setTodayEntries(Array.isArray(data) ? data : []);
+      } catch {
+        if (!mounted) return;
+        setTodayEntries([]);
+      }
+    }
+
+    if (activeFarm?.id) {
+      loadTodayEntries(activeFarm.id);
     }
 
     return () => {
@@ -338,6 +365,42 @@ export function OwnerDashboard() {
                         >
                           {order.status.toLowerCase()}
                         </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Today's Entries (Showing Worker) */}
+              <div className="bg-card border border-border rounded-xl p-4 shadow-card">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-foreground text-sm">
+                    Today's Milk Entries
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    {todayEntries.length} entries
+                  </span>
+                </div>
+
+                {todayEntries.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No milk entries for today yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                    {todayEntries.map((entry, idx) => (
+                      <div
+                        key={`${entry.cattleTagId}-${entry.session}-${idx}`}
+                        className="flex items-center justify-between text-xs border border-border/60 rounded-md px-2 py-1.5"
+                      >
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {entry.cattleTagId} • {entry.session}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {entry.milkLiters}L • Milked by: <span className="font-medium text-primary">{entry.workerName || "Unknown Worker"}</span>
+                          </p>
+                        </div>
                       </div>
                     ))}
                   </div>

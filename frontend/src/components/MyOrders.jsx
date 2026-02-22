@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { apiFetch } from "../api/client";
-import { DashboardLayout } from "./layout/DashboardLayout";
+
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { motion } from "framer-motion";
@@ -58,7 +58,7 @@ export default function MyOrders() {
     };
 
     return (
-        <DashboardLayout>
+
             <div className="space-y-6">
                 <div>
                     <h1 className="text-3xl font-display font-bold text-foreground">
@@ -156,6 +156,6 @@ export default function MyOrders() {
                     </div>
                 )}
             </div>
-        </DashboardLayout>
+
     );
 }

@@ -26,4 +26,6 @@ public class CreateUserRequestDto {
 
     // REQUIRED when role = WORKER
     private Long farmId;
+
+    private String shed;
 }

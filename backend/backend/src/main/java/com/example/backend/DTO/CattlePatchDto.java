@@ -9,4 +9,5 @@ public class CattlePatchDto {
 
     private String breed;
     private String status;
+    private String shed;
 }

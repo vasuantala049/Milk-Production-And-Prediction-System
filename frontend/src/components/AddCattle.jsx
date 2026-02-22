@@ -122,6 +122,7 @@ export default function AddCattle() {
   const [type, setType] = useState("");
   const [breed, setBreed] = useState("");
   const [status, setStatus] = useState("ACTIVE");
+  const [shed, setShed] = useState("");
   const [showScanner, setShowScanner] = useState(false);
   const [error, setError] = useState("");
 
@@ -137,6 +138,7 @@ export default function AddCattle() {
           breed,
           type,
           status,
+          shed,
           farmId: Number(farmId),
         }),
       });
@@ -236,6 +238,14 @@ export default function AddCattle() {
                   <MenuItem value="SICK">Sick</MenuItem>
                   <MenuItem value="INACTIVE">Inactive</MenuItem>
                 </TextField>
+
+                <TextField
+                  fullWidth
+                  label="Shed (Optional)"
+                  value={shed}
+                  onChange={(e) => setShed(e.target.value)}
+                  placeholder="e.g. Shed A"
+                />
 
                 <Button
                   type="submit"

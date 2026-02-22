@@ -17,7 +17,7 @@ public class UserResponseDto {
     private UserRole role;
     private LocalDateTime createdAt;
     private String location;
-    
+    private String shed;
 
 
 }

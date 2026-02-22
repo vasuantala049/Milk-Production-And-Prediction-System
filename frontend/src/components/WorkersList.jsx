@@ -91,9 +91,32 @@ export default function WorkersList() {
         <div className="space-y-3 mb-32">
           {workers.map((w) => (
             <Card key={w.id} className="rounded-xl">
-              <CardContent>
-                <p className="font-semibold">{w.name}</p>
-                <p className="text-xs text-gray-500">{w.email}</p>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center w-full">
+                  <div>
+                    <p className="font-semibold text-lg">{w.name}</p>
+                    <p className="text-sm text-gray-500">{w.email}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">Assigned Shed</p>
+                    <p className="font-medium text-gray-700">{w.shed || "All Sheds / Unassigned"}</p>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => {
+                        const newShed = prompt("Enter new shed for worker (leave blank to unassign):", w.shed || "");
+                        if (newShed !== null) {
+                          apiFetch(`/users/${w.id}`, {
+                            method: "PATCH",
+                            body: JSON.stringify({ shed: newShed })
+                          }).then(refreshWorkers).catch(e => alert(e.message));
+                        }
+                      }}
+                    >
+                      Edit Shed
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}

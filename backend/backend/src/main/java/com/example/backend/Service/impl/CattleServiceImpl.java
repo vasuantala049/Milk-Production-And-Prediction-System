@@ -43,6 +43,7 @@ public class CattleServiceImpl implements CattleService {
         cattle.setBreed(dto.getBreed());
         cattle.setType(dto.getType());
         cattle.setStatus(dto.getStatus());
+        cattle.setShed(dto.getShed());
         cattle.setFarm(farm);
 
         Cattle saved = cattleRepository.save(cattle);
@@ -83,6 +84,10 @@ public class CattleServiceImpl implements CattleService {
             cattle.setStatus(patchDto.getStatus());
         }
 
+        if (patchDto.getShed() != null) {
+            cattle.setShed(patchDto.getShed());
+        }
+
         Cattle saved = cattleRepository.save(cattle);
         return toResponseDto(saved);
     }
@@ -119,7 +124,8 @@ public class CattleServiceImpl implements CattleService {
                 cattle.getType(),
                 cattle.getStatus(),
                 avgMilkPerDay,
-                cattle.getFarm().getId());
+                cattle.getFarm().getId(),
+                cattle.getShed());
     }
 
     private Double calculateAverageMilkPerDay(Long cattleId) {

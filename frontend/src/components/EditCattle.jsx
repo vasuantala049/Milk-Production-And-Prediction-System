@@ -106,6 +106,7 @@ export default function EditCattle() {
   const navigate = useNavigate();
 
   const [status, setStatus] = useState("ACTIVE");
+  const [shed, setShed] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -123,6 +124,7 @@ export default function EditCattle() {
         const dto = await apiFetch(`/cattle/${cattleId}`);
         if (!mounted) return;
         setStatus(dto.status || "ACTIVE");
+        setShed(dto.shed || "");
       } catch (err) {
         setError(err.message || "Failed to load cattle");
       } finally {
@@ -143,7 +145,7 @@ export default function EditCattle() {
     try {
       await apiFetch(`/cattle/${cattleId}`, {
         method: "PATCH",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, shed }),
       });
       navigate(`/cattle/${farmId}`);
     } catch (err) {
@@ -187,6 +189,14 @@ export default function EditCattle() {
                   <MenuItem value="SICK">Sick</MenuItem>
                   <MenuItem value="INACTIVE">Inactive</MenuItem>
                 </TextField>
+
+                <TextField
+                  fullWidth
+                  label="Shed (Optional)"
+                  value={shed}
+                  onChange={(e) => setShed(e.target.value)}
+                  placeholder="e.g. Shed A"
+                />
 
                 {/* Buttons row */}
                 <Stack direction="row" spacing={2}>

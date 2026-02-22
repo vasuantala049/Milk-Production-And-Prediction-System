@@ -53,9 +53,18 @@ public class CattleController {
     // GET all cattle of a farm
     @GetMapping("/farm/{farmId}")
     public ResponseEntity<List<CattleResponseDto>> getCattleByFarm(
-            @PathVariable Long farmId) {
+            @PathVariable Long farmId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
 
-        return ResponseEntity.ok(cattleService.getCattleByFarm(farmId));
+        List<CattleResponseDto> allCattle = cattleService.getCattleByFarm(farmId);
+        if (user != null && user.getRole() == com.example.backend.Entity.type.UserRole.WORKER && user.getShed() != null && !user.getShed().isEmpty()) {
+            List<CattleResponseDto> filtered = allCattle.stream()
+                    .filter(c -> user.getShed().equalsIgnoreCase(c.getShed()))
+                    .toList();
+            return ResponseEntity.ok(filtered);
+        }
+
+        return ResponseEntity.ok(allCattle);
     }
 
     // PATCH cattle (only OWNER)
