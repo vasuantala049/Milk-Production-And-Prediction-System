@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { apiFetch } from "../api/client";
 import { farmApi } from "../api/farmApi";
-import { DashboardLayout } from "./layout/DashboardLayout";
 import { FarmCard } from "./dashboard/FarmCard";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -120,7 +119,7 @@ export default function YourFarms() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   return (
-    <DashboardLayout>
+    
       <div className="space-y-6">
         {/* Header */}
         <motion.div
@@ -279,6 +278,6 @@ export default function YourFarms() {
           </motion.div>
         )}
       </div>
-    </DashboardLayout>
+    
   );
 }

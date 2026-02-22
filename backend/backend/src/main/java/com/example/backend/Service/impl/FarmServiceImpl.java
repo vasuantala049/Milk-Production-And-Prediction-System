@@ -278,6 +278,9 @@ public class FarmServiceImpl implements FarmService {
         user.setEmail(dto.getEmail());
         user.setRole(UserRole.WORKER);
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        if (dto.getShed() != null) {
+            user.setShed(dto.getShed());
+        }
 
         java.util.List<Farm> assigned = new java.util.ArrayList<>();
         assigned.add(farm);

@@ -1,4 +1,3 @@
-import { DashboardLayout } from "./layout/DashboardLayout";
 import { OwnerDashboard } from "./dashboard/OwnerDashboard";
 import { WorkerDashboard } from "./dashboard/WorkerDashboard";
 import { CustomerDashboard } from "./dashboard/CustomerDashboard";
@@ -22,9 +21,5 @@ export default function Dashboard() {
     return <OwnerDashboard />;
   };
 
-  return (
-    <DashboardLayout>
-      {renderDashboard()}
-    </DashboardLayout>
-  );
+  return renderDashboard();
 }

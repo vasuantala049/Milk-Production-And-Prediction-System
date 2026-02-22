@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch } from "../api/client";
-import { DashboardLayout } from "./layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -63,7 +62,7 @@ export default function PendingOrders() {
     };
 
     return (
-        <DashboardLayout>
+        
             <div className="space-y-6">
                 <div>
                     <h1 className="text-3xl font-display font-bold text-foreground">
@@ -156,6 +155,6 @@ export default function PendingOrders() {
                     </div>
                 )}
             </div>
-        </DashboardLayout>
+        
     );
 }

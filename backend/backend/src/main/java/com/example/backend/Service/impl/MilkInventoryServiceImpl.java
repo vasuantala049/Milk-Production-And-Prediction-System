@@ -211,7 +211,8 @@ public class MilkInventoryServiceImpl implements    MilkInventoryService {
                                 entry.getCattle().getTagId(),
                                 entry.getCattle().getTagId(),
                                 entry.getSession(),
-                                entry.getMilkLiters()
+                                entry.getMilkLiters(),
+                                entry.getEnteredBy() != null ? entry.getEnteredBy().getName() : null
                         ))
                         .collect(java.util.stream.Collectors.toList());
         }

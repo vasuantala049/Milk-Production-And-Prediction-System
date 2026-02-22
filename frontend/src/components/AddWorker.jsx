@@ -9,6 +9,7 @@ export default function AddWorker() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [shed, setShed] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -33,6 +34,7 @@ export default function AddWorker() {
           password,
           role: "WORKER",
           farmId: Number(farmId),
+          shed,
         }),
       });
 
@@ -55,6 +57,7 @@ export default function AddWorker() {
               <TextField fullWidth label="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
               <TextField fullWidth label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <TextField fullWidth label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <TextField fullWidth label="Assigned Shed (Optional)" value={shed} onChange={(e) => setShed(e.target.value)} />
 
               {error && <p className="text-sm text-red-500">{error}</p>}
 

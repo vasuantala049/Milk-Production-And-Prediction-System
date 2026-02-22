@@ -142,6 +142,10 @@ public class UserServiceImpl implements UserService {
             }
         }
 
+        if (patchDto.getShed() != null) {
+            user.setShed(patchDto.getShed());
+        }
+
         User saved = userRepository.save(user);
         return modelMapper.map(saved, UserResponseDto.class);
     }

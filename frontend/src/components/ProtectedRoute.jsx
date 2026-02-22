@@ -1,7 +1,14 @@
 import { Navigate, Outlet } from "react-router-dom";
+import { DashboardLayout } from "./layout/DashboardLayout";
 
 export default function ProtectedRoute() {
   const isAuthenticated = !!localStorage.getItem("token");
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+  return isAuthenticated ? (
+    <DashboardLayout>
+      <Outlet />
+    </DashboardLayout>
+  ) : (
+    <Navigate to="/login" replace />
+  );
 }
