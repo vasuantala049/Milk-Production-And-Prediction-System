@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend
+  namespace: milk
 spec:
   replicas: 1
 
@@ -27,11 +28,18 @@ spec:
             - containerPort: {{ .Values.backend.port }}
           env:
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://mysql:3306/mpps"
+              value: "jdbc:mysql://{{ .Values.externalDatabase.host }}:{{ .Values.externalDatabase.port }}/{{ .Values.externalDatabase.database }}"
             - name: SPRING_DATASOURCE_USERNAME
-              value: "milkuser"
+              valueFrom:
+                secretKeyRef:
+                  name: backend-db-secret
+                  key: SPRING_DATASOURCE_USERNAME
+
             - name: SPRING_DATASOURCE_PASSWORD
-              value: "vasu@2005"
+              valueFrom:
+                secretKeyRef:
+                  name: backend-db-secret
+                  key: SPRING_DATASOURCE_PASSWORD
             - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
               value: "com.mysql.cj.jdbc.Driver"
             - name: JWT_SECRET

@@ -1,10 +1,7 @@
-mysql:
-  image: mysql:8.0
-  database: mpps
-  user: milkuser
-  password: vasu@2005
-  rootPassword: vasu@2005
+externalDatabase:
+  host: milk-db.cximw24o4s0e.ap-south-1.rds.amazonaws.com
   port: 3306
+  database: mpps
 
 redis:
   image: redis:7-alpine
