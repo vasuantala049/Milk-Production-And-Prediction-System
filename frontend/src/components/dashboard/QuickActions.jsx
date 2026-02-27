@@ -16,7 +16,7 @@ export function QuickActions() {
   const actions = [
     {
       icon: Milk,
-      label: 'Add Milk',
+      label: 'Add Milk Entry',
       href: farmId ? `/milk/add/${farmId}` : '/farms',
       variant: 'primary'
     },
