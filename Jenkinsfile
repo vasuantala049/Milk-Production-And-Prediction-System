@@ -24,10 +24,11 @@ pipeline {
 
             echo "Commit message: ${commitMessage}"
 
-            def matcher = commitMessage =~ /\[v(\d+\.\d+\.\d+)\]/
+            // Extract [v1.0.5]
+            def match = (commitMessage =~ /\[(v\d+\.\d+\.\d+)\]/)
 
-            if (matcher.find()) {
-                env.TAG_NAME = "v${matcher.group(1)}"
+            if (match && match.size() > 0) {
+                env.TAG_NAME = match[0][1]
                 echo "Release version detected: ${env.TAG_NAME}"
             } else {
                 env.TAG_NAME = ""
