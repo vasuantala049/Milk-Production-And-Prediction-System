@@ -15,7 +15,7 @@ pipeline {
         stage("Clone Code") {
             steps {
                 script {
-                    Clone("https://github.com/vasuantala049/Milk-Production-And-Prediction-System.git", "frontend")
+                    Clone("https://github.com/vasuantala049/Milk-Production-And-Prediction-System.git", "main")
                 }
             }
         }
