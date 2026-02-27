@@ -8,28 +8,6 @@ metadata:
     argocd-image-updater.argoproj.io/enabled: "true"
 
   annotations:
-    # =========================
-    # IMAGE UPDATER CONFIG
-    # =========================
-
-    # IMPORTANT: must be SINGLE LINE
-    argocd-image-updater.argoproj.io/image-list: backend=vasu049/dairy-flow-backend,frontend=vasu049/dairy-flow-frontend
-
-    # Update strategy
-    argocd-image-updater.argoproj.io/backend.update-strategy: semver
-    argocd-image-updater.argoproj.io/frontend.update-strategy: semver
-
-    # Allow only semver tags
-    argocd-image-updater.argoproj.io/backend.allow-tags: regexp:^v?[0-9]+\.[0-9]+\.[0-9]+$
-    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^v?[0-9]+\.[0-9]+\.[0-9]+$
-
-    # VERY IMPORTANT — Helm value paths
-    argocd-image-updater.argoproj.io/backend.helm.image-name: backend.image.repository
-    argocd-image-updater.argoproj.io/backend.helm.image-tag: backend.image.tag
-
-    argocd-image-updater.argoproj.io/frontend.helm.image-name: frontend.image.repository
-    argocd-image-updater.argoproj.io/frontend.helm.image-tag: frontend.image.tag
-
     # Write back to Git
     argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/argocd-image-updater-git-creds
 
@@ -44,7 +22,7 @@ spec:
 
   source:
     repoURL: https://github.com/vasuantala049/Milk-Production-And-Prediction-System.git
-    targetRevision: frontend
+    targetRevision: main
     path: helm/dairy-flow
 
   destination:
