@@ -7,32 +7,45 @@ pipeline {
         DOCKER_USER    = "vasu049"
         FRONTEND_IMAGE = "dairy-flow-frontend"
         BACKEND_IMAGE  = "dairy-flow-backend"
-        TAG_NAME       = "latest"
+
+        // Simple versioning
+        TAG_NAME = "v1.0.${BUILD_NUMBER}"
     }
 
     stages {
 
-
-        stage("Build & Test") {
+        stage("Prevent ImageUpdater Loop") {
             steps {
-                echo "Building project..."
+                script {
+                    sh "git fetch --all"
+
+                    def author = sh(
+                        script: "git log -1 --pretty=format:'%an'",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Last commit author: ${author}"
+
+                    if (author == "argocd-image-updater") {
+                        echo "Triggered by ImageUpdater. Skipping build."
+                        currentBuild.result = "NOT_BUILT"
+                        error("Stopping to prevent CI/CD loop.")
+                    }
+                }
             }
         }
 
         stage("Build Docker Images") {
-            
             steps {
                 script {
-                    echo "Building Docker images with tag ${env.TAG_NAME}"
+                    echo "Building images with tag ${env.TAG_NAME}"
 
-                    // Frontend build
                     sh """
                         docker build \
                         -t ${DOCKER_USER}/${FRONTEND_IMAGE}:${env.TAG_NAME} \
                         frontend/
                     """
 
-                    // Backend build
                     sh """
                         docker build \
                         -t ${DOCKER_USER}/${BACKEND_IMAGE}:${env.TAG_NAME} \
@@ -43,7 +56,6 @@ pipeline {
         }
 
         stage("Push Docker Images") {
-            
             steps {
                 script {
                     sh "docker push ${DOCKER_USER}/${FRONTEND_IMAGE}:${env.TAG_NAME}"
@@ -52,10 +64,10 @@ pipeline {
             }
         }
 
-        stage("Update GitOps Repo") {
-            
+        stage("Release Info") {
             steps {
-                echo "Release ${env.TAG_NAME} pushed. ArgoCD will sync automatically."
+                echo "Released version ${env.TAG_NAME}"
+                echo "ArgoCD ImageUpdater will update automatically."
             }
         }
     }
