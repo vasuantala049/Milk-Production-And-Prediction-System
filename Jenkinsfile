@@ -20,26 +20,29 @@ pipeline {
             }
         }
 
-        stage("Detect Tag") {
-            steps {
-                script {
-                    sh "git fetch --tags"
+        stage("Detect Version From Commit Message") {
+    steps {
+        script {
+            def commitMessage = sh(
+                script: "git log -1 --pretty=%B",
+                returnStdout: true
+            ).trim()
 
-                    def tag = sh(
-                        script: "git tag --points-at HEAD",
-                        returnStdout: true
-                    ).trim()
+            echo "Latest commit message: ${commitMessage}"
 
-                    if (tag) {
-                        env.TAG_NAME = tag
-                        echo "Release tag detected: ${env.TAG_NAME}"
-                    } else {
-                        env.TAG_NAME = ""
-                        echo "No tag on this commit"
-                    }
-                }
+            // Match [v1.0.5]
+            def matcher = commitMessage =~ /\[(v\d+\.\d+\.\d+)\]/
+
+            if (matcher) {
+                env.TAG_NAME = matcher[0][1]
+                echo "Release version detected: ${env.TAG_NAME}"
+            } else {
+                env.TAG_NAME = ""
+                echo "No release version found in commit message"
             }
         }
+    }
+}
 
         stage("Build & Test") {
             steps {
