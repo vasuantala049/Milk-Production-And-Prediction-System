@@ -17,18 +17,15 @@ pipeline {
         stage("Detect Version From Commit Message") {
     steps {
         script {
-            def commitMessage = sh(
-                script: "git log -1 --pretty=%B",
+            def version = sh(
+                script: """
+                    git log -1 --pretty=%B | grep -oE '\\[v[0-9]+\\.[0-9]+\\.[0-9]+\\]' | tr -d '[]' || true
+                """,
                 returnStdout: true
             ).trim()
 
-            echo "Commit message: ${commitMessage}"
-
-            // Extract [v1.0.5]
-            def match = (commitMessage =~ /\[(v\d+\.\d+\.\d+)\]/)
-
-            if (match && match.size() > 0) {
-                env.TAG_NAME = match[0][1]
+            if (version) {
+                env.TAG_NAME = version
                 echo "Release version detected: ${env.TAG_NAME}"
             } else {
                 env.TAG_NAME = ""
