@@ -4,9 +4,10 @@ pipeline {
     agent { label "vinod" }
 
     environment {
-        DOCKER_USER = "vasu049"
+        DOCKER_USER    = "vasu049"
         FRONTEND_IMAGE = "dairy-flow-frontend"
-        BACKEND_IMAGE = "dairy-flow-backend"
+        BACKEND_IMAGE  = "dairy-flow-backend"
+        TAG_NAME       = ""
     }
 
     stages {
@@ -22,8 +23,20 @@ pipeline {
         stage("Detect Tag") {
             steps {
                 script {
-                    TAG_NAME = sh(script: "git describe --tags --exact-match || echo 'no-tag'", returnStdout: true).trim()
-                    echo "Tag detected: ${TAG_NAME}"
+                    sh "git fetch --tags"
+
+                    def tag = sh(
+                        script: "git tag --points-at HEAD",
+                        returnStdout: true
+                    ).trim()
+
+                    if (tag) {
+                        env.TAG_NAME = tag
+                        echo "Release tag detected: ${env.TAG_NAME}"
+                    } else {
+                        env.TAG_NAME = ""
+                        echo "No tag on this commit"
+                    }
                 }
             }
         }
@@ -36,34 +49,47 @@ pipeline {
 
         stage("Build Docker Images") {
             when {
-                expression { TAG_NAME != "no-tag" }
+                expression { env.TAG_NAME?.trim() }
             }
             steps {
                 script {
-                    dockerbuild(FRONTEND_IMAGE, TAG_NAME, DOCKER_USER)
-                    dockerbuild(BACKEND_IMAGE, TAG_NAME, DOCKER_USER)
+                    echo "Building Docker images with tag ${env.TAG_NAME}"
+
+                    // Frontend build
+                    sh """
+                        docker build \
+                        -t ${DOCKER_USER}/${FRONTEND_IMAGE}:${env.TAG_NAME} \
+                        frontend/
+                    """
+
+                    // Backend build
+                    sh """
+                        docker build \
+                        -t ${DOCKER_USER}/${BACKEND_IMAGE}:${env.TAG_NAME} \
+                        backend/backend/
+                    """
                 }
             }
         }
 
         stage("Push Docker Images") {
             when {
-                expression { TAG_NAME != "no-tag" }
+                expression { env.TAG_NAME?.trim() }
             }
             steps {
                 script {
-                    dockerpush(FRONTEND_IMAGE, TAG_NAME, DOCKER_USER)
-                    dockerpush(BACKEND_IMAGE, TAG_NAME, DOCKER_USER)
+                    sh "docker push ${DOCKER_USER}/${FRONTEND_IMAGE}:${env.TAG_NAME}"
+                    sh "docker push ${DOCKER_USER}/${BACKEND_IMAGE}:${env.TAG_NAME}"
                 }
             }
         }
 
         stage("Update GitOps Repo") {
             when {
-                expression { TAG_NAME != "no-tag" }
+                expression { env.TAG_NAME?.trim() }
             }
             steps {
-                echo "Release ${TAG_NAME} pushed. ArgoCD will sync automatically."
+                echo "Release ${env.TAG_NAME} pushed. ArgoCD will sync automatically."
             }
         }
     }
