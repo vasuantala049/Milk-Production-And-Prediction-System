@@ -9,7 +9,7 @@ redis:
 backend:
   image:
     repository: vasu049/dairy-flow-backend
-    tag: v1.0.34
+    tag: v1.0.35
   port: 8080
   resources:
     requests:
@@ -24,7 +24,7 @@ jwt:
 frontend:
   image:
     repository: vasu049/dairy-flow-frontend
-    tag: v1.0.34
+    tag: v1.0.35
   port: 80
 ingress:
   enabled: true
