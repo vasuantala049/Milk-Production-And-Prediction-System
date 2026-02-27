@@ -12,13 +12,7 @@ pipeline {
 
     stages {
 
-        stage("Clone Code") {
-            steps {
-                script {
-                    Clone("https://github.com/vasuantala049/Milk-Production-And-Prediction-System.git", "main")
-                }
-            }
-        }
+       
 
         stage("Detect Version From Commit Message") {
     steps {
