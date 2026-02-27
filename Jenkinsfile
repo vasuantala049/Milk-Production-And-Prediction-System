@@ -22,17 +22,16 @@ pipeline {
                 returnStdout: true
             ).trim()
 
-            echo "Latest commit message: ${commitMessage}"
+            echo "Commit message: ${commitMessage}"
 
-            // Match [v1.0.5]
-            def matcher = commitMessage =~ /\[(v\d+\.\d+\.\d+)\]/
+            def matcher = commitMessage =~ /\[v(\d+\.\d+\.\d+)\]/
 
-            if (matcher) {
-                env.TAG_NAME = matcher[0][1]
+            if (matcher.find()) {
+                env.TAG_NAME = "v${matcher.group(1)}"
                 echo "Release version detected: ${env.TAG_NAME}"
             } else {
                 env.TAG_NAME = ""
-                echo "No release version found in commit message"
+                echo "No release version found"
             }
         }
     }
