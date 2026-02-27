@@ -24,7 +24,7 @@ jwt:
 frontend:
   image:
     repository: vasu049/dairy-flow-frontend
-    tag: v1.0.3
+    tag: v1.0.5
   port: 80
 ingress:
   enabled: true
