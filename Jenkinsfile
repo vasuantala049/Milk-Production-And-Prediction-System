@@ -17,20 +17,24 @@ pipeline {
         stage("Detect Version From Commit Message") {
     steps {
         script {
-            // Get the latest commit message
+
+            // Get latest commit message
             def commitMessage = sh(
-                script: "git log -1 --pretty=%B",
+                script: 'git log -1 --pretty=%B',
                 returnStdout: true
             ).trim()
-            
+
             echo "Commit message: >>>${commitMessage}<<<"
-            
-            // Try to extract version in [vX.Y.Z] form
+
+            // Extract version safely using sed
             def version = sh(
-                script: "echo \"${commitMessage}\" | awk 'match(\\$0, /\\[v[0-9]+\\.[0-9]+\\.[0-9]+\\]/) {print substr(\\$0, RSTART+1, RLENGTH-2)}' || true",
+                script: '''
+                    git log -1 --pretty=%B | \
+                    sed -n 's/.*\\[\\(v[0-9]\\+\\.[0-9]\\+\\.[0-9]\\+\\)\\].*/\\1/p'
+                ''',
                 returnStdout: true
             ).trim()
-            
+
             if (version) {
                 env.TAG_NAME = version
                 echo "Release version detected: ${env.TAG_NAME}"
