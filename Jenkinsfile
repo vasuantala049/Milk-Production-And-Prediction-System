@@ -14,26 +14,28 @@ pipeline {
 
     stages {
 
+
         stage("Prevent ImageUpdater Loop") {
-            steps {
-                script {
-                    sh "git fetch --all"
+    steps {
+        script {
+            sh "git fetch --all"
 
-                    def author = sh(
-                        script: "git log -1 --pretty=format:'%an'",
-                        returnStdout: true
-                    ).trim()
+            def author = sh(
+                script: "git log -1 --pretty=format:'%an'",
+                returnStdout: true
+            ).trim()
 
-                    echo "Last commit author: ${author}"
+            echo "Last commit author: ${author}"
 
-                    if (author == "argocd-image-updater") {
-                        echo "Triggered by ImageUpdater. Skipping build."
-                        currentBuild.result = "NOT_BUILT"
-                        error("Stopping to prevent CI/CD loop.")
-                    }
-                }
+            if (author == "argocd-image-updater") {
+                echo "Triggered by ImageUpdater. Skipping build."
+
+                currentBuild.result = 'NOT_BUILT'
+                return   // Clean exit, no red build
             }
         }
+    }
+}
 
         stage("Build Docker Images") {
             steps {
