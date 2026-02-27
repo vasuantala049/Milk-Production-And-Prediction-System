@@ -9,7 +9,7 @@ redis:
 backend:
   image:
     repository: vasu049/dairy-flow-backend
-    tag: v1.0.4
+    tag: v1.0.5
   port: 8080
   resources:
     requests:
