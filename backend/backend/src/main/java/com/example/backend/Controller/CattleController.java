@@ -2,9 +2,7 @@ package com.example.backend.Controller;
 
 import com.example.backend.DTO.*;
 import com.example.backend.Service.CattleService;
-import com.example.backend.Service.FarmService;
 import jakarta.validation.Valid;
-import com.example.backend.Service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -57,13 +55,6 @@ public class CattleController {
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
 
         List<CattleResponseDto> allCattle = cattleService.getCattleByFarm(farmId);
-        if (user != null && user.getRole() == com.example.backend.Entity.type.UserRole.WORKER && user.getShed() != null && !user.getShed().isEmpty()) {
-            List<CattleResponseDto> filtered = allCattle.stream()
-                    .filter(c -> user.getShed().equalsIgnoreCase(c.getShed()))
-                    .toList();
-            return ResponseEntity.ok(filtered);
-        }
-
         return ResponseEntity.ok(allCattle);
     }
 

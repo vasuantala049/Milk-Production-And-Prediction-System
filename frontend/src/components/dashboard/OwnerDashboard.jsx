@@ -15,7 +15,9 @@ import { Milk, Beef, Users, Warehouse, Store, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
+import { SubscribersRequestsSection } from "./SubscribersRequestsSection";
 
+// Main dashboard for farm owners
 export function OwnerDashboard() {
   const navigate = useNavigate();
 
@@ -321,6 +323,8 @@ export function OwnerDashboard() {
 
             <div className="space-y-6">
               <QuickActions />
+
+              <SubscribersRequestsSection farmId={activeFarm.id} />
 
               {/* Recent Orders */}
               <div className="bg-card border border-border rounded-xl p-4 shadow-card">

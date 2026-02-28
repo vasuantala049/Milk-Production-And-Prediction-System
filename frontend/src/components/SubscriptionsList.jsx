@@ -17,11 +17,11 @@ import {
 } from '@mui/material';
 import { subscriptionApi } from '../api/subscriptionApi';
 
-const SubscriptionsList = ({ farmId }) => {
+const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
 
   useEffect(() => {
     fetchSubscriptions();

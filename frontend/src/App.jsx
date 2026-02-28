@@ -11,11 +11,14 @@ import CattleList from "./components/CattleList";
 import AddCattle from "./components/AddCattle";
 import EditCattle from "./components/EditCattle";
 import WorkersList from "./components/WorkersList";
+import ShadePage from "./components/dashboard/ShadePage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AddMilk from "./components/AddMilk";
 import BuyMilk from "./components/BuyMilk";
 import PendingOrders from "./components/PendingOrders";
 import MyOrders from "./components/MyOrders";
+import OrdersPage from "./components/OrdersPage";
+import SubscriptionsPage from "./components/SubscriptionsPage";
 import "./App.css";
 
 
@@ -42,9 +45,12 @@ function App() {
         <Route path="/cattle/edit/:farmId/:cattleId" element={<EditCattle />} />
         <Route path="/cattle/:farmId" element={<CattleList />} />
         <Route path="/workers/:farmId" element={<WorkersList />} />
+        <Route path="/farms/:farmId/sheds" element={<ShadePage />} />
         <Route path="/milk/add/:farmId" element={<AddMilk />} />
         <Route path="/buy-milk" element={<BuyMilk />} />
         <Route path="/farms/:farmId/pending-orders" element={<PendingOrders />} />
+        <Route path="/farms/:farmId/orders" element={<OrdersPage />} />
+        <Route path="/farms/:farmId/subscriptions" element={<SubscriptionsPage />} />
         <Route path="/my-orders" element={<MyOrders />} />
 
       </Route>

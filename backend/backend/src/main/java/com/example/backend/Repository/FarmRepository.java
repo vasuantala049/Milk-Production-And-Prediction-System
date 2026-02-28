@@ -2,6 +2,7 @@ package com.example.backend.Repository;
 
 import com.example.backend.Entity.Farm;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,6 +15,7 @@ public interface FarmRepository extends JpaRepository<Farm, Long> {
     Optional<Farm> findByIdAndOwnerId(Long farmId, Long ownerId);
 
     // Farms where a given worker is assigned
+    @Query("SELECT f FROM Farm f WHERE EXISTS (SELECT 1 FROM FarmWorker fw WHERE fw.farm = f AND fw.worker.id = :workerId)")
     java.util.List<Farm> findByWorkers_Id(Long workerId);
 
     List<Farm> findByAddressContainingIgnoreCase(String location);

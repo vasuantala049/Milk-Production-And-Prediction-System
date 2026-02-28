@@ -34,4 +34,18 @@ export const subscriptionApi = {
       method: 'POST',
     });
   },
+
+  // Approve subscription (Owner)
+  approveSubscription: async (subscriptionId) => {
+    return apiFetch(`/subscriptions/${subscriptionId}/approve`, {
+      method: 'POST',
+    });
+  },
+
+  // Reject subscription (Owner)
+  rejectSubscription: async (subscriptionId) => {
+    return apiFetch(`/subscriptions/${subscriptionId}/reject`, {
+      method: 'POST',
+    });
+  },
 };

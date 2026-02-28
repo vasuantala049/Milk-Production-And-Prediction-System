@@ -3,7 +3,6 @@ package com.example.backend.Service;
 import com.example.backend.DTO.CattlePatchDto;
 import com.example.backend.DTO.CattleResponseDto;
 import com.example.backend.DTO.CreateCattleDto;
-import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 

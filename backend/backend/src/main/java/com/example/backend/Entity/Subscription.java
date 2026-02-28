@@ -8,8 +8,10 @@ import lombok.*;
 import java.time.LocalDate;
 
 @Entity
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 @Table(name = "subscriptions")
 public class Subscription {
@@ -30,7 +32,7 @@ public class Subscription {
     private Double quantity;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(50)")
     private MilkSession session;
 
     @Column(nullable = false)
@@ -39,6 +41,6 @@ public class Subscription {
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(50)")
     private SubscriptionStatus status;
 }

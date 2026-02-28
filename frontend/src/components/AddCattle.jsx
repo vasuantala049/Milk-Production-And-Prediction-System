@@ -122,9 +122,17 @@ export default function AddCattle() {
   const [type, setType] = useState("");
   const [breed, setBreed] = useState("");
   const [status, setStatus] = useState("ACTIVE");
-  const [shed, setShed] = useState("");
+  const [shedId, setShedId] = useState("");
+  const [shades, setShades] = useState([]);
   const [showScanner, setShowScanner] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    // Optionally fetch available shades for the dropdown
+    apiFetch(`/farms/${farmId}/sheds`)
+      .then((data) => setShades(data || []))
+      .catch((err) => console.error("Failed to load shades:", err));
+  }, [farmId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -138,7 +146,7 @@ export default function AddCattle() {
           breed,
           type,
           status,
-          shed,
+          shedId: shedId || null,
           farmId: Number(farmId),
         }),
       });
@@ -240,12 +248,19 @@ export default function AddCattle() {
                 </TextField>
 
                 <TextField
+                  select
                   fullWidth
-                  label="Shed (Optional)"
-                  value={shed}
-                  onChange={(e) => setShed(e.target.value)}
-                  placeholder="e.g. Shed A"
-                />
+                  label="Shade (Optional)"
+                  value={shedId}
+                  onChange={(e) => setShedId(e.target.value)}
+                >
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  {shades.map((shade) => (
+                    <MenuItem key={shade.id} value={shade.id}>
+                      {shade.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
 
                 <Button
                   type="submit"

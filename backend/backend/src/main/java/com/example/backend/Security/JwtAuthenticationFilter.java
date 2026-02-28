@@ -28,9 +28,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     
     @Override
     protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
     ) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
@@ -49,8 +49,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (jwtTokenProvider.validateToken(jwt, userDetails)) {
 
-                // 🔑 LOAD ENTITY with assigned farms
-                User user = userRepository.findByEmailWithAssignedFarms(userEmail)
+                // 🔑 LOAD ENTITY
+                User user = userRepository.findByEmail(userEmail)
                         .orElseThrow();
 
                 UsernamePasswordAuthenticationToken authToken =

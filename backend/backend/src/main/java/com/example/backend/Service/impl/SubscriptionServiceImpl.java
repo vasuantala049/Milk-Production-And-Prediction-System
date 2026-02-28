@@ -27,6 +27,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final FarmRepository farmRepository;
     private final BuyMilkService buyMilkService;
+    private final com.example.backend.Service.FarmAccessService farmAccessService;
 
     @Override
     @Transactional
@@ -46,9 +47,41 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .quantity(dto.getQuantity())
                 .session(dto.getSession())
                 .startDate(startDate)
-                .status(SubscriptionStatus.ACTIVE)
+                .status(SubscriptionStatus.PENDING) // Start as PENDING
                 .build();
 
+        return subscriptionRepository.save(subscription);
+    }
+
+    @Override
+    @Transactional
+    public Subscription approveSubscription(Long id, User owner) {
+        Subscription subscription = subscriptionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Subscription not found"));
+
+        farmAccessService.verifyFarmAccess(owner, subscription.getFarm().getId());
+
+        if (subscription.getStatus() != SubscriptionStatus.PENDING) {
+            throw new IllegalStateException("Only pending subscriptions can be approved.");
+        }
+
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        return subscriptionRepository.save(subscription);
+    }
+
+    @Override
+    @Transactional
+    public Subscription rejectSubscription(Long id, User owner) {
+        Subscription subscription = subscriptionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Subscription not found"));
+
+        farmAccessService.verifyFarmAccess(owner, subscription.getFarm().getId());
+
+        if (subscription.getStatus() != SubscriptionStatus.PENDING) {
+            throw new IllegalStateException("Only pending subscriptions can be rejected.");
+        }
+
+        subscription.setStatus(SubscriptionStatus.CANCELLED);
         return subscriptionRepository.save(subscription);
     }
 

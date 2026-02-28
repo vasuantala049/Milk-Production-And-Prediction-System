@@ -41,8 +41,8 @@ public class Farm {
     @OneToMany(mappedBy = "farm", cascade = CascadeType.ALL)
     private List<Cattle> cattleList;
 
-    // Workers assigned to this farm (many-to-many with users)
+    // Workers assigned to this farm (one-to-many with FarmWorker)
     @JsonIgnore
-    @ManyToMany(mappedBy = "assignedFarms")
-    private List<User> workers;
+    @OneToMany(mappedBy = "farm", cascade = CascadeType.ALL)
+    private List<FarmWorker> farmWorkerAssignments;
 }

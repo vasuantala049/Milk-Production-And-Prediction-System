@@ -51,22 +51,32 @@ public class BuyMilkServiceImpl implements BuyMilkService {
 
         // 4. Validate time-based slot restrictions (for today's date only)
         LocalDate orderDate = dto.getDate();
-        if (orderDate.equals(LocalDate.now())) {
+        if (orderDate.equals(LocalDate.now()) && dto.getSession() != com.example.backend.Entity.type.MilkSession.ALL) {
             validateTimeSlot(dto.getSession());
         }
 
-        // 5. Fetch available milk for session + date to verify availability
-        MilkInventory inventory = milkInventoryRepository
-                .lockInventory(
-                        farm.getId(),
-                        dto.getDate(),
-                        dto.getSession())
-                .orElseThrow(() -> new IllegalStateException("Milk not available for selected session"));
+        // 5. Fetch available milk to verify availability
+        double availableMilk = 0;
+        if (dto.getSession() == com.example.backend.Entity.type.MilkSession.ALL) {
+            java.util.List<MilkInventory> inventories = milkInventoryRepository.findByFarmIdAndRecordDate(farm.getId(),
+                    dto.getDate());
+            for (MilkInventory inv : inventories) {
+                Double totalProd = inv.getMilkLiters();
+                Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inv.getId());
+                availableMilk += (totalProd - allocatedMilk);
+            }
+        } else {
+            MilkInventory inventory = milkInventoryRepository
+                    .lockInventory(
+                            farm.getId(),
+                            dto.getDate(),
+                            dto.getSession())
+                    .orElseThrow(() -> new IllegalStateException("Milk not available for selected session"));
 
-        // 6. Calculate available milk (total production - allocations)
-        Double totalProduction = inventory.getMilkLiters();
-        Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
-        Double availableMilk = totalProduction - allocatedMilk;
+            Double totalProduction = inventory.getMilkLiters();
+            Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
+            availableMilk = totalProduction - allocatedMilk;
+        }
 
         // 7. Check availability
         if (availableMilk < requestedQty) {

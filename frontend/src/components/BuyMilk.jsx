@@ -34,11 +34,15 @@ export default function BuyMilk() {
   // Check Availability
   useEffect(() => {
     if (farmId && date && session) {
-      apiFetch(`/milk/availability?farmId=${farmId}&date=${date}&session=${session}`)
+      // For one-time buy on today's date, check aggregate availability
+      const isToday = date === new Date().toISOString().slice(0, 10);
+      const checkSession = (!isSubscription && isToday) ? "ALL" : session;
+
+      apiFetch(`/milk/availability?farmId=${farmId}&date=${date}&session=${checkSession}`)
         .then((data) => setAvailableQty(data.availableMilk))
         .catch(() => setAvailableQty(null));
     }
-  }, [farmId, date, session]);
+  }, [farmId, date, session, isSubscription]);
 
   // Generate Time Slots for One-time Buy
   const timeSlots = React.useMemo(() => {
@@ -46,18 +50,13 @@ export default function BuyMilk() {
 
     const slots = [];
     const now = new Date();
-    const isToday = date === now.toISOString().slice(0, 10);
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
+    // Round up to next 30 min
+    const startHour = now.getHours();
+    const startMinute = now.getMinutes() > 30 ? 0 : 30;
+    const actualStartHour = now.getMinutes() > 30 ? startHour + 1 : startHour;
 
     // Helper to create slot objects
     const addSlot = (hour, minute, sessionType) => {
-      // Logic to filter past slots if today
-      if (isToday) {
-        if (hour < currentHour) return;
-        if (hour === currentHour && minute <= currentMinute) return;
-      }
-
       const timeLabel = new Date(0, 0, 0, hour, minute).toLocaleTimeString([], {
         hour: 'numeric', minute: '2-digit', hour12: true
       });
@@ -69,27 +68,22 @@ export default function BuyMilk() {
       });
     };
 
-    // Morning Slots (6 AM to 12 PM) - 30 min intervals
-    for (let h = 6; h < 12; h++) {
-      addSlot(h, 0, "MORNING");
-      addSlot(h, 30, "MORNING");
+    // Slots from current time (rounded) up to 11 PM
+    for (let h = actualStartHour; h <= 23; h++) {
+      if (h === actualStartHour && startMinute === 30) {
+        addSlot(h, 30, h < 14 ? "MORNING" : "EVENING");
+      } else {
+        if (h === 23) {
+          addSlot(h, 0, "EVENING");
+        } else {
+          addSlot(h, 0, h < 14 ? "MORNING" : "EVENING");
+          addSlot(h, 30, h < 14 ? "MORNING" : "EVENING");
+        }
+      }
     }
-    // Add 12:00 PM as last morning slot? 
-    // "to 12 pm from the current time" -> usually implies upto 12. Let's include 12:00 PM as boundary if needed, 
-    // but typical morning session ends around noon. Let's add 12:00 PM.
-    addSlot(12, 0, "MORNING");
-
-    // Evening Slots (4 PM to 8 PM)
-    for (let h = 16; h < 20; h++) {
-      addSlot(h, 0, "EVENING");
-      addSlot(h, 30, "EVENING");
-    }
-    // Add 8:00 PM boundary
-    addSlot(20, 0, "EVENING");
 
     return slots;
   }, [date, isSubscription]);
-
 
   const parsedQuantity = parseFloat(quantity) || 0;
   const pricePerLiter = farm?.pricePerLiter || 0;
@@ -118,7 +112,9 @@ export default function BuyMilk() {
       if (!parsedQty || Number.isNaN(parsedQty) || parsedQty <= 0) throw new Error("Quantity must be greater than 0.");
 
       const todayStr = new Date().toISOString().slice(0, 10);
-      if (date < todayStr) throw new Error("Date cannot be in the past.");
+      const finalDate = isSubscription ? date : todayStr; // Force today for one-time buy
+
+      if (isSubscription && finalDate < todayStr) throw new Error("Start date cannot be in the past.");
 
       // Check available quantity
       if (availableQty !== null && parsedQty > availableQty) {
@@ -130,16 +126,16 @@ export default function BuyMilk() {
           farmId: parsedFarmId,
           quantity: parsedQty,
           session,
-          startDate: date,
+          startDate: finalDate,
         };
         const sub = await subscriptionApi.createSubscription(payload);
-        setMessage({ type: "success", text: `Subscription created successfully! (ID: ${sub.id})` });
+        setMessage({ type: "success", text: `Subscription request sent! Owner will review. (ID: ${sub.id})` });
       } else {
         const payload = {
           farmId: parsedFarmId,
           quantity: parsedQty,
-          session, // Session is updated when time slot changes
-          date,
+          session,
+          date: finalDate,
         };
 
         const order = await orderApi.createOrder(payload);
@@ -232,7 +228,7 @@ export default function BuyMilk() {
                 />
                 {availableQty !== null && (
                   <p className={`text-xs ${availableQty > 0 ? "text-emerald-600" : "text-destructive"}`}>
-                    Available: {availableQty.toFixed(1)} Liters
+                    Available today: {availableQty.toFixed(1)} Liters
                   </p>
                 )}
               </div>
@@ -286,17 +282,19 @@ export default function BuyMilk() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-foreground">
-                {isSubscription ? "Start date" : "Delivery date"}
-              </label>
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
-            </div>
+            {isSubscription && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-foreground">
+                  Start date
+                </label>
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
             <div className="mt-2 text-sm text-muted-foreground space-y-1">
               {farm && (
@@ -325,4 +323,3 @@ export default function BuyMilk() {
     </div>
   );
 }
-

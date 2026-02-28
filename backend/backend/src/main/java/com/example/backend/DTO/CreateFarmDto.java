@@ -1,6 +1,5 @@
 package com.example.backend.DTO;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Data

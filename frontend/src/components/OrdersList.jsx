@@ -15,25 +15,31 @@ import {
   TextField,
   Button,
   Stack,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import { orderApi } from '../api/orderApi';
 
-const OrdersList = ({ farmId }) => {
+const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
 
   useEffect(() => {
     fetchOrders();
-  }, [farmId]);
+  }, [farmId, statusFilter]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await orderApi.getFarmOrders(farmId);
+      let data = await orderApi.getFarmOrders(farmId);
+      if (statusFilter !== 'ALL') {
+        data = data.filter(o => o.status === statusFilter);
+      }
       setOrders(data);
     } catch (err) {
       setError(err.message || 'Failed to load orders');
@@ -50,7 +56,10 @@ const OrdersList = ({ farmId }) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await orderApi.getFarmOrdersByDateRange(farmId, startDate, endDate);
+      let data = await orderApi.getFarmOrdersByDateRange(farmId, startDate, endDate);
+      if (statusFilter !== 'ALL') {
+        data = data.filter(o => o.status === statusFilter);
+      }
       setOrders(data);
     } catch (err) {
       setError(err.message || 'Failed to filter orders');
@@ -62,6 +71,7 @@ const OrdersList = ({ farmId }) => {
   const handleClearFilter = () => {
     setStartDate('');
     setEndDate('');
+    setStatusFilter(initialStatus);
     fetchOrders();
   };
 
@@ -69,6 +79,8 @@ const OrdersList = ({ farmId }) => {
     switch (status) {
       case 'COMPLETED':
         return 'success';
+      case 'CONFIRMED':
+        return 'info';
       case 'PENDING':
         return 'warning';
       case 'CANCELLED':
@@ -96,7 +108,24 @@ const OrdersList = ({ farmId }) => {
 
   return (
     <Box>
-      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+      <Stack direction="row" spacing={2} sx={{ mb: 3 }} alignItems="center">
+        <ToggleButtonGroup
+          value={statusFilter}
+          exclusive
+          onChange={(e, newValue) => {
+            if (newValue !== null) {
+              setStatusFilter(newValue);
+            }
+          }}
+          size="small"
+        >
+          <ToggleButton value="ALL">All</ToggleButton>
+          <ToggleButton value="CONFIRMED">Approved</ToggleButton>
+          <ToggleButton value="CANCELLED">Cancelled</ToggleButton>
+        </ToggleButtonGroup>
+
+        <Box sx={{ flexGrow: 1 }} />
+
         <TextField
           label="Start Date"
           type="date"
@@ -122,7 +151,7 @@ const OrdersList = ({ farmId }) => {
       </Stack>
 
       {orders.length === 0 ? (
-        <Alert severity="info">No orders found for this farm.</Alert>
+        <Alert severity="info">No {statusFilter.toLowerCase()} orders found for this farm.</Alert>
       ) : (
         <TableContainer component={Paper}>
           <Table>

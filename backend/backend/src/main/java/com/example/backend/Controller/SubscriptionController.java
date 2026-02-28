@@ -29,7 +29,8 @@ public class SubscriptionController {
     private final FarmAccessService farmAccessService;
 
     @PostMapping
-    public ResponseEntity<SubscriptionResponseDto> subscribe(@RequestBody SubscribeDto dto, @AuthenticationPrincipal User user) {
+    public ResponseEntity<SubscriptionResponseDto> subscribe(@RequestBody SubscribeDto dto,
+            @AuthenticationPrincipal User user) {
         Subscription subscription = subscriptionService.subscribe(dto, user);
         return ResponseEntity.ok(mapToDto(subscription));
     }
@@ -44,8 +45,23 @@ public class SubscriptionController {
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<SubscriptionResponseDto> cancelSubscription(@PathVariable Long id, @AuthenticationPrincipal User user) {
+    public ResponseEntity<SubscriptionResponseDto> cancelSubscription(@PathVariable Long id,
+            @AuthenticationPrincipal User user) {
         Subscription subscription = subscriptionService.cancelSubscription(id, user);
+        return ResponseEntity.ok(mapToDto(subscription));
+    }
+
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<SubscriptionResponseDto> approveSubscription(@PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        Subscription subscription = subscriptionService.approveSubscription(id, user);
+        return ResponseEntity.ok(mapToDto(subscription));
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<SubscriptionResponseDto> rejectSubscription(@PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        Subscription subscription = subscriptionService.rejectSubscription(id, user);
         return ResponseEntity.ok(mapToDto(subscription));
     }
 
@@ -57,8 +73,7 @@ public class SubscriptionController {
             @PathVariable Long farmId,
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size
-    ) {
+            @RequestParam(required = false) Integer size) {
         // Verify user has access to this farm
         farmAccessService.verifyFarmAccess(user, farmId);
 
@@ -85,8 +100,7 @@ public class SubscriptionController {
     public ResponseEntity<List<SubscriptionResponseDto>> getFarmSubscriptionsByStatus(
             @PathVariable Long farmId,
             @PathVariable SubscriptionStatus status,
-            @AuthenticationPrincipal User user
-    ) {
+            @AuthenticationPrincipal User user) {
         // Verify user has access to this farm
         farmAccessService.verifyFarmAccess(user, farmId);
 

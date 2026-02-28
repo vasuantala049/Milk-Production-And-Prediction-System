@@ -54,7 +54,7 @@ public class AuthController {
                                                 .orElseThrow(() -> new RuntimeException("Farm not found"));
                                 java.util.List<Farm> farms = new java.util.ArrayList<>();
                                 farms.add(farm);
-                                user.setAssignedFarms(farms);
+                                user.setFarms(farms);
                         }
                 }
 

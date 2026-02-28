@@ -9,7 +9,6 @@ import com.example.backend.Entity.User;
 import com.example.backend.Entity.type.MilkSession;
 
 import java.time.LocalDate;
-import jakarta.persistence.Cacheable;
 
 public interface MilkInventoryService {
 

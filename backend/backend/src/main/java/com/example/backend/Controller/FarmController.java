@@ -3,7 +3,6 @@ package com.example.backend.Controller;
 import com.example.backend.DTO.*;
 import com.example.backend.Service.FarmService;
 import jakarta.validation.Valid;
-import com.example.backend.Service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -143,5 +142,19 @@ public class FarmController {
     public ResponseEntity<Long> getActiveCattleCount(@PathVariable Long id) {
         long count = farmService.getActiveCattleCount(id);
         return ResponseEntity.ok(count);
+    }
+
+    // Update shed assignments for a worker in a specific farm (supports multiple
+    // sheds)
+    @PatchMapping("/{farmId}/workers/{workerId}/shed")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
+    public ResponseEntity<Void> updateWorkerShed(
+            @PathVariable Long farmId,
+            @PathVariable Long workerId,
+            @RequestBody com.example.backend.DTO.UpdateWorkerShedDto dto,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
+
+        farmService.updateWorkerShedForFarm(farmId, workerId, dto.getShedIds(), user);
+        return ResponseEntity.ok().build();
     }
 }

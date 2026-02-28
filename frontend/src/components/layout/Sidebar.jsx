@@ -75,24 +75,26 @@ export function Sidebar() {
           <span className="font-medium">Dashboard</span>
         </Link>
 
-        {/* Farms - Visible to ALL */}
-        <Link
-          to="/farms"
-          onClick={() => setIsMobileOpen(false)}
-          className={cn(
-            "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
-            "hover:bg-sidebar-accent",
-            location.pathname.startsWith("/farms")
-              ? "bg-sidebar-primary text-sidebar-primary-foreground"
-              : "text-sidebar-foreground/80"
-          )}
-        >
-          <Warehouse className="w-5 h-5" />
-          <span className="font-medium">Farms</span>
-        </Link>
+        {/* Farms - Hide for WORKER and CUSTOMER (Only OWNER sees this) */}
+        {user?.role === "FARM_OWNER" && (
+          <Link
+            to="/farms"
+            onClick={() => setIsMobileOpen(false)}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+              "hover:bg-sidebar-accent",
+              location.pathname.startsWith("/farms")
+                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                : "text-sidebar-foreground/80"
+            )}
+          >
+            <Warehouse className="w-5 h-5" />
+            <span className="font-medium">Farms</span>
+          </Link>
+        )}
 
-        {/* Cattle - Hide for CUSTOMER */}
-        {user?.role !== "BUYER" && (
+        {/* Cattle - Hide for WORKER and CUSTOMER (Only OWNER sees this) */}
+        {user?.role === "FARM_OWNER" && (
           <button
             onClick={handleCattleClick}
             className={cn(

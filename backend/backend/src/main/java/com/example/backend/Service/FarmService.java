@@ -36,4 +36,7 @@ public interface FarmService {
 
     com.example.backend.DTO.UserResponseDto createWorkerForFarm(Long farmId,
             com.example.backend.DTO.CreateUserRequestDto dto, com.example.backend.Entity.User loggedInUser);
+
+    void updateWorkerShedForFarm(Long farmId, Long workerId, java.util.List<Long> shedIds,
+            com.example.backend.Entity.User loggedInUser);
 }
