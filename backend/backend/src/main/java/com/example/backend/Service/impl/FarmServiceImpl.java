@@ -26,6 +26,7 @@ public class FarmServiceImpl implements FarmService {
     private final ModelMapper modelMapper;
     private final com.example.backend.Repository.CattleRepository cattleRepository;
     private final com.example.backend.Service.MilkInventoryService milkInventoryService;
+    private final com.example.backend.Repository.CattleMilkEntryRepository cattleMilkEntryRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -159,6 +160,14 @@ public class FarmServiceImpl implements FarmService {
             farm.setSelling(patchDto.getIsSelling());
         }
 
+        if (patchDto.getCowPrice() != null) {
+            farm.setCowPrice(patchDto.getCowPrice());
+        }
+
+        if (patchDto.getBuffaloPrice() != null) {
+            farm.setBuffaloPrice(patchDto.getBuffaloPrice());
+        }
+
         Farm saved = farmRepository.save(farm);
         return toResponseDto(saved);
     }
@@ -229,11 +238,29 @@ public class FarmServiceImpl implements FarmService {
 
         // Calculate available (Today - All Allocations)
         java.time.LocalDate today = java.time.LocalDate.now();
-        double morningAvail = getAvailableForSession(farm.getId(), today,
+        com.example.backend.DTO.MilkAvailabilityDto morningReq = milkInventoryService.getAvailability(farm.getId(), today,
                 com.example.backend.Entity.type.MilkSession.MORNING);
-        double eveningAvail = getAvailableForSession(farm.getId(), today,
+        com.example.backend.DTO.MilkAvailabilityDto eveningReq = milkInventoryService.getAvailability(farm.getId(), today,
                 com.example.backend.Entity.type.MilkSession.EVENING);
-        dto.setAvailableMilk(morningAvail + eveningAvail);
+        
+        double availMilk = 0.0;
+        double cowAvail = 0.0;
+        double buffaloAvail = 0.0;
+        
+        if (morningReq != null) {
+            availMilk += morningReq.getAvailableMilk() != null ? morningReq.getAvailableMilk() : 0.0;
+            cowAvail += morningReq.getCowAvailableMilk() != null ? morningReq.getCowAvailableMilk() : 0.0;
+            buffaloAvail += morningReq.getBuffaloAvailableMilk() != null ? morningReq.getBuffaloAvailableMilk() : 0.0;
+        }
+        if (eveningReq != null) {
+            availMilk += eveningReq.getAvailableMilk() != null ? eveningReq.getAvailableMilk() : 0.0;
+            cowAvail += eveningReq.getCowAvailableMilk() != null ? eveningReq.getCowAvailableMilk() : 0.0;
+            buffaloAvail += eveningReq.getBuffaloAvailableMilk() != null ? eveningReq.getBuffaloAvailableMilk() : 0.0;
+        }
+        
+        dto.setAvailableMilk(availMilk);
+        dto.setCowAvailableMilk(cowAvail);
+        dto.setBuffaloAvailableMilk(buffaloAvail);
 
         // Populate herd and worker counts
         dto.setHerdCount(cattleRepository.countByFarmId(farm.getId()));
@@ -248,6 +275,7 @@ public class FarmServiceImpl implements FarmService {
 
     private Double getAvailableForSession(Long farmId, java.time.LocalDate date,
             com.example.backend.Entity.type.MilkSession session) {
+        // Obsolete, but kept to avoid signature breaks elsewhere if any
         return milkInventoryRepository.findByFarmIdAndRecordDateAndSession(farmId, date, session)
                 .map(inventory -> {
                     Double totalProduction = inventory.getMilkLiters();
@@ -288,5 +316,46 @@ public class FarmServiceImpl implements FarmService {
 
         User saved = userRepository.save(user);
         return modelMapper.map(saved, com.example.backend.DTO.UserResponseDto.class);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<com.example.backend.DTO.ShedStatusDto> getShedStatus(Long farmId, User loggedInUser) {
+        Farm farm = farmRepository.findById(farmId)
+                .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+        if (!farm.getOwner().getId().equals(loggedInUser.getId())) {
+            throw new IllegalArgumentException("Only farm owner can view shed status");
+        }
+
+        java.util.List<com.example.backend.Entity.Cattle> allCattle = cattleRepository.findByFarmId(farmId);
+        
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.util.List<com.example.backend.Entity.CattleMilkEntry> todayEntriesRaw = cattleMilkEntryRepository.findByFarm_IdAndRecordDate(farmId, today);
+        java.util.Set<Long> milkedCattleIds = todayEntriesRaw.stream().map(e -> e.getCattle().getId()).collect(java.util.stream.Collectors.toSet());
+
+        java.util.List<User> workers = userRepository.findByAssignedFarms_IdAndRole(farmId, UserRole.WORKER);
+        java.util.Map<String, String> shedToWorkerMap = new java.util.HashMap<>();
+        for (User w : workers) {
+            if (w.getShed() != null && !w.getShed().isEmpty()) {
+                shedToWorkerMap.merge(w.getShed(), w.getName(), (a, b) -> a + ", " + b);
+            }
+        }
+
+        java.util.Map<String, com.example.backend.DTO.ShedStatusDto> shedStats = new java.util.HashMap<>();
+        for (com.example.backend.Entity.Cattle c : allCattle) {
+            if (c.getStatus() == null || !"ACTIVE".equalsIgnoreCase(c.getStatus())) {
+                continue;
+            }
+            String shed = c.getShed() != null && !c.getShed().isEmpty() ? c.getShed() : "Unassigned";
+            com.example.backend.DTO.ShedStatusDto stat = shedStats.computeIfAbsent(shed, s -> new com.example.backend.DTO.ShedStatusDto(s, 0, 0, 0, shedToWorkerMap.getOrDefault(s, "Unassigned")));
+            stat.setTotalCattle(stat.getTotalCattle() + 1);
+            if (milkedCattleIds.contains(c.getId())) {
+                stat.setMilkedCattle(stat.getMilkedCattle() + 1);
+            } else {
+                stat.setRemainingCattle(stat.getRemainingCattle() + 1);
+            }
+        }
+
+        return new java.util.ArrayList<>(shedStats.values());
     }
 }

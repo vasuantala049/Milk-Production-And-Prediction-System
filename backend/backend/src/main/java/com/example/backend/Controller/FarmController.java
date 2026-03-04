@@ -144,4 +144,12 @@ public class FarmController {
         long count = farmService.getActiveCattleCount(id);
         return ResponseEntity.ok(count);
     }
+
+    @GetMapping("/{id}/sheds-status")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
+    public ResponseEntity<java.util.List<com.example.backend.DTO.ShedStatusDto>> getShedsStatus(
+            @PathVariable Long id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
+        return ResponseEntity.ok(farmService.getShedStatus(id, user));
+    }
 }

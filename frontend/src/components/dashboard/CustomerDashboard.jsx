@@ -231,8 +231,11 @@ export function CustomerDashboard() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold text-foreground">₹{farm.pricePerLiter != null ? farm.pricePerLiter : "—"}</p>
-                      <p className="text-xs text-muted-foreground">per liter</p>
+                      <p className="text-lg font-bold text-foreground">₹{farm.pricePerLiter != null ? farm.pricePerLiter : "—"}<span className="text-xs font-normal text-muted-foreground">/L base</span></p>
+                      <div className="flex gap-2 mt-0.5">
+                        {farm.cowPrice != null && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Cow: ₹{farm.cowPrice}</span>}
+                        {farm.buffaloPrice != null && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Buf: ₹{farm.buffaloPrice}</span>}
+                      </div>
                     </div>
                     <Badge
                       variant="outline"
@@ -242,7 +245,15 @@ export function CustomerDashboard() {
                           : "bg-warning/10 border-warning/30 text-warning"
                       )}
                     >
-                      {farm.availableMilk != null ? `${farm.availableMilk}L` : "—"} available
+                      <div className="flex flex-col gap-1 text-center items-center">
+                        <span className="font-semibold">{farm.availableMilk != null ? `${farm.availableMilk}L Available` : "—"}</span>
+                        {(farm.cowAvailableMilk > 0 || farm.buffaloAvailableMilk > 0) && (
+                          <div className="flex items-center gap-1.5 text-[10px] opacity-90 font-medium">
+                            {farm.cowAvailableMilk > 0 && <span className="bg-background/20 px-1.5 py-0.5 rounded">🐮 {farm.cowAvailableMilk}L</span>}
+                            {farm.buffaloAvailableMilk > 0 && <span className="bg-background/20 px-1.5 py-0.5 rounded">🐃 {farm.buffaloAvailableMilk}L</span>}
+                          </div>
+                        )}
+                      </div>
                     </Badge>
                   </div>
                 </div>

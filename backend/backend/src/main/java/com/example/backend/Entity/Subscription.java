@@ -33,6 +33,8 @@ public class Subscription {
     @Column(nullable = false)
     private MilkSession session;
 
+    private String animalType;
+
     @Column(nullable = false)
     private LocalDate startDate;
 

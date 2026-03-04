@@ -81,6 +81,7 @@ public class BuyMilkServiceImpl implements BuyMilkService {
         order.setStatus(OrderStatus.PENDING); // Changed from COMPLETED to PENDING
         order.setBuyer(buyer);
         order.setFarm(farm);
+        order.setAnimalType(dto.getAnimalType());
 
         ordersRepository.save(order);
 
@@ -96,6 +97,7 @@ public class BuyMilkServiceImpl implements BuyMilkService {
         dto1.setStatus(order.getStatus());
         dto1.setBuyerId(buyer != null ? buyer.getId() : null);
         dto1.setFarmId(farm != null ? farm.getId() : null);
+        dto1.setAnimalType(order.getAnimalType());
 
         return dto1;
     }

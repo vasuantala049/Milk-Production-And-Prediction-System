@@ -125,6 +125,7 @@ public class OrderServiceImpl implements OrderService {
         dto.setStatus(order.getStatus());
         dto.setBuyerId(order.getBuyer() != null ? order.getBuyer().getId() : null);
         dto.setFarmId(order.getFarm() != null ? order.getFarm().getId() : null);
+        dto.setAnimalType(order.getAnimalType());
         return dto;
     }
 }

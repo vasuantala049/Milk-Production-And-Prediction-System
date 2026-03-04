@@ -11,4 +11,5 @@ public class SubscribeDto {
     private Double quantity;
     private MilkSession session;
     private LocalDate startDate;
+    private String animalType;
 }

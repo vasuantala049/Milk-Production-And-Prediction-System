@@ -19,5 +19,6 @@ public class OrderResponseDto {
     private OrderStatus status;
     private Long buyerId;
     private Long farmId;
+    private String animalType;
 }
 

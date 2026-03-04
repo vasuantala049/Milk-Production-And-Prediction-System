@@ -23,4 +23,8 @@ public class FarmResponseDto implements Serializable {
     @JsonProperty("isSelling")
     private boolean isSelling;
     private Double pricePerLiter;
+    private Double cowPrice;
+    private Double buffaloPrice;
+    private Double cowAvailableMilk;
+    private Double buffaloAvailableMilk;
 }

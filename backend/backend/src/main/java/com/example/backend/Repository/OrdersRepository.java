@@ -10,6 +10,9 @@ import com.example.backend.Entity.User;
 
 import java.time.LocalDate;
 import java.util.List;
+import com.example.backend.Entity.type.MilkSession;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface OrdersRepository extends JpaRepository<Orders, Long> {
@@ -24,4 +27,20 @@ public interface OrdersRepository extends JpaRepository<Orders, Long> {
 
     // Status-based queries
     List<Orders> findByFarm_IdAndStatus(Long farmId, OrderStatus status);
+
+    @Query("""
+        SELECT COALESCE(SUM(o.quantity), 0)
+        FROM Orders o
+        WHERE o.farm.id = :farmId
+          AND o.orderDate = :date
+          AND o.session = :session
+          AND LOWER(o.animalType) = LOWER(:type)
+          AND o.status IN (com.example.backend.Entity.type.OrderStatus.PENDING, com.example.backend.Entity.type.OrderStatus.CONFIRMED)
+    """)
+    Double sumAllocatedByType(
+            @Param("farmId") Long farmId,
+            @Param("date") LocalDate date,
+            @Param("session") MilkSession session,
+            @Param("type") String type
+    );
 }

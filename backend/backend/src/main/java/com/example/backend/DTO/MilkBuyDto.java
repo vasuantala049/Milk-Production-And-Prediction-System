@@ -22,4 +22,5 @@ public class MilkBuyDto {
     @NotNull
     private Long farmId;
 
+    private String animalType;
 }

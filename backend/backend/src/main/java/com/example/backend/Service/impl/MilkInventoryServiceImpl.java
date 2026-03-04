@@ -32,6 +32,7 @@ public class MilkInventoryServiceImpl implements    MilkInventoryService {
     private final CattleMilkEntryRepository cattleMilkEntryRepository;
     private final FarmRepository farmRepository;
     private final MilkAllocationRepository milkAllocationRepository;
+    private final com.example.backend.Repository.OrdersRepository ordersRepository;
 
     @Override
     @org.springframework.cache.annotation.Caching(evict = {
@@ -210,6 +211,7 @@ public class MilkInventoryServiceImpl implements    MilkInventoryService {
                         .map(entry -> new TodayMilkEntryDto(
                                 entry.getCattle().getTagId(),
                                 entry.getCattle().getTagId(),
+                                entry.getCattle().getType() != null ? entry.getCattle().getType() : "Unknown",
                                 entry.getSession(),
                                 entry.getMilkLiters(),
                                 entry.getEnteredBy() != null ? entry.getEnteredBy().getName() : null
@@ -221,13 +223,29 @@ public class MilkInventoryServiceImpl implements    MilkInventoryService {
         public MilkAvailabilityDto getAvailability(Long farmId, LocalDate date, MilkSession session) {
                 MilkInventory inventory = milkInventoryRepository
                         .findByFarmIdAndRecordDateAndSession(farmId, date, session)
-                        .orElseThrow(() -> new IllegalStateException("Milk inventory not found"));
+                        .orElse(null);
 
-                Double totalProduction = inventory.getMilkLiters();
-                Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
+                Double totalProduction = inventory != null ? inventory.getMilkLiters() : 0.0;
+                Double allocatedMilk = inventory != null ? milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId()) : 0.0;
                 Double availableMilk = totalProduction - allocatedMilk;
 
-                return new MilkAvailabilityDto(totalProduction, allocatedMilk, availableMilk);
+                // Dynamically fetch cow/buffalo production
+                Double cowTotal = cattleMilkEntryRepository.sumMilkByType(farmId, date, session, "Cow");
+                if (cowTotal == null) cowTotal = 0.0;
+                Double buffaloTotal = cattleMilkEntryRepository.sumMilkByType(farmId, date, session, "Buffalo");
+                if (buffaloTotal == null) buffaloTotal = 0.0;
+
+                // Fetch allocations via Orders (Pending + Confirmed)
+                Double cowAlloc = ordersRepository.sumAllocatedByType(farmId, date, session, "Cow");
+                if (cowAlloc == null) cowAlloc = 0.0;
+                Double buffaloAlloc = ordersRepository.sumAllocatedByType(farmId, date, session, "Buffalo");
+                if (buffaloAlloc == null) buffaloAlloc = 0.0;
+
+                return new MilkAvailabilityDto(
+                        totalProduction, allocatedMilk, availableMilk,
+                        cowTotal, cowAlloc, cowTotal - cowAlloc,
+                        buffaloTotal, buffaloAlloc, buffaloTotal - buffaloAlloc
+                );
         }
 
         @Override

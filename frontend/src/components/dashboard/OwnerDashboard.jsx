@@ -40,6 +40,12 @@ export function OwnerDashboard() {
   const [todayEntries, setTodayEntries] = useState([]);
   const [isToggling, setIsToggling] = useState(false);
 
+  const [pricesDialogOpen, setPricesDialogOpen] = useState(false);
+  const [cowPrice, setCowPrice] = useState("");
+  const [buffaloPrice, setBuffaloPrice] = useState("");
+  const [priceSubmitting, setPriceSubmitting] = useState(false);
+  const [shedStatusList, setShedStatusList] = useState([]);
+
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   /* ===========================
@@ -196,6 +202,47 @@ export function OwnerDashboard() {
     }
   };
 
+  useEffect(() => {
+    if (activeFarm) {
+      setCowPrice(activeFarm.cowPrice || "");
+      setBuffaloPrice(activeFarm.buffaloPrice || "");
+    }
+  }, [activeFarm]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadShedStatus(farmId) {
+      try {
+        const data = await apiFetch(`/farms/${farmId}/sheds-status`);
+        if (!mounted) return;
+        setShedStatusList(Array.isArray(data) ? data : []);
+      } catch {
+        if (!mounted) return;
+        setShedStatusList([]);
+      }
+    }
+    if (activeFarm?.id) loadShedStatus(activeFarm.id);
+    return () => (mounted = false);
+  }, [activeFarm?.id]);
+
+  const handleSavePrices = async () => {
+    if (!activeFarm) return;
+    setPriceSubmitting(true);
+    try {
+      await apiFetch(`/farms/${activeFarm.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ cowPrice: parseFloat(cowPrice), buffaloPrice: parseFloat(buffaloPrice) })
+      });
+      const updatedFarm = { ...activeFarm, cowPrice: parseFloat(cowPrice), buffaloPrice: parseFloat(buffaloPrice) };
+      localStorage.setItem("activeFarm", JSON.stringify(updatedFarm));
+      window.location.reload();
+    } catch (err) {
+      alert("Failed to update prices");
+    } finally {
+      setPriceSubmitting(false);
+    }
+  };
+
   // Robust check for selling status
   const currentIsSelling = activeFarm?.isSelling === true || activeFarm?.selling === true;
 
@@ -244,6 +291,14 @@ export function OwnerDashboard() {
                   <StorefrontIcon sx={{ fontSize: 14 }} />
                 )}
                 {isToggling ? "Updating..." : currentIsSelling ? "Stop Selling" : "Start Selling"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[10px] gap-1.5"
+                onClick={() => setPricesDialogOpen(true)}
+              >
+                Set Prices
               </Button>
             </div>
           )}
@@ -317,6 +372,37 @@ export function OwnerDashboard() {
               {farms.length > 1 && (
                 <FarmComparisonChart farmsData={farms} />
               )}
+
+              {/* Shed Status View */}
+              <div className="bg-card border border-border rounded-xl p-4 shadow-card">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-foreground text-sm">
+                    Sheds Status
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    {shedStatusList.length} Sheds
+                  </span>
+                </div>
+                {shedStatusList.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No shed data available.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {shedStatusList.map((shed, idx) => (
+                      <div key={idx} className="border border-border/60 rounded-md p-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="font-medium text-sm text-primary">{shed.shedName}</h4>
+                          <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full">{shed.workerInCharge}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Total: <span className="text-foreground">{shed.totalCattle}</span></span>
+                          <span>Milked: <span className="text-emerald-500 font-medium">{shed.milkedCattle}</span></span>
+                          <span>Remaining: <span className="text-amber-500 font-medium">{shed.remainingCattle}</span></span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -409,6 +495,43 @@ export function OwnerDashboard() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Price Dialog */}
+      {pricesDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-background rounded-xl p-6 max-w-sm w-full shadow-lg border border-border">
+            <h2 className="text-lg font-bold mb-4">Set Milk Prices</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-foreground">Cow Milk Price (per Liter)</label>
+                <input
+                  type="number"
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={cowPrice}
+                  onChange={(e) => setCowPrice(e.target.value)}
+                  placeholder="e.g. 50"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">Buffalo Milk Price (per Liter)</label>
+                <input
+                  type="number"
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={buffaloPrice}
+                  onChange={(e) => setBuffaloPrice(e.target.value)}
+                  placeholder="e.g. 60"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setPricesDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleSavePrices} disabled={priceSubmitting}>
+                {priceSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

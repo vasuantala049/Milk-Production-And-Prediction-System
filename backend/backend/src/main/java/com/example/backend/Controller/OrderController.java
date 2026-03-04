@@ -39,7 +39,8 @@ public class OrderController {
                 order.getSession(),
                 order.getStatus(),
                 order.getBuyer().getId(),
-                order.getFarm().getId())).collect(Collectors.toList());
+                order.getFarm().getId(),
+                order.getAnimalType())).collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
     }
 
@@ -71,7 +72,8 @@ public class OrderController {
                 order.getSession(),
                 order.getStatus(),
                 order.getBuyer().getId(),
-                order.getFarm().getId())).collect(Collectors.toList());
+                order.getFarm().getId(),
+                order.getAnimalType())).collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
     }
@@ -97,7 +99,8 @@ public class OrderController {
                 order.getSession(),
                 order.getStatus(),
                 order.getBuyer().getId(),
-                order.getFarm().getId())).collect(Collectors.toList());
+                order.getFarm().getId(),
+                order.getAnimalType())).collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
     }

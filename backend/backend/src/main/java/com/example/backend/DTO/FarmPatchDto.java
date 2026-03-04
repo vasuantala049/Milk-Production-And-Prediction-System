@@ -12,4 +12,7 @@ public class FarmPatchDto {
 
     // TEMP until Spring Security
     private Long ownerId;
+
+    private Double cowPrice;
+    private Double buffaloPrice;
 }

@@ -46,6 +46,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .quantity(dto.getQuantity())
                 .session(dto.getSession())
                 .startDate(startDate)
+                .animalType(dto.getAnimalType())
                 .status(SubscriptionStatus.ACTIVE)
                 .build();
 
@@ -96,6 +97,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 buyDto.setQuantity(sub.getQuantity());
                 buyDto.setSession(sub.getSession());
                 buyDto.setDate(today);
+                buyDto.setAnimalType(sub.getAnimalType());
 
                 // Use BuyMilkService to place order (handles inventory)
                 buyMilkService.buyMilk(buyDto, sub.getBuyer());

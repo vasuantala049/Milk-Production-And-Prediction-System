@@ -24,4 +24,5 @@ public class SubscriptionResponseDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private SubscriptionStatus status;
+    private String animalType;
 }
