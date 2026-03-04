@@ -109,6 +109,7 @@ public class SubscriptionController {
                 .startDate(subscription.getStartDate())
                 .endDate(subscription.getEndDate())
                 .status(subscription.getStatus())
+                .animalType(subscription.getAnimalType())
                 .build();
     }
 }

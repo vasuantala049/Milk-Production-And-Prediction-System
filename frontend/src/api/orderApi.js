@@ -30,4 +30,14 @@ export const orderApi = {
       body: JSON.stringify(orderData),
     });
   },
+
+  // Approve a pending order (farm owner only)
+  approveOrder: async (orderId) => {
+    return apiFetch(`/orders/${orderId}/approve`, { method: 'PATCH' });
+  },
+
+  // Reject a pending order (farm owner only)
+  rejectOrder: async (orderId) => {
+    return apiFetch(`/orders/${orderId}/reject`, { method: 'PATCH' });
+  },
 };

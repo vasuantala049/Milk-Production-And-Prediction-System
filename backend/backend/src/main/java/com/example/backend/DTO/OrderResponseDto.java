@@ -18,7 +18,10 @@ public class OrderResponseDto {
     private MilkSession session;
     private OrderStatus status;
     private Long buyerId;
+    private String buyerName;
     private Long farmId;
+    private String farmName;
     private String animalType;
+    private Double totalPrice;
 }
 

@@ -141,6 +141,10 @@ export default function BuyMilk() {
 
       if (!parsedFarmId || Number.isNaN(parsedFarmId)) throw new Error("Please select a valid farm.");
       if (!parsedQty || Number.isNaN(parsedQty) || parsedQty <= 0) throw new Error("Quantity must be greater than 0.");
+      // Only allow 0.5L or whole-litre amounts >= 1L
+      if (parsedQty !== 0.5 && (parsedQty < 1 || Math.round(parsedQty * 2) !== parsedQty * 2)) {
+        throw new Error("Quantity must be 0.5L or any whole number of liters (1L, 2L, 3L...)");
+      }
 
       const todayStr = new Date().toISOString().slice(0, 10);
       if (date < todayStr) throw new Error("Date cannot be in the past.");

@@ -48,6 +48,12 @@ public class BuyMilkServiceImpl implements BuyMilkService {
         if (requestedQty <= 0) {
             throw new IllegalArgumentException("Quantity must be greater than zero");
         }
+        // Only allow 0.5L increments: 0.5, 1.0, 1.5, 2.0, ... — user rule: 0.5 or >=1 whole litres
+        boolean isHalf = Math.abs(requestedQty - 0.5) < 0.0001;
+        boolean isWholeAboveOne = requestedQty >= 1.0 && Math.abs(requestedQty - Math.round(requestedQty)) < 0.0001;
+        if (!isHalf && !isWholeAboveOne) {
+            throw new IllegalArgumentException("Quantity must be 0.5L or a whole number of liters (1L, 2L, 3L...)");
+        }
 
         // 4. Validate time-based slot restrictions (for today's date only)
         LocalDate orderDate = dto.getDate();
@@ -82,6 +88,20 @@ public class BuyMilkServiceImpl implements BuyMilkService {
         order.setBuyer(buyer);
         order.setFarm(farm);
         order.setAnimalType(dto.getAnimalType());
+
+        // Compute total price based on animal type and farm prices
+        double pricePerLiter;
+        String animalType = dto.getAnimalType();
+        if ("COW".equalsIgnoreCase(animalType) && farm.getCowPrice() != null) {
+            pricePerLiter = farm.getCowPrice();
+        } else if ("BUFFALO".equalsIgnoreCase(animalType) && farm.getBuffaloPrice() != null) {
+            pricePerLiter = farm.getBuffaloPrice();
+        } else {
+            pricePerLiter = farm.getPricePerLiter() != null ? farm.getPricePerLiter() : 0.0;
+        }
+        order.setTotalPrice(requestedQty * pricePerLiter);
+        order.setBuyerName(buyer.getName());
+        order.setFarmName(farm.getName());
 
         ordersRepository.save(order);
 

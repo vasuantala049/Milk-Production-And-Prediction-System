@@ -14,7 +14,7 @@ public interface OrderService {
     /**
      * Reject a pending order (farm owner/worker only)
      */
-    void rejectOrder(Long orderId, User user);
+    OrderResponseDto rejectOrder(Long orderId, User user);
 
     /**
      * Get all pending orders for a farm

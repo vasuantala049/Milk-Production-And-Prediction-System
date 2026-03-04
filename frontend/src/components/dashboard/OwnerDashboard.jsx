@@ -37,8 +37,13 @@ export function OwnerDashboard() {
   const [farms, setFarms] = useState([]);
   const [daysRange, setDaysRange] = useState(7);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
+  const [farmSubscriptions, setFarmSubscriptions] = useState([]);
+  const [orderTab, setOrderTab] = useState("pending"); // "pending" | "all"
+  const [subTab, setSubTab] = useState(false);
   const [todayEntries, setTodayEntries] = useState([]);
   const [isToggling, setIsToggling] = useState(false);
+  const [actionLoading, setActionLoading] = useState({});
 
   const [pricesDialogOpen, setPricesDialogOpen] = useState(false);
   const [cowPrice, setCowPrice] = useState("");
@@ -129,30 +134,48 @@ export function OwnerDashboard() {
   }, []);
 
   /* ===========================
-     LOAD RECENT ORDERS (OWNER VIEW)
+     LOAD ALL ORDERS + SUBSCRIPTIONS (OWNER VIEW)
      =========================== */
   useEffect(() => {
     let mounted = true;
 
-    async function loadRecentOrders(farmId) {
+    async function loadAll(farmId) {
       try {
-        const data = await orderApi.getFarmOrders(farmId, 0, 5);
+        const [orders, subs] = await Promise.all([
+          orderApi.getFarmOrders(farmId),
+          apiFetch(`/subscriptions/farm/${farmId}`),
+        ]);
         if (!mounted) return;
-        setRecentOrders(Array.isArray(data) ? data : []);
+        setAllOrders(Array.isArray(orders) ? orders : []);
+        setRecentOrders((Array.isArray(orders) ? orders : []).slice(0, 5));
+        setFarmSubscriptions(Array.isArray(subs) ? subs : []);
       } catch {
         if (!mounted) return;
+        setAllOrders([]);
         setRecentOrders([]);
+        setFarmSubscriptions([]);
       }
     }
 
-    if (activeFarm?.id) {
-      loadRecentOrders(activeFarm.id);
-    }
-
-    return () => {
-      mounted = false;
-    };
+    if (activeFarm?.id) loadAll(activeFarm.id);
+    return () => { mounted = false; };
   }, [activeFarm?.id]);
+
+  const handleOrderAction = async (orderId, action) => {
+    setActionLoading((prev) => ({ ...prev, [orderId]: action }));
+    try {
+      if (action === "approve") await orderApi.approveOrder(orderId);
+      else await orderApi.rejectOrder(orderId);
+      // Refresh orders
+      const orders = await orderApi.getFarmOrders(activeFarm.id);
+      setAllOrders(Array.isArray(orders) ? orders : []);
+      setRecentOrders((Array.isArray(orders) ? orders : []).slice(0, 5));
+    } catch (err) {
+      alert(err.message || `Failed to ${action} order`);
+    } finally {
+      setActionLoading((prev) => { const n = { ...prev }; delete n[orderId]; return n; });
+    }
+  };
 
   /* ===========================
      LOAD TODAY ENTRIES (OWNER VIEW)
@@ -408,49 +431,118 @@ export function OwnerDashboard() {
             <div className="space-y-6">
               <QuickActions />
 
-              {/* Recent Orders */}
+              {/* Orders Management */}
               <div className="bg-card border border-border rounded-xl p-4 shadow-card">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-foreground text-sm">
-                    Recent Orders
-                  </h3>
-                  <span className="text-xs text-muted-foreground">
-                    Last {recentOrders.length} orders
-                  </span>
+                  <h3 className="font-semibold text-foreground text-sm">Orders</h3>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setOrderTab("pending")}
+                      className={cn("text-[10px] px-2 py-0.5 rounded-full border font-medium transition-colors",
+                        orderTab === "pending" ? "bg-amber-500 text-white border-amber-500" : "border-border text-muted-foreground hover:bg-muted")}
+                    >
+                      Pending ({allOrders.filter(o => o.status === "PENDING").length})
+                    </button>
+                    <button
+                      onClick={() => setOrderTab("all")}
+                      className={cn("text-[10px] px-2 py-0.5 rounded-full border font-medium transition-colors",
+                        orderTab === "all" ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-muted")}
+                    >
+                      All ({allOrders.length})
+                    </button>
+                  </div>
                 </div>
 
-                {recentOrders.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    No orders for this farm yet.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {recentOrders.map((order) => (
-                      <div
-                        key={order.id}
-                        className="flex items-center justify-between text-xs border border-border/60 rounded-md px-2 py-1.5"
-                      >
-                        <div>
-                          <p className="font-medium text-foreground">
-                            {order.quantity.toFixed(1)}L • {order.session}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {order.orderDate}
-                          </p>
-                        </div>
-                        <span
-                          className={cn(
-                            "px-2 py-0.5 rounded-full text-[10px] font-medium",
-                            order.status === "COMPLETED" &&
-                            "bg-emerald-50 text-emerald-700 border border-emerald-200",
-                            order.status === "PENDING" &&
-                            "bg-amber-50 text-amber-700 border border-amber-200",
-                            order.status === "CANCELLED" &&
-                            "bg-destructive/10 text-destructive border border-destructive/30"
+                {(() => {
+                  const displayed = orderTab === "pending"
+                    ? allOrders.filter(o => o.status === "PENDING")
+                    : allOrders;
+                  return displayed.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      {orderTab === "pending" ? "No pending orders 🎉" : "No orders yet."}
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {displayed.map((order) => (
+                        <div key={order.id} className="border border-border/60 rounded-md px-3 py-2 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-foreground">
+                              {order.buyerName || `Buyer #${order.buyerId}`}
+                            </span>
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-full text-[10px] font-medium",
+                              order.status === "CONFIRMED" && "bg-emerald-50 text-emerald-700 border border-emerald-200",
+                              order.status === "PENDING" && "bg-amber-50 text-amber-700 border border-amber-200",
+                              order.status === "CANCELLED" && "bg-red-50 text-red-700 border border-red-200",
+                              order.status === "COMPLETED" && "bg-blue-50 text-blue-700 border border-blue-200",
+                            )}>
+                              {order.status}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+                            <span>{order.quantity?.toFixed(1)}L</span>
+                            <span>{order.animalType === "COW" ? "🐮 Cow" : order.animalType === "BUFFALO" ? "🐃 Buffalo" : "🐄 Any"}</span>
+                            <span>{order.session}</span>
+                            {order.totalPrice != null && (
+                              <span className="text-emerald-600 font-semibold">₹{order.totalPrice.toFixed(2)}</span>
+                            )}
+                            <span>{order.orderDate}</span>
+                          </div>
+                          {order.status === "PENDING" && (
+                            <div className="flex gap-2 pt-1">
+                              <button
+                                disabled={!!actionLoading[order.id]}
+                                onClick={() => handleOrderAction(order.id, "approve")}
+                                className="flex-1 text-[11px] py-1 rounded bg-emerald-500 hover:bg-emerald-600 text-white font-medium disabled:opacity-50 transition-colors"
+                              >
+                                {actionLoading[order.id] === "approve" ? "..." : "✓ Accept"}
+                              </button>
+                              <button
+                                disabled={!!actionLoading[order.id]}
+                                onClick={() => handleOrderAction(order.id, "reject")}
+                                className="flex-1 text-[11px] py-1 rounded bg-red-500 hover:bg-red-600 text-white font-medium disabled:opacity-50 transition-colors"
+                              >
+                                {actionLoading[order.id] === "reject" ? "..." : "✗ Decline"}
+                              </button>
+                            </div>
                           )}
-                        >
-                          {order.status.toLowerCase()}
-                        </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Subscriptions Panel */}
+              <div className="bg-card border border-border rounded-xl p-4 shadow-card">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-foreground text-sm">Subscriptions</h3>
+                  <span className="text-xs text-muted-foreground">{farmSubscriptions.length} total</span>
+                </div>
+                {farmSubscriptions.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No subscriptions yet.</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {farmSubscriptions.map((sub) => (
+                      <div key={sub.id} className="border border-border/60 rounded-md px-3 py-2 text-xs space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-foreground">{sub.buyerName || `Buyer #${sub.buyerId}`}</span>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-full text-[10px] font-medium",
+                            sub.status === "ACTIVE" && "bg-emerald-50 text-emerald-700 border border-emerald-200",
+                            sub.status === "PAUSED" && "bg-amber-50 text-amber-700 border border-amber-200",
+                            sub.status === "CANCELLED" && "bg-red-50 text-red-700 border border-red-200",
+                            sub.status === "COMPLETED" && "bg-blue-50 text-blue-700 border border-blue-200",
+                          )}>
+                            {sub.status}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+                          <span>{sub.quantity?.toFixed(1)}L/day</span>
+                          <span>{sub.animalType === "COW" ? "🐮 Cow" : sub.animalType === "BUFFALO" ? "🐃 Buffalo" : "🐄 Any"}</span>
+                          <span>{sub.session}</span>
+                          <span>From {sub.startDate}</span>
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -83,7 +83,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public void rejectOrder(Long orderId, User user) {
+    public OrderResponseDto rejectOrder(Long orderId, User user) {
         // 1. Find order
         Orders order = ordersRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
@@ -100,6 +100,8 @@ public class OrderServiceImpl implements OrderService {
         // 4. Update status to CANCELLED
         order.setStatus(OrderStatus.CANCELLED);
         ordersRepository.save(order);
+
+        return mapToDto(order);
     }
 
     @Override
@@ -124,8 +126,11 @@ public class OrderServiceImpl implements OrderService {
         dto.setSession(order.getSession());
         dto.setStatus(order.getStatus());
         dto.setBuyerId(order.getBuyer() != null ? order.getBuyer().getId() : null);
+        dto.setBuyerName(order.getBuyer() != null ? order.getBuyer().getName() : order.getBuyerName());
         dto.setFarmId(order.getFarm() != null ? order.getFarm().getId() : null);
+        dto.setFarmName(order.getFarm() != null ? order.getFarm().getName() : order.getFarmName());
         dto.setAnimalType(order.getAnimalType());
+        dto.setTotalPrice(order.getTotalPrice());
         return dto;
     }
 }

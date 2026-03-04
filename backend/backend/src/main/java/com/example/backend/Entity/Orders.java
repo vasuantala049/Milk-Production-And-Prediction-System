@@ -30,7 +30,13 @@ public class Orders {
 
     private MilkSession session;
 
-    private String animalType; //MORNING / EVENING
+    private String animalType;
+
+    private Double totalPrice;
+
+    private String buyerName;
+
+    private String farmName;
 
     @ManyToOne
     @JoinColumn(name = "buyer_id", nullable = false)
