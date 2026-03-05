@@ -38,6 +38,10 @@ public class Orders {
 
     private String farmName;
 
+    private String razorpayOrderId;
+
+    private String razorpayPaymentId;
+
     @ManyToOne
     @JoinColumn(name = "buyer_id", nullable = false)
     private User buyer;

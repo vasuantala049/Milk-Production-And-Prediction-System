@@ -40,4 +40,17 @@ export const orderApi = {
   rejectOrder: async (orderId) => {
     return apiFetch(`/orders/${orderId}/reject`, { method: 'PATCH' });
   },
+
+  // Create Razorpay payment order for a CONFIRMED one-time order
+  createPayment: async (orderId) => {
+    return apiFetch(`/orders/${orderId}/payment/create`, { method: 'POST' });
+  },
+
+  // Verify Razorpay payment after buyer completes Razorpay checkout
+  verifyPayment: async (orderId, { razorpay_order_id, razorpay_payment_id, razorpay_signature }) => {
+    return apiFetch(`/orders/${orderId}/payment/verify`, {
+      method: 'POST',
+      body: JSON.stringify({ razorpay_order_id, razorpay_payment_id, razorpay_signature }),
+    });
+  },
 };

@@ -131,6 +131,7 @@ public class OrderServiceImpl implements OrderService {
         dto.setFarmName(order.getFarm() != null ? order.getFarm().getName() : order.getFarmName());
         dto.setAnimalType(order.getAnimalType());
         dto.setTotalPrice(order.getTotalPrice());
+        dto.setRazorpayOrderId(order.getRazorpayOrderId());
         return dto;
     }
 }

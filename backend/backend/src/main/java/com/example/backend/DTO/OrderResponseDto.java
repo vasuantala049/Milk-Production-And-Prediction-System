@@ -23,5 +23,6 @@ public class OrderResponseDto {
     private String farmName;
     private String animalType;
     private Double totalPrice;
+    private String razorpayOrderId;
 }
 

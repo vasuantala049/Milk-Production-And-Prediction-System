@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { MapPin, ShoppingCart, Milk, Clock, CheckCircle, Pause, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MapPin, ShoppingCart, Milk, Clock, CheckCircle, Pause, ChevronRight, CreditCard, Bell } from "lucide-react";
 import { apiFetch } from "../../api/client";
 import { farmApi } from "../../api/farmApi";
+import { orderApi } from "../../api/orderApi";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
@@ -18,6 +19,7 @@ export function CustomerDashboard() {
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState(user.city || user.location || "");
   const [savingCity, setSavingCity] = useState(false);
+  const [payingOrderId, setPayingOrderId] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -46,7 +48,59 @@ export function CustomerDashboard() {
   }, []);
 
   const activeSubscriptions = subscriptions.filter(s => s.status === 'ACTIVE');
-  const recentOrders = orders.slice(0, 5);
+  const confirmedOrders = orders.filter(o => o.status === 'CONFIRMED');
+
+  const handlePayNow = async (order) => {
+    setPayingOrderId(order.id);
+    try {
+      const payData = await orderApi.createPayment(order.id);
+
+      if (!window.Razorpay) {
+        alert("Razorpay SDK not loaded. Please refresh the page.");
+        return;
+      }
+
+      const options = {
+        key: payData.key,
+        amount: payData.amount,
+        currency: payData.currency || 'INR',
+        name: payData.farmName || 'Milk Farm',
+        description: `Milk Order #${order.id}`,
+        order_id: payData.razorpayOrderId,
+        prefill: {
+          name: user?.name || '',
+          email: user?.email || '',
+        },
+        theme: { color: '#16a34a' },
+        handler: async (response) => {
+          try {
+            await orderApi.verifyPayment(order.id, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            // Refresh orders to show COMPLETED status
+            const newOrders = await apiFetch('/orders/my-orders').catch(() => []);
+            setOrders(Array.isArray(newOrders) ? newOrders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate)) : []);
+            alert('🎉 Payment successful! Your order is now COMPLETED.');
+          } catch (err) {
+            alert('Payment verification failed: ' + (err.message || 'Unknown error'));
+          } finally {
+            setPayingOrderId(null);
+          }
+        },
+        modal: {
+          ondismiss: () => setPayingOrderId(null),
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      alert('Failed to initiate payment: ' + (err.message || 'Unknown error'));
+      setPayingOrderId(null);
+    }
+  };
 
   async function handleSaveCity() {
     if (!user?.id || !city) return;
@@ -108,6 +162,57 @@ export function CustomerDashboard() {
           Buy Milk
         </Button>
       </motion.div>
+
+      {/* Payment Notification Banner — shows when owner has approved your order */}
+      <AnimatePresence>
+        {confirmedOrders.length > 0 && (
+          <motion.div
+            key="payment-banner"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl p-5 shadow-lg"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Bell className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base">
+                  🎉 Your order{confirmedOrders.length > 1 ? 's have' : ' has'} been accepted!
+                </h3>
+                <p className="text-emerald-100 text-sm">
+                  Complete your payment to confirm the delivery.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {confirmedOrders.map(order => (
+                <div key={order.id} className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="text-sm">
+                    <span className="font-semibold">
+                      {order.farmName || `Order #${order.id}`}
+                    </span>
+                    <span className="text-emerald-100 ml-2">
+                      {order.quantity?.toFixed(1)}L ·{' '}
+                      {order.animalType === 'COW' ? '🐮 Cow' : order.animalType === 'BUFFALO' ? '🐃 Buffalo' : '🐄 Any'} ·{' '}
+                      {order.totalPrice != null ? `₹${order.totalPrice.toFixed(2)}` : '—'}
+                    </span>
+                  </div>
+                  <button
+                    disabled={payingOrderId === order.id}
+                    onClick={() => handlePayNow(order)}
+                    className="flex items-center gap-1.5 bg-white text-emerald-700 font-semibold text-xs px-3 py-1.5 rounded-lg hover:bg-emerald-50 disabled:opacity-60 transition-colors shrink-0"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    {payingOrderId === order.id ? 'Opening...' : 'Pay Now'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Active Subscriptions */}
       {activeSubscriptions.length > 0 && (
