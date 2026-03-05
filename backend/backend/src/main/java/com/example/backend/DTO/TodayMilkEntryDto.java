@@ -8,6 +8,7 @@ public class TodayMilkEntryDto {
 
     private String cattleTagId;
     private String cattleName;
+    private String animalType;
     private MilkSession session;
     private Double milkLiters;
     private String workerName;
@@ -15,9 +16,10 @@ public class TodayMilkEntryDto {
     public TodayMilkEntryDto() {
     }
 
-    public TodayMilkEntryDto(String cattleTagId, String cattleName, MilkSession session, Double milkLiters, String workerName) {
+    public TodayMilkEntryDto(String cattleTagId, String cattleName, String animalType, MilkSession session, Double milkLiters, String workerName) {
         this.cattleTagId = cattleTagId;
         this.cattleName = cattleName;
+        this.animalType = animalType;
         this.session = session;
         this.milkLiters = milkLiters;
         this.workerName = workerName;
@@ -29,6 +31,10 @@ public class TodayMilkEntryDto {
 
     public void setCattleName(String cattleName) {
         this.cattleName = cattleName;
+    }
+
+    public void setAnimalType(String animalType) {
+        this.animalType = animalType;
     }
 
     public void setSession(MilkSession session) {

@@ -28,7 +28,15 @@ public class Orders {
 
     private OrderStatus status; // PENDING / COMPLETED / CANCELLED
 
-    private MilkSession session; //MORNING / EVENING
+    private MilkSession session;
+
+    private String animalType;
+
+    private Double totalPrice;
+
+    private String buyerName;
+
+    private String farmName;
 
     @ManyToOne
     @JoinColumn(name = "buyer_id", nullable = false)

@@ -33,6 +33,9 @@ public class Farm {
 
     private Double pricePerLiter;
 
+    private Double cowPrice;
+    private Double buffaloPrice;
+
     @ManyToOne
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;

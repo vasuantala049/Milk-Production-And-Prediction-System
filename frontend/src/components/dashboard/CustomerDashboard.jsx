@@ -231,8 +231,11 @@ export function CustomerDashboard() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold text-foreground">₹{farm.pricePerLiter != null ? farm.pricePerLiter : "—"}</p>
-                      <p className="text-xs text-muted-foreground">per liter</p>
+                      <p className="text-lg font-bold text-foreground">₹{farm.pricePerLiter != null ? farm.pricePerLiter : "—"}<span className="text-xs font-normal text-muted-foreground">/L base</span></p>
+                      <div className="flex gap-2 mt-0.5">
+                        {farm.cowPrice != null && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Cow: ₹{farm.cowPrice}</span>}
+                        {farm.buffaloPrice != null && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Buf: ₹{farm.buffaloPrice}</span>}
+                      </div>
                     </div>
                     <Badge
                       variant="outline"
@@ -242,7 +245,15 @@ export function CustomerDashboard() {
                           : "bg-warning/10 border-warning/30 text-warning"
                       )}
                     >
-                      {farm.availableMilk != null ? `${farm.availableMilk}L` : "—"} available
+                      <div className="flex flex-col gap-1 text-center items-center">
+                        <span className="font-semibold">{farm.availableMilk != null ? `${farm.availableMilk}L Available` : "—"}</span>
+                        {(farm.cowAvailableMilk > 0 || farm.buffaloAvailableMilk > 0) && (
+                          <div className="flex items-center gap-1.5 text-[10px] opacity-90 font-medium">
+                            {farm.cowAvailableMilk > 0 && <span className="bg-background/20 px-1.5 py-0.5 rounded">🐮 {farm.cowAvailableMilk}L</span>}
+                            {farm.buffaloAvailableMilk > 0 && <span className="bg-background/20 px-1.5 py-0.5 rounded">🐃 {farm.buffaloAvailableMilk}L</span>}
+                          </div>
+                        )}
+                      </div>
                     </Badge>
                   </div>
                 </div>
@@ -253,7 +264,7 @@ export function CustomerDashboard() {
       )}
 
       {/* Order History */}
-      {recentOrders.length > 0 && (
+      {orders.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -261,51 +272,38 @@ export function CustomerDashboard() {
           className="bg-card border border-border rounded-xl p-5 shadow-card"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-foreground">Recent Orders</h3>
-            <Link to="/orders" className="text-sm text-primary hover:underline">
-              View all
-            </Link>
+            <h3 className="font-semibold text-foreground">My Orders</h3>
+            <span className="text-xs text-muted-foreground">{orders.length} total</span>
           </div>
 
-          <div className="divide-y divide-border">
-            {recentOrders.map((order) => {
+          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+            {orders.map((order) => {
               const farm = farms.find(f => f.id === order.farmId);
+              const farmName = order.farmName || farm?.name || `Farm #${order.farmId}`;
+              const animalEmoji = order.animalType === "COW" ? "🐮" : order.animalType === "BUFFALO" ? "🐃" : "🐄";
+              const animalLabel = order.animalType === "COW" ? "Cow" : order.animalType === "BUFFALO" ? "Buffalo" : "Any";
               return (
-                <div key={order.id} className="py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "p-2 rounded-lg",
-                      order.status === 'delivered' ? "bg-success/10" :
-                        order.status === 'pending' ? "bg-warning/10" : "bg-muted"
+                <div key={order.id} className="border border-border/60 rounded-md px-3 py-2.5 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-foreground">{farmName}</span>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-full text-[10px] font-medium",
+                      order.status === "CONFIRMED" && "bg-emerald-50 text-emerald-700 border border-emerald-200",
+                      order.status === "PENDING" && "bg-amber-50 text-amber-700 border border-amber-200",
+                      order.status === "CANCELLED" && "bg-red-50 text-red-700 border border-red-200",
+                      order.status === "COMPLETED" && "bg-blue-50 text-blue-700 border border-blue-200",
                     )}>
-                      {order.status === 'delivered' ? (
-                        <CheckCircle className="w-4 h-4 text-success" />
-                      ) : (
-                        <Clock className="w-4 h-4 text-warning" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">
-                        {order.quantity || "—"}L from {farm?.name || "—"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "—"}
-                      </p>
-                    </div>
+                      {order.status}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-foreground">₹{order.totalPrice != null ? order.totalPrice : "—"}</p>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-xs capitalize",
-                        order.status === 'delivered' && "text-success border-success/30",
-                        order.status === 'pending' && "text-warning border-warning/30",
-                        order.status === 'cancelled' && "text-muted-foreground"
-                      )}
-                    >
-                      {order.status || "—"}
-                    </Badge>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+                    <span>{order.quantity?.toFixed(1)}L</span>
+                    <span>{animalEmoji} {animalLabel} Milk</span>
+                    <span>{order.session}</span>
+                    {order.orderDate && <span>{new Date(order.orderDate).toLocaleDateString()}</span>}
+                    {order.totalPrice != null && (
+                      <span className="text-emerald-600 font-bold">₹{order.totalPrice.toFixed(2)}</span>
+                    )}
                   </div>
                 </div>
               );

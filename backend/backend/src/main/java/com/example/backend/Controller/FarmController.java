@@ -144,17 +144,11 @@ public class FarmController {
         return ResponseEntity.ok(count);
     }
 
-    // Update shed assignments for a worker in a specific farm (supports multiple
-    // sheds)
-    @PatchMapping("/{farmId}/workers/{workerId}/shed")
+    @GetMapping("/{id}/sheds-status")
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
-    public ResponseEntity<Void> updateWorkerShed(
-            @PathVariable Long farmId,
-            @PathVariable Long workerId,
-            @RequestBody com.example.backend.DTO.UpdateWorkerShedDto dto,
+    public ResponseEntity<java.util.List<com.example.backend.DTO.ShedStatusDto>> getShedsStatus(
+            @PathVariable Long id,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
-
-        farmService.updateWorkerShedForFarm(farmId, workerId, dto.getShedIds(), user);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(farmService.getShedStatus(id, user));
     }
 }

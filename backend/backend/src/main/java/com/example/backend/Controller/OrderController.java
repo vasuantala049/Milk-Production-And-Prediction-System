@@ -31,9 +31,21 @@ public class OrderController {
     @GetMapping("/my-orders")
     public ResponseEntity<List<OrderResponseDto>> getMyOrders(@AuthenticationPrincipal User user) {
         List<Orders> orders = ordersRepository.findByBuyer(user);
-        List<OrderResponseDto> dtos = orders.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<OrderResponseDto> dtos = orders.stream().map(order -> {
+            OrderResponseDto d = new OrderResponseDto();
+            d.setId(order.getId());
+            d.setOrderDate(order.getOrderDate());
+            d.setQuantity(order.getQuantity());
+            d.setSession(order.getSession());
+            d.setStatus(order.getStatus());
+            d.setBuyerId(order.getBuyer() != null ? order.getBuyer().getId() : null);
+            d.setBuyerName(order.getBuyer() != null ? order.getBuyer().getName() : order.getBuyerName());
+            d.setFarmId(order.getFarm() != null ? order.getFarm().getId() : null);
+            d.setFarmName(order.getFarm() != null ? order.getFarm().getName() : order.getFarmName());
+            d.setAnimalType(order.getAnimalType());
+            d.setTotalPrice(order.getTotalPrice());
+            return d;
+        }).collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
     }
 
@@ -54,9 +66,21 @@ public class OrderController {
             orders = ordersRepository.findByFarm_IdOrderByOrderDateDesc(farmId);
         }
 
-        List<OrderResponseDto> dtos = orders.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<OrderResponseDto> dtos = orders.stream().map(order -> {
+            OrderResponseDto d = new OrderResponseDto();
+            d.setId(order.getId());
+            d.setOrderDate(order.getOrderDate());
+            d.setQuantity(order.getQuantity());
+            d.setSession(order.getSession());
+            d.setStatus(order.getStatus());
+            d.setBuyerId(order.getBuyer() != null ? order.getBuyer().getId() : null);
+            d.setBuyerName(order.getBuyer() != null ? order.getBuyer().getName() : order.getBuyerName());
+            d.setFarmId(order.getFarm() != null ? order.getFarm().getId() : null);
+            d.setFarmName(order.getFarm() != null ? order.getFarm().getName() : order.getFarmName());
+            d.setAnimalType(order.getAnimalType());
+            d.setTotalPrice(order.getTotalPrice());
+            return d;
+        }).collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
     }
@@ -71,9 +95,21 @@ public class OrderController {
 
         List<Orders> orders = ordersRepository.findByFarm_IdAndOrderDateBetween(farmId, startDate, endDate);
 
-        List<OrderResponseDto> dtos = orders.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<OrderResponseDto> dtos = orders.stream().map(order -> {
+            OrderResponseDto d = new OrderResponseDto();
+            d.setId(order.getId());
+            d.setOrderDate(order.getOrderDate());
+            d.setQuantity(order.getQuantity());
+            d.setSession(order.getSession());
+            d.setStatus(order.getStatus());
+            d.setBuyerId(order.getBuyer() != null ? order.getBuyer().getId() : null);
+            d.setBuyerName(order.getBuyer() != null ? order.getBuyer().getName() : order.getBuyerName());
+            d.setFarmId(order.getFarm() != null ? order.getFarm().getId() : null);
+            d.setFarmName(order.getFarm() != null ? order.getFarm().getName() : order.getFarmName());
+            d.setAnimalType(order.getAnimalType());
+            d.setTotalPrice(order.getTotalPrice());
+            return d;
+        }).collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
     }
@@ -96,12 +132,11 @@ public class OrderController {
     }
 
     @PatchMapping("/{orderId}/reject")
-    @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
-    public ResponseEntity<Void> rejectOrder(
+    public ResponseEntity<OrderResponseDto> rejectOrder(
             @PathVariable Long orderId,
-            @AuthenticationPrincipal User user) {
-        orderService.rejectOrder(orderId, user);
-        return ResponseEntity.noContent().build();
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
+        OrderResponseDto rejectedOrder = orderService.rejectOrder(orderId, user);
+        return ResponseEntity.ok(rejectedOrder);
     }
 
     private OrderResponseDto mapToDto(Orders order) {

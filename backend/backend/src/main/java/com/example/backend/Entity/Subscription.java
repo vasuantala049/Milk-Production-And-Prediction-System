@@ -35,6 +35,8 @@ public class Subscription {
     @Column(nullable = false, columnDefinition = "VARCHAR(50)")
     private MilkSession session;
 
+    private String animalType;
+
     @Column(nullable = false)
     private LocalDate startDate;
 

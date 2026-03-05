@@ -18,7 +18,8 @@ export default function BuyMilk() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [isSubscription, setIsSubscription] = useState(false);
-  const [availableQty, setAvailableQty] = useState(null);
+  const [animalType, setAnimalType] = useState("ANY");
+  const [availabilityData, setAvailabilityData] = useState(null);
 
   // Load farm details
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function BuyMilk() {
   // Check Availability
   useEffect(() => {
     if (farmId && date && session) {
+<<<<<<< HEAD
       // For one-time buy on today's date, check aggregate availability
       const isToday = date === new Date().toISOString().slice(0, 10);
       const checkSession = (!isSubscription && isToday) ? "ALL" : session;
@@ -41,8 +43,29 @@ export default function BuyMilk() {
       apiFetch(`/milk/availability?farmId=${farmId}&date=${date}&session=${checkSession}`)
         .then((data) => setAvailableQty(data.availableMilk))
         .catch(() => setAvailableQty(null));
+=======
+      apiFetch(`/milk/availability?farmId=${farmId}&date=${date}&session=${session}`)
+        .then((data) => setAvailabilityData(data))
+        .catch(() => setAvailabilityData(null));
+>>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
     }
   }, [farmId, date, session, isSubscription]);
+
+  const getAvailableQty = () => {
+    // If user is doing a one-time order but hasn't picked a slot (thus session is uncommitted)
+    // Show the total day availability from the farm object instead of isolated morning default
+    if (!isSubscription && !selectedTimeSlot && farm) {
+      if (animalType === "COW") return farm.cowAvailableMilk ?? 0;
+      if (animalType === "BUFFALO") return farm.buffaloAvailableMilk ?? 0;
+      return farm.availableMilk ?? 0;
+    }
+
+    if (!availabilityData) return null;
+    if (animalType === "COW") return availabilityData.cowAvailableMilk ?? 0;
+    if (animalType === "BUFFALO") return availabilityData.buffaloAvailableMilk ?? 0;
+    return availabilityData.availableMilk ?? 0;
+  };
+  const availableQty = getAvailableQty();
 
   // Generate Time Slots for One-time Buy
   const timeSlots = React.useMemo(() => {
@@ -86,7 +109,15 @@ export default function BuyMilk() {
   }, [date, isSubscription]);
 
   const parsedQuantity = parseFloat(quantity) || 0;
-  const pricePerLiter = farm?.pricePerLiter || 0;
+
+  const getPricePerLiter = () => {
+    if (!farm) return 0;
+    if (animalType === "COW" && farm.cowPrice) return farm.cowPrice;
+    if (animalType === "BUFFALO" && farm.buffaloPrice) return farm.buffaloPrice;
+    return farm.pricePerLiter || 0;
+  };
+
+  const pricePerLiter = getPricePerLiter();
   const estimatedTotal = parsedQuantity > 0 ? parsedQuantity * pricePerLiter : null;
 
   // Subscription Time Restrictions Logic
@@ -110,6 +141,10 @@ export default function BuyMilk() {
 
       if (!parsedFarmId || Number.isNaN(parsedFarmId)) throw new Error("Please select a valid farm.");
       if (!parsedQty || Number.isNaN(parsedQty) || parsedQty <= 0) throw new Error("Quantity must be greater than 0.");
+      // Only allow 0.5L or whole-litre amounts >= 1L
+      if (parsedQty !== 0.5 && (parsedQty < 1 || Math.round(parsedQty * 2) !== parsedQty * 2)) {
+        throw new Error("Quantity must be 0.5L or any whole number of liters (1L, 2L, 3L...)");
+      }
 
       const todayStr = new Date().toISOString().slice(0, 10);
       const finalDate = isSubscription ? date : todayStr; // Force today for one-time buy
@@ -126,7 +161,12 @@ export default function BuyMilk() {
           farmId: parsedFarmId,
           quantity: parsedQty,
           session,
+<<<<<<< HEAD
           startDate: finalDate,
+=======
+          animalType,
+          startDate: date,
+>>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
         };
         const sub = await subscriptionApi.createSubscription(payload);
         setMessage({ type: "success", text: `Subscription request sent! Owner will review. (ID: ${sub.id})` });
@@ -134,8 +174,14 @@ export default function BuyMilk() {
         const payload = {
           farmId: parsedFarmId,
           quantity: parsedQty,
+<<<<<<< HEAD
           session,
           date: finalDate,
+=======
+          session, // Session is updated when time slot changes
+          animalType,
+          date,
+>>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
         };
 
         const order = await orderApi.createOrder(payload);
@@ -215,6 +261,19 @@ export default function BuyMilk() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
+                <label className="text-sm font-medium text-foreground">Animal Type</label>
+                <select
+                  value={animalType}
+                  onChange={(e) => setAnimalType(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="ANY">Any</option>
+                  <option value="COW">Cow Milk</option>
+                  <option value="BUFFALO">Buffalo Milk</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
                 <label className="text-sm font-medium text-foreground">
                   Quantity (liters){isSubscription && " / day"}
                 </label>
@@ -227,9 +286,16 @@ export default function BuyMilk() {
                   required
                 />
                 {availableQty !== null && (
+<<<<<<< HEAD
                   <p className={`text-xs ${availableQty > 0 ? "text-emerald-600" : "text-destructive"}`}>
                     Available today: {availableQty.toFixed(1)} Liters
                   </p>
+=======
+                  <div className={`mt-2 px-3 py-2 rounded-lg border-l-4 flex items-center justify-between text-xs font-medium ${availableQty > 0 ? "bg-emerald-50 border-emerald-500 text-emerald-700" : "bg-red-50 border-red-500 text-red-700"}`}>
+                    <span>Available Stock:</span>
+                    <span className="font-bold text-sm tracking-wide">{availableQty.toFixed(1)} Liters</span>
+                  </div>
+>>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
                 )}
               </div>
 

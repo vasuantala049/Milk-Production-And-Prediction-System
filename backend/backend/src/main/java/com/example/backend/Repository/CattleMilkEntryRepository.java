@@ -30,6 +30,21 @@ public interface CattleMilkEntryRepository extends JpaRepository<CattleMilkEntry
             MilkSession session
     );
 
+    @Query("""
+        SELECT COALESCE(SUM(e.milkLiters), 0)
+        FROM CattleMilkEntry e
+        WHERE e.farm.id = :farmId
+          AND e.recordDate = :date
+          AND e.session = :session
+          AND LOWER(e.cattle.type) = LOWER(:type)
+    """)
+    Double sumMilkByType(
+            @org.springframework.data.repository.query.Param("farmId") Long farmId,
+            @org.springframework.data.repository.query.Param("date") LocalDate date,
+            @org.springframework.data.repository.query.Param("session") MilkSession session,
+            @org.springframework.data.repository.query.Param("type") String type
+    );
+
     java.util.List<CattleMilkEntry> findByFarm_IdAndRecordDate(Long farmId, LocalDate recordDate);
 
     java.util.List<CattleMilkEntry> findByFarm_IdAndRecordDateAndEnteredBy_Id(

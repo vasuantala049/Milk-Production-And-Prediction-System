@@ -132,6 +132,7 @@ public class OrderServiceImpl implements OrderService {
                 // 2. Fetch pending orders for this farm
                 List<Orders> pendingOrders = ordersRepository.findByFarm_IdAndStatus(farmId, OrderStatus.PENDING);
 
+<<<<<<< HEAD
                 // 3. Map to DTOs
                 return pendingOrders.stream()
                                 .map(this::mapToDto)
@@ -151,4 +152,62 @@ public class OrderServiceImpl implements OrderService {
                 dto.setFarmId(order.getFarm() != null ? order.getFarm().getId() : null);
                 return dto;
         }
+=======
+        // 9. Return response
+        return mapToDto(order);
+    }
+
+    @Override
+    @Transactional
+    public OrderResponseDto rejectOrder(Long orderId, User user) {
+        // 1. Find order
+        Orders order = ordersRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        // 2. Verify user has access to the farm
+        farmAccessService.verifyFarmAccess(user, order.getFarm().getId());
+
+        // 3. Verify order is in PENDING status
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Only pending orders can be rejected. Current status: " + order.getStatus());
+        }
+
+        // 4. Update status to CANCELLED
+        order.setStatus(OrderStatus.CANCELLED);
+        ordersRepository.save(order);
+
+        return mapToDto(order);
+    }
+
+    @Override
+    public List<OrderResponseDto> getPendingOrders(Long farmId, User user) {
+        // 1. Verify user has access to the farm
+        farmAccessService.verifyFarmAccess(user, farmId);
+
+        // 2. Fetch pending orders for this farm
+        List<Orders> pendingOrders = ordersRepository.findByFarm_IdAndStatus(farmId, OrderStatus.PENDING);
+
+        // 3. Map to DTOs
+        return pendingOrders.stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    private OrderResponseDto mapToDto(Orders order) {
+        OrderResponseDto dto = new OrderResponseDto();
+        dto.setId(order.getId());
+        dto.setOrderDate(order.getOrderDate());
+        dto.setQuantity(order.getQuantity());
+        dto.setSession(order.getSession());
+        dto.setStatus(order.getStatus());
+        dto.setBuyerId(order.getBuyer() != null ? order.getBuyer().getId() : null);
+        dto.setBuyerName(order.getBuyer() != null ? order.getBuyer().getName() : order.getBuyerName());
+        dto.setFarmId(order.getFarm() != null ? order.getFarm().getId() : null);
+        dto.setFarmName(order.getFarm() != null ? order.getFarm().getName() : order.getFarmName());
+        dto.setAnimalType(order.getAnimalType());
+        dto.setTotalPrice(order.getTotalPrice());
+        return dto;
+    }
+>>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
 }

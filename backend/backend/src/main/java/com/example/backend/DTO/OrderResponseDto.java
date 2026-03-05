@@ -21,6 +21,8 @@ public class OrderResponseDto {
     private OrderStatus status;
     private Long buyerId;
     private String buyerName;
-    private String buyerEmail;
     private Long farmId;
+    private String farmName;
+    private String animalType;
+    private Double totalPrice;
 }

@@ -65,7 +65,15 @@ export function FarmCard({ farm, delay = 0, onDelete, onToggleSelling, isTogglin
                     availabilityStatus === 'low' && "border-destructive/50 text-destructive bg-destructive/10"
                   )}
                 >
-                  {farm.availableMilk}L available
+                  <div className="flex flex-col gap-0.5 text-center">
+                    <span>{farm.availableMilk}L available</span>
+                    {(farm.cowAvailableMilk > 0 || farm.buffaloAvailableMilk > 0) && (
+                      <span className="text-[10px] opacity-90 font-normal">
+                        {farm.cowAvailableMilk > 0 && `Cow: ${farm.cowAvailableMilk}L `}
+                        {farm.buffaloAvailableMilk > 0 && `Buf: ${farm.buffaloAvailableMilk}L`}
+                      </span>
+                    )}
+                  </div>
                 </Badge>
               )}
             </div>
@@ -106,13 +114,17 @@ export function FarmCard({ farm, delay = 0, onDelete, onToggleSelling, isTogglin
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-          <p className="text-sm">
-            <span className="text-muted-foreground">Price: </span>
-            <span className="font-semibold text-foreground">
-              {farm.pricePerLiter != null ? `₹${farm.pricePerLiter}/L` : "—"}
-            </span>
-          </p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 pt-4 border-t border-border gap-3">
+          <div className="text-sm">
+            <div className="text-muted-foreground mr-1">Prices:</div>
+            <div className="flex flex-col gap-0.5">
+              <span className="font-semibold text-foreground">
+                Base: {farm.pricePerLiter != null ? `₹${farm.pricePerLiter}/L` : "—"}
+              </span>
+              {farm.cowPrice != null && <span className="text-xs text-muted-foreground">Cow: ₹{farm.cowPrice}/L</span>}
+              {farm.buffaloPrice != null && <span className="text-xs text-muted-foreground">Buffalo: ₹{farm.buffaloPrice}/L</span>}
+            </div>
+          </div>
 
           <Button
             variant="outline"
@@ -145,6 +157,6 @@ export function FarmCard({ farm, delay = 0, onDelete, onToggleSelling, isTogglin
           <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all ml-auto" />
         </div>
       </div>
-    </motion.div>
+    </motion.div >
   );
 }
