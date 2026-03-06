@@ -16,6 +16,9 @@ import AddMilk from "./components/AddMilk";
 import BuyMilk from "./components/BuyMilk";
 import PendingOrders from "./components/PendingOrders";
 import MyOrders from "./components/MyOrders";
+import Analytics from "./components/Analytics";
+import FarmManager from "./components/FarmManager";
+import DailyChecklist from "./components/DailyChecklist";
 import "./App.css";
 
 
@@ -31,6 +34,7 @@ function App() {
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/farm-manager" element={<FarmManager />} />
         <Route path="/edit-farm/:farmId" element={<EditFarm />} />
         <Route path="/farms" element={<YourFarms />} />
         <Route path="/farms/add" element={<AddFarm />} />
@@ -46,6 +50,8 @@ function App() {
         <Route path="/buy-milk" element={<BuyMilk />} />
         <Route path="/farms/:farmId/pending-orders" element={<PendingOrders />} />
         <Route path="/my-orders" element={<MyOrders />} />
+        <Route path="/farms/:farmId/analytics" element={<Analytics />} />
+        <Route path="/farms/:farmId/checklist" element={<DailyChecklist />} />
 
       </Route>
 

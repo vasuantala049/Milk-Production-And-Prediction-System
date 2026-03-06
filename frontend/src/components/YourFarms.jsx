@@ -15,6 +15,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
+import AnalyticsIcon from "@mui/icons-material/Analytics";
 
 export default function YourFarms() {
   const navigate = useNavigate();
@@ -243,6 +244,19 @@ export default function YourFarms() {
                       title="Pending Orders"
                     >
                       <ReceiptIcon fontSize="small" />
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/farms/${farm.id}/analytics`);
+                      }}
+                      className="h-8 w-8 p-0"
+                      title="View Analytics"
+                    >
+                      <AnalyticsIcon fontSize="small" />
                     </Button>
 
                     <Button

@@ -38,7 +38,7 @@ export function Sidebar() {
     setIsMobileOpen(false);
   };
 
-  const NavContent = () => (
+  const navContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
@@ -205,7 +205,7 @@ export function Sidebar() {
               >
                 <X className="w-5 h-5" />
               </button>
-              <NavContent />
+              {navContent}
             </motion.aside>
           </>
         )}
@@ -213,7 +213,7 @@ export function Sidebar() {
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-[280px] bg-sidebar border-r border-sidebar-border flex-col z-30">
-        <NavContent />
+        {navContent}
       </aside>
     </>
   );
