@@ -75,7 +75,7 @@ export default function PendingOrders() {
     const handleApproveSubscription = async (subId) => {
         setProcessingId(subId);
         try {
-            await subscriptionApi.approveSubscription(subId);
+            await subscriptionApi.approveSubscription(subId, farmId);
             setSubscriptions(prev => prev.filter(s => s.id !== subId));
         } catch (err) {
             alert(err.message || "Failed to approve subscription");
@@ -88,7 +88,7 @@ export default function PendingOrders() {
         if (!confirm("Are you sure you want to reject this subscription?")) return;
         setProcessingId(subId);
         try {
-            await subscriptionApi.rejectSubscription(subId);
+            await subscriptionApi.rejectSubscription(subId, farmId);
             setSubscriptions(prev => prev.filter(s => s.id !== subId));
         } catch (err) {
             alert(err.message || "Failed to reject subscription");
@@ -235,7 +235,7 @@ function RequestCard({ type, data, isOwner, processingId, onApprove, onReject })
                 </div>
             </CardHeader>
             <CardContent className="pt-6 pb-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-8">
                     <DetailItem icon={<User size={14} />} label="Buyer Details">
                         <span className="font-bold text-foreground">
                             {data.buyerName || data.buyerEmail || `ID: ${data.buyerId}`}
@@ -247,6 +247,9 @@ function RequestCard({ type, data, isOwner, processingId, onApprove, onReject })
                     </DetailItem>
                     <DetailItem icon={<Clock size={14} />} label="Session Slot">
                         <span className="font-bold text-foreground">{data.session}</span>
+                    </DetailItem>
+                    <DetailItem icon={<Milk size={14} />} label="Milk Type">
+                        <span className="font-bold text-foreground">{data.animalType || 'Any'}</span>
                     </DetailItem>
                     <DetailItem icon={<Calendar size={14} />} label={type === 'order' ? "Order Date" : "Start Date"}>
                         <span className="font-bold text-foreground">{type === 'order' ? data.orderDate : data.startDate}</span>

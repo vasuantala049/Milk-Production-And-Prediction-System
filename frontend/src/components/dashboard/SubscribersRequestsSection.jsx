@@ -57,7 +57,7 @@ export function SubscribersRequestsSection({ farmId }) {
   const handleApproveSubscription = async (subscriptionId) => {
     setApprovingId(subscriptionId);
     try {
-      await subscriptionApi.approveSubscription(subscriptionId);
+      await subscriptionApi.approveSubscription(subscriptionId, farmId);
       setPendingSubscriptions((prev) =>
         prev.filter((s) => s.id !== subscriptionId)
       );
@@ -72,7 +72,7 @@ export function SubscribersRequestsSection({ farmId }) {
   const handleRejectSubscription = async (subscriptionId) => {
     setRejectingId(subscriptionId);
     try {
-      await subscriptionApi.rejectSubscription(subscriptionId);
+      await subscriptionApi.rejectSubscription(subscriptionId, farmId);
       setPendingSubscriptions((prev) =>
         prev.filter((s) => s.id !== subscriptionId)
       );

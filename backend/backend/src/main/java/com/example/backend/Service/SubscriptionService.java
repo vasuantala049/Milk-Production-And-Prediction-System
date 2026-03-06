@@ -15,7 +15,7 @@ public interface SubscriptionService {
 
     void generateDailyOrders();
 
-    Subscription approveSubscription(Long id, User owner);
+    Subscription approveSubscription(Long subscriptionId, Long farmId, User owner);
 
-    Subscription rejectSubscription(Long id, User owner);
+    Subscription rejectSubscription(Long subscriptionId, Long farmId, User owner);
 }

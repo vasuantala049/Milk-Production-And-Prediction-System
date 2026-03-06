@@ -35,6 +35,8 @@ public class Farm {
 
     private Double cowPrice;
     private Double buffaloPrice;
+    private Double sheepPrice;
+    private Double goatPrice;
 
     @ManyToOne
     @JoinColumn(name = "owner_id", nullable = false)

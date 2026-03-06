@@ -51,17 +51,29 @@ public class SubscriptionController {
         return ResponseEntity.ok(mapToDto(subscription));
     }
 
-    @PostMapping("/{id}/approve")
-    public ResponseEntity<SubscriptionResponseDto> approveSubscription(@PathVariable Long id,
+    /**
+     * Approve subscription - farm-scoped endpoint
+     * Owner can only approve subscriptions for their own farms
+     */
+    @PostMapping("/farm/{farmId}/{subscriptionId}/approve")
+    public ResponseEntity<SubscriptionResponseDto> approveSubscription(
+            @PathVariable Long farmId,
+            @PathVariable Long subscriptionId,
             @AuthenticationPrincipal User user) {
-        Subscription subscription = subscriptionService.approveSubscription(id, user);
+        Subscription subscription = subscriptionService.approveSubscription(subscriptionId, farmId, user);
         return ResponseEntity.ok(mapToDto(subscription));
     }
 
-    @PostMapping("/{id}/reject")
-    public ResponseEntity<SubscriptionResponseDto> rejectSubscription(@PathVariable Long id,
+    /**
+     * Reject subscription - farm-scoped endpoint
+     * Owner can only reject subscriptions for their own farms
+     */
+    @PostMapping("/farm/{farmId}/{subscriptionId}/reject")
+    public ResponseEntity<SubscriptionResponseDto> rejectSubscription(
+            @PathVariable Long farmId,
+            @PathVariable Long subscriptionId,
             @AuthenticationPrincipal User user) {
-        Subscription subscription = subscriptionService.rejectSubscription(id, user);
+        Subscription subscription = subscriptionService.rejectSubscription(subscriptionId, farmId, user);
         return ResponseEntity.ok(mapToDto(subscription));
     }
 

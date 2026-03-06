@@ -61,35 +61,8 @@ public class BuyMilkServiceImpl implements BuyMilkService {
             validateTimeSlot(dto.getSession());
         }
 
-        // 5. Fetch available milk to verify availability
-        double availableMilk = 0;
-        if (dto.getSession() == com.example.backend.Entity.type.MilkSession.ALL) {
-            java.util.List<MilkInventory> inventories = milkInventoryRepository.findByFarmIdAndRecordDate(farm.getId(),
-                    dto.getDate());
-            for (MilkInventory inv : inventories) {
-                Double totalProd = inv.getMilkLiters();
-                Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inv.getId());
-                availableMilk += (totalProd - allocatedMilk);
-            }
-        } else {
-            MilkInventory inventory = milkInventoryRepository
-                    .lockInventory(
-                            farm.getId(),
-                            dto.getDate(),
-                            dto.getSession())
-                    .orElseThrow(() -> new IllegalStateException("Milk not available for selected session"));
-
-            Double totalProduction = inventory.getMilkLiters();
-            Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
-            availableMilk = totalProduction - allocatedMilk;
-        }
-
-        // 7. Check availability
-        if (availableMilk < requestedQty) {
-            throw new IllegalStateException("Insufficient milk available. Available: " + availableMilk + "L");
-        }
-
-        // 8. Create order with PENDING status (awaiting owner approval)
+        // 5. Create order with PENDING status (awaiting owner approval)
+        // NOTE: Stock availability check has been removed. Request will be sent to owner regardless of available stock.
         Orders order = new Orders();
         order.setOrderDate(LocalDate.now());
         order.setQuantity(requestedQty);
@@ -106,6 +79,10 @@ public class BuyMilkServiceImpl implements BuyMilkService {
             pricePerLiter = farm.getCowPrice();
         } else if ("BUFFALO".equalsIgnoreCase(animalType) && farm.getBuffaloPrice() != null) {
             pricePerLiter = farm.getBuffaloPrice();
+        } else if ("SHEEP".equalsIgnoreCase(animalType) && farm.getSheepPrice() != null) {
+            pricePerLiter = farm.getSheepPrice();
+        } else if ("GOAT".equalsIgnoreCase(animalType) && farm.getGoatPrice() != null) {
+            pricePerLiter = farm.getGoatPrice();
         } else {
             pricePerLiter = farm.getPricePerLiter() != null ? farm.getPricePerLiter() : 0.0;
         }

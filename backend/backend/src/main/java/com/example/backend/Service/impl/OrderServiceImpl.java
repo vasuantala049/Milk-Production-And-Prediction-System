@@ -44,58 +44,8 @@ public class OrderServiceImpl implements OrderService {
                                         "Only pending orders can be approved. Current status: " + order.getStatus());
                 }
 
-                // 4. Find all inventories for this farm and date
-                java.time.LocalDate orderDate = order.getOrderDate();
-                com.example.backend.Entity.type.MilkSession requestedSession = order.getSession();
-
-                java.util.List<MilkInventory> inventories = milkInventoryRepository
-                                .findByFarmIdAndRecordDate(order.getFarm().getId(), orderDate);
-
-                MilkInventory targetInventory = null;
-
-                // Try to find in requested session first
-                for (MilkInventory inv : inventories) {
-                        if (inv.getSession() == requestedSession) {
-                                milkInventoryRepository.lockInventory(inv.getFarm().getId(), inv.getRecordDate(),
-                                                inv.getSession());
-                                double total = inv.getMilkLiters();
-                                double allocated = milkAllocationRepository.sumAllocationsByInventoryId(inv.getId());
-                                if (total - allocated >= order.getQuantity()) {
-                                        targetInventory = inv;
-                                        break;
-                                }
-                        }
-                }
-
-                // Fallback to any session for this date if requested session failed or not
-                // found
-                if (targetInventory == null) {
-                        for (MilkInventory inv : inventories) {
-                                milkInventoryRepository.lockInventory(inv.getFarm().getId(), inv.getRecordDate(),
-                                                inv.getSession());
-                                double total = inv.getMilkLiters();
-                                double allocated = milkAllocationRepository.sumAllocationsByInventoryId(inv.getId());
-                                if (total - allocated >= order.getQuantity()) {
-                                        targetInventory = inv;
-                                        break;
-                                }
-                        }
-                }
-
-                if (targetInventory == null) {
-                        throw new IllegalStateException("Insufficient milk available in any session for " + orderDate);
-                }
-
-                // 7. Create allocation
-                MilkAllocation allocation = MilkAllocation.builder()
-                                .milkInventory(targetInventory)
-                                .quantity(order.getQuantity())
-                                .type(AllocationType.ORDER)
-                                .referenceId(order.getId())
-                                .build();
-                milkAllocationRepository.save(allocation);
-
-                // 8. Update order status
+                // 4. Update order status to CONFIRMED (no milk availability check required)
+                // Owner may have external milk sources not tracked in the system
                 order.setStatus(OrderStatus.CONFIRMED);
                 ordersRepository.save(order);
 

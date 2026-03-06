@@ -15,4 +15,6 @@ public class FarmPatchDto {
 
     private Double cowPrice;
     private Double buffaloPrice;
+    private Double sheepPrice;
+    private Double goatPrice;
 }

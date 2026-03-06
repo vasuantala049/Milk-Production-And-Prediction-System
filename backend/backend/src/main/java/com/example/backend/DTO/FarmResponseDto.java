@@ -25,6 +25,10 @@ public class FarmResponseDto implements Serializable {
     private Double pricePerLiter;
     private Double cowPrice;
     private Double buffaloPrice;
+    private Double sheepPrice;
+    private Double goatPrice;
     private Double cowAvailableMilk;
     private Double buffaloAvailableMilk;
+    private Double sheepAvailableMilk;
+    private Double goatAvailableMilk;
 }

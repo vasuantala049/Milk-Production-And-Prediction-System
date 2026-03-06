@@ -19,7 +19,6 @@ export default function BuyMilk() {
   const [message, setMessage] = useState(null);
   const [isSubscription, setIsSubscription] = useState(false);
   const [animalType, setAnimalType] = useState("ANY");
-  const [availabilityData, setAvailabilityData] = useState(null);
 
   // Load farm details
   useEffect(() => {
@@ -32,30 +31,6 @@ export default function BuyMilk() {
       .catch(() => setFarm(null));
   }, [farmId]);
 
-  // Check Availability
-  useEffect(() => {
-    if (farmId && date && session) {
-      apiFetch(`/milk/availability?farmId=${farmId}&date=${date}&session=${session}`)
-        .then((data) => setAvailabilityData(data))
-        .catch(() => setAvailabilityData(null));
-    }
-  }, [farmId, date, session, isSubscription]);
-
-  const getAvailableQty = () => {
-    // If user is doing a one-time order but hasn't picked a slot (thus session is uncommitted)
-    // Show the total day availability from the farm object instead of isolated morning default
-    if (!isSubscription && !selectedTimeSlot && farm) {
-      if (animalType === "COW") return farm.cowAvailableMilk ?? 0;
-      if (animalType === "BUFFALO") return farm.buffaloAvailableMilk ?? 0;
-      return farm.availableMilk ?? 0;
-    }
-
-    if (!availabilityData) return null;
-    if (animalType === "COW") return availabilityData.cowAvailableMilk ?? 0;
-    if (animalType === "BUFFALO") return availabilityData.buffaloAvailableMilk ?? 0;
-    return availabilityData.availableMilk ?? 0;
-  };
-  const availableQty = getAvailableQty();
 
   // Generate Time Slots for One-time Buy
   const timeSlots = React.useMemo(() => {
@@ -140,11 +115,6 @@ export default function BuyMilk() {
       const finalDate = isSubscription ? date : todayStr; // Force today for one-time buy
 
       if (isSubscription && finalDate < todayStr) throw new Error("Start date cannot be in the past.");
-
-      // Check available quantity
-      if (availableQty !== null && parsedQty > availableQty) {
-        throw new Error(`Insufficient milk available. Only ${availableQty.toFixed(1)}L remaining.`);
-      }
 
       if (isSubscription) {
         const payload = {
@@ -251,6 +221,8 @@ export default function BuyMilk() {
                   <option value="ANY">Any</option>
                   <option value="COW">Cow Milk</option>
                   <option value="BUFFALO">Buffalo Milk</option>
+                  <option value="SHEEP">Sheep Milk</option>
+                  <option value="GOAT">Goat Milk</option>
                 </select>
               </div>
 
@@ -266,12 +238,6 @@ export default function BuyMilk() {
                   onChange={(e) => setQuantity(e.target.value)}
                   required
                 />
-                {availableQty !== null && (
-                  <div className={`mt-2 px-3 py-2 rounded-lg border-l-4 flex items-center justify-between text-xs font-medium ${availableQty > 0 ? "bg-emerald-50 border-emerald-500 text-emerald-700" : "bg-red-50 border-red-500 text-red-700"}`}>
-                    <span>Available Stock:</span>
-                    <span className="font-bold text-sm tracking-wide">{availableQty.toFixed(1)} Liters</span>
-                  </div>
-                )}
               </div>
 
               <div className="space-y-1">

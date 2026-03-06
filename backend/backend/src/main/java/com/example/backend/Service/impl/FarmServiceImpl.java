@@ -167,6 +167,14 @@ public class FarmServiceImpl implements FarmService {
             farm.setBuffaloPrice(patchDto.getBuffaloPrice());
         }
 
+        if (patchDto.getSheepPrice() != null) {
+            farm.setSheepPrice(patchDto.getSheepPrice());
+        }
+
+        if (patchDto.getGoatPrice() != null) {
+            farm.setGoatPrice(patchDto.getGoatPrice());
+        }
+
         Farm saved = farmRepository.save(farm);
         return toResponseDto(saved);
     }
@@ -241,6 +249,8 @@ public class FarmServiceImpl implements FarmService {
         double availMilk = 0.0;
         double cowAvail = 0.0;
         double buffaloAvail = 0.0;
+        double sheepAvail = 0.0;
+        double goatAvail = 0.0;
         
         if (morningReq != null) {
             availMilk += morningReq.getAvailableMilk() != null ? morningReq.getAvailableMilk() : 0.0;
@@ -256,6 +266,8 @@ public class FarmServiceImpl implements FarmService {
         dto.setAvailableMilk(availMilk);
         dto.setCowAvailableMilk(cowAvail);
         dto.setBuffaloAvailableMilk(buffaloAvail);
+        dto.setSheepAvailableMilk(sheepAvail);
+        dto.setGoatAvailableMilk(goatAvail);
 
         // Populate herd and worker counts
         dto.setHerdCount(cattleRepository.countByFarmId(farm.getId()));

@@ -48,7 +48,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .session(dto.getSession())
                 .startDate(startDate)
                 .animalType(dto.getAnimalType())
-                .status(SubscriptionStatus.ACTIVE)
+                .status(SubscriptionStatus.PENDING)
                 .build();
 
         return subscriptionRepository.save(subscription);
@@ -56,11 +56,17 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     @Transactional
-    public Subscription approveSubscription(Long id, User owner) {
-        Subscription subscription = subscriptionRepository.findById(id)
+    public Subscription approveSubscription(Long subscriptionId, Long farmId, User owner) {
+        Subscription subscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new IllegalArgumentException("Subscription not found"));
 
-        farmAccessService.verifyFarmAccess(owner, subscription.getFarm().getId());
+        // Verify subscription belongs to the specified farm
+        if (!subscription.getFarm().getId().equals(farmId)) {
+            throw new IllegalArgumentException("Subscription does not belong to this farm");
+        }
+
+        // Verify user has access to this farm
+        farmAccessService.verifyFarmAccess(owner, farmId);
 
         if (subscription.getStatus() != SubscriptionStatus.PENDING) {
             throw new IllegalStateException("Only pending subscriptions can be approved.");
@@ -72,11 +78,17 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     @Transactional
-    public Subscription rejectSubscription(Long id, User owner) {
-        Subscription subscription = subscriptionRepository.findById(id)
+    public Subscription rejectSubscription(Long subscriptionId, Long farmId, User owner) {
+        Subscription subscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new IllegalArgumentException("Subscription not found"));
 
-        farmAccessService.verifyFarmAccess(owner, subscription.getFarm().getId());
+        // Verify subscription belongs to the specified farm
+        if (!subscription.getFarm().getId().equals(farmId)) {
+            throw new IllegalArgumentException("Subscription does not belong to this farm");
+        }
+
+        // Verify user has access to this farm
+        farmAccessService.verifyFarmAccess(owner, farmId);
 
         if (subscription.getStatus() != SubscriptionStatus.PENDING) {
             throw new IllegalStateException("Only pending subscriptions can be rejected.");

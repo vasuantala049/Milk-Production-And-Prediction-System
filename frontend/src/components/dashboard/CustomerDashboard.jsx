@@ -119,9 +119,6 @@ export function CustomerDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground">Active Subscriptions</h3>
-            <Link to="/subscriptions" className="text-sm text-primary hover:underline">
-              Manage all
-            </Link>
           </div>
 
           <div className="space-y-3">
@@ -199,9 +196,6 @@ export function CustomerDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground">Available Farms</h3>
-            <Link to="/buy-milk" className="text-sm text-primary hover:underline">
-              View all
-            </Link>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
