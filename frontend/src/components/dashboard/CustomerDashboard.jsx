@@ -50,6 +50,19 @@ export function CustomerDashboard() {
   const activeSubscriptions = subscriptions.filter(s => s.status === 'ACTIVE');
   const confirmedOrders = orders.filter(o => o.status === 'CONFIRMED');
 
+  // Compute whether the payment window for an order has expired on the client side
+  const isSlotExpired = (order) => {
+    if (!order.orderDate) return false;
+    const date = new Date(order.orderDate);
+    const cutoffHour = (order.session === 'EVENING') ? 20 : 10;
+    const deadline = new Date(date);
+    deadline.setHours(cutoffHour, 0, 0, 0);
+    return new Date() > deadline;
+  };
+
+  const payableOrders = confirmedOrders.filter(o => !isSlotExpired(o));
+  const expiredConfirmedOrders = confirmedOrders.filter(o => isSlotExpired(o));
+
   const handlePayNow = async (order) => {
     setPayingOrderId(order.id);
     try {
@@ -163,7 +176,7 @@ export function CustomerDashboard() {
         </Button>
       </motion.div>
 
-      {/* Payment Notification Banner — shows when owner has approved your order */}
+      {/* Payment Notification Banner */}
       <AnimatePresence>
         {confirmedOrders.length > 0 && (
           <motion.div
@@ -182,21 +195,25 @@ export function CustomerDashboard() {
                   🎉 Your order{confirmedOrders.length > 1 ? 's have' : ' has'} been accepted!
                 </h3>
                 <p className="text-emerald-100 text-sm">
-                  Complete your payment to confirm the delivery.
+                  {payableOrders.length > 0
+                    ? 'Complete your payment before the slot closes.'
+                    : 'Payment window has closed for all accepted orders.'}
                 </p>
               </div>
             </div>
             <div className="space-y-2">
-              {confirmedOrders.map(order => (
+              {/* Payable orders — show Pay Now button */}
+              {payableOrders.map(order => (
                 <div key={order.id} className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 flex items-center justify-between gap-3">
                   <div className="text-sm">
-                    <span className="font-semibold">
-                      {order.farmName || `Order #${order.id}`}
-                    </span>
+                    <span className="font-semibold">{order.farmName || `Order #${order.id}`}</span>
                     <span className="text-emerald-100 ml-2">
                       {order.quantity?.toFixed(1)}L ·{' '}
                       {order.animalType === 'COW' ? '🐮 Cow' : order.animalType === 'BUFFALO' ? '🐃 Buffalo' : '🐄 Any'} ·{' '}
-                      {order.totalPrice != null ? `₹${order.totalPrice.toFixed(2)}` : '—'}
+                      {order.totalPrice != null ? `₹${order.totalPrice.toFixed(2)}` : '—'} ·{' '}
+                      <span className="font-medium">
+                        Closes {order.session === 'EVENING' ? '8:00 PM' : '10:00 AM'}
+                      </span>
                     </span>
                   </div>
                   <button
@@ -207,6 +224,23 @@ export function CustomerDashboard() {
                     <CreditCard className="w-3.5 h-3.5" />
                     {payingOrderId === order.id ? 'Opening...' : 'Pay Now'}
                   </button>
+                </div>
+              ))}
+
+              {/* Expired orders — show locked badge */}
+              {expiredConfirmedOrders.map(order => (
+                <div key={order.id} className="bg-red-500/20 border border-red-300/30 rounded-lg px-4 py-3 flex items-center justify-between gap-3 opacity-80">
+                  <div className="text-sm">
+                    <span className="font-semibold">{order.farmName || `Order #${order.id}`}</span>
+                    <span className="text-red-100 ml-2">
+                      {order.quantity?.toFixed(1)}L ·{' '}
+                      {order.animalType === 'COW' ? '🐮 Cow' : order.animalType === 'BUFFALO' ? '🐃 Buffalo' : '🐄 Any'} ·{' '}
+                      {order.totalPrice != null ? `₹${order.totalPrice.toFixed(2)}` : '—'}
+                    </span>
+                  </div>
+                  <span className="flex items-center gap-1 bg-red-500/40 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0">
+                    🔒 Slot Expired
+                  </span>
                 </div>
               ))}
             </div>

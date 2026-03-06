@@ -12,13 +12,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Formatter;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -35,9 +40,70 @@ public class PaymentController {
     @Value("${razorpay.api.secret}")
     private String razorpaySecret;
 
+    /** MORNING slots close at 10:00 AM, EVENING slots close at 8:00 PM */
+    private static final LocalTime MORNING_CUTOFF = LocalTime.of(10, 0);
+    private static final LocalTime EVENING_CUTOFF = LocalTime.of(20, 0);
+
+    /**
+     * Returns the payment deadline (LocalDateTime) for a given order.
+     * MORNING -> orderDate at 10:00, EVENING -> orderDate at 20:00
+     */
+    private LocalDateTime paymentDeadline(Orders order) {
+        LocalDate date = order.getOrderDate();
+        LocalTime cutoff = (order.getSession() != null &&
+                order.getSession().toString().equalsIgnoreCase("EVENING"))
+                ? EVENING_CUTOFF : MORNING_CUTOFF;
+        return date.atTime(cutoff);
+    }
+
+    /**
+     * Returns deadline info for the frontend countdown.
+     */
+    @GetMapping("/{orderId}/payment/deadline")
+    public ResponseEntity<Map<String, Object>> getDeadline(
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal User user) {
+
+        Orders order = ordersRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        if (!order.getBuyer().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Access denied");
+        }
+
+        LocalDateTime deadline = paymentDeadline(order);
+        boolean expired = LocalDateTime.now().isAfter(deadline);
+
+        return ResponseEntity.ok(Map.of(
+                "deadline", deadline.toString(),
+                "expired", expired,
+                "session", order.getSession() != null ? order.getSession().toString() : "MORNING"
+        ));
+    }
+
+    /**
+     * Scheduled task: every 5 minutes auto-cancel CONFIRMED orders whose payment window has passed.
+     */
+    @Scheduled(fixedRate = 300_000)
+    public void autoCancelExpiredOrders() {
+        List<Orders> confirmed = ordersRepository.findAll().stream()
+                .filter(o -> o.getStatus() == OrderStatus.CONFIRMED
+                        && o.getRazorpayPaymentId() == null)
+                .toList();
+
+        LocalDateTime now = LocalDateTime.now();
+        for (Orders o : confirmed) {
+            if (now.isAfter(paymentDeadline(o))) {
+                o.setStatus(OrderStatus.CANCELLED);
+                ordersRepository.save(o);
+                log.info("Auto-cancelled expired CONFIRMED order {} (slot {} on {})",
+                        o.getId(), o.getSession(), o.getOrderDate());
+            }
+        }
+    }
+
     /**
      * Create a Razorpay payment order for a CONFIRMED order.
-     * Called by the buyer when they click "Pay Now".
      */
     @PostMapping("/{orderId}/payment/create")
     public ResponseEntity<Map<String, Object>> createPayment(
@@ -47,23 +113,36 @@ public class PaymentController {
         Orders order = ordersRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        // Ensure the caller is the buyer
         if (!order.getBuyer().getId().equals(user.getId())) {
             throw new IllegalArgumentException("You are not the buyer of this order");
         }
 
-        // Only CONFIRMED orders can be paid for
+        // Check slot expiry FIRST
+        LocalDateTime deadline = paymentDeadline(order);
+        if (LocalDateTime.now().isAfter(deadline)) {
+            if (order.getStatus() == OrderStatus.CONFIRMED) {
+                order.setStatus(OrderStatus.CANCELLED);
+                ordersRepository.save(order);
+                log.info("Order {} auto-cancelled at payment attempt: slot expired", orderId);
+            }
+            String session = order.getSession() != null ? order.getSession().toString() : "";
+            throw new IllegalStateException(
+                    "Payment window has expired. The " + session +
+                    " session closed at " + deadline.toLocalTime() +
+                    " on " + deadline.toLocalDate() + ". You cannot pay for this order anymore.");
+        }
+
         if (order.getStatus() != OrderStatus.CONFIRMED) {
             throw new IllegalStateException("Payment is only available for CONFIRMED orders. Current status: " + order.getStatus());
         }
 
-        // If a Razorpay order already exists, return existing details
+        // Idempotent: if Razorpay order already exists return cached details
         if (order.getRazorpayOrderId() != null) {
             return ResponseEntity.ok(Map.of(
                     "razorpayOrderId", order.getRazorpayOrderId(),
                     "amount", Math.round((order.getTotalPrice() != null ? order.getTotalPrice() : 0) * 100),
                     "currency", "INR",
-                    "key", razorpayKey,
+                    "key", razorpayKey.trim(),
                     "orderId", order.getId(),
                     "farmName", order.getFarmName() != null ? order.getFarmName() : "",
                     "buyerName", order.getBuyerName() != null ? order.getBuyerName() : ""
@@ -86,7 +165,6 @@ public class PaymentController {
             com.razorpay.Order razorpayOrder = client.orders.create(orderRequest);
             String razorpayOrderId = razorpayOrder.get("id");
 
-            // Persist the razorpayOrderId
             order.setRazorpayOrderId(razorpayOrderId);
             ordersRepository.save(order);
 
@@ -108,8 +186,7 @@ public class PaymentController {
     }
 
     /**
-     * Verify Razorpay payment signature after buyer completes payment.
-     * On success, marks the order as COMPLETED.
+     * Verify Razorpay payment signature. Marks order as COMPLETED on success.
      */
     @PostMapping("/{orderId}/payment/verify")
     public ResponseEntity<OrderResponseDto> verifyPayment(
@@ -124,29 +201,33 @@ public class PaymentController {
             throw new IllegalArgumentException("You are not the buyer of this order");
         }
 
-        String razorpayOrderId  = payload.get("razorpay_order_id");
+        // Edge-case: expiry check even at verify step
+        if (LocalDateTime.now().isAfter(paymentDeadline(order))) {
+            throw new IllegalStateException("Payment window expired. Cannot complete this payment.");
+        }
+
+        String razorpayOrderId   = payload.get("razorpay_order_id");
         String razorpayPaymentId = payload.get("razorpay_payment_id");
         String razorpaySignature = payload.get("razorpay_signature");
 
-        // Verify HMAC-SHA256 signature
         String message = razorpayOrderId + "|" + razorpayPaymentId;
         try {
-            String generated = hmacSha256(message, razorpaySecret);
+            String generated = hmacSha256(message, razorpaySecret.trim());
             if (!generated.equals(razorpaySignature)) {
                 throw new IllegalStateException("Payment verification failed: signature mismatch");
             }
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
             throw new IllegalStateException("Payment verification failed: " + e.getMessage());
         }
 
-        // Mark order as COMPLETED and save payment ID
         order.setRazorpayPaymentId(razorpayPaymentId);
         order.setStatus(OrderStatus.COMPLETED);
         ordersRepository.save(order);
 
         log.info("Payment verified for order {} (paymentId={})", orderId, razorpayPaymentId);
 
-        // Return a basic DTO
         OrderResponseDto dto = new OrderResponseDto();
         dto.setId(order.getId());
         dto.setStatus(order.getStatus());
