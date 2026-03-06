@@ -26,21 +26,13 @@ import java.time.LocalDate;
 @Transactional
 public class MilkInventoryServiceImpl implements MilkInventoryService {
 
-<<<<<<< HEAD
-        private final CattleRepository cattleRepository;
-        private final MilkInventoryRepository milkInventoryRepository;
-        private final CattleMilkEntryRepository cattleMilkEntryRepository;
-        private final FarmRepository farmRepository;
-        private final MilkAllocationRepository milkAllocationRepository;
-        private final com.example.backend.Repository.FarmWorkerRepository farmWorkerRepository;
-=======
     private final CattleRepository cattleRepository;
     private final MilkInventoryRepository milkInventoryRepository;
     private final CattleMilkEntryRepository cattleMilkEntryRepository;
     private final FarmRepository farmRepository;
     private final MilkAllocationRepository milkAllocationRepository;
     private final com.example.backend.Repository.OrdersRepository ordersRepository;
->>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
+    private final com.example.backend.Repository.FarmWorkerRepository farmWorkerRepository;
 
         @Override
         @org.springframework.cache.annotation.Caching(evict = {
@@ -204,15 +196,6 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
                 }
 
                 return entries.stream()
-<<<<<<< HEAD
-                                .map(entry -> new TodayMilkEntryDto(
-                                                entry.getCattle().getTagId(),
-                                                entry.getCattle().getTagId(),
-                                                entry.getSession(),
-                                                entry.getMilkLiters(),
-                                                entry.getEnteredBy() != null ? entry.getEnteredBy().getName() : null))
-                                .collect(java.util.stream.Collectors.toList());
-=======
                         .map(entry -> new TodayMilkEntryDto(
                                 entry.getCattle().getTagId(),
                                 entry.getCattle().getTagId(),
@@ -222,7 +205,6 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
                                 entry.getEnteredBy() != null ? entry.getEnteredBy().getName() : null
                         ))
                         .collect(java.util.stream.Collectors.toList());
->>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
         }
 
         @Override
@@ -236,18 +218,16 @@ public class MilkInventoryServiceImpl implements MilkInventoryService {
                                 totalProd += inv.getMilkLiters();
                                 totalAlloc += milkAllocationRepository.sumAllocationsByInventoryId(inv.getId());
                         }
-                        return new MilkAvailabilityDto(totalProd, totalAlloc, totalProd - totalAlloc);
+                        MilkAvailabilityDto dto = new MilkAvailabilityDto();
+                        dto.setTotalProduction(totalProd);
+                        dto.setAllocatedMilk(totalAlloc);
+                        dto.setAvailableMilk(totalProd - totalAlloc);
+                        return dto;
                 }
 
                 MilkInventory inventory = milkInventoryRepository
-<<<<<<< HEAD
-                                .findByFarmIdAndRecordDateAndSession(farmId, date, session)
-                                .orElseThrow(() -> new IllegalStateException(
-                                                "Milk inventory not found for " + session));
-=======
                         .findByFarmIdAndRecordDateAndSession(farmId, date, session)
                         .orElse(null);
->>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
 
                 Double totalProduction = inventory != null ? inventory.getMilkLiters() : 0.0;
                 Double allocatedMilk = inventory != null ? milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId()) : 0.0;

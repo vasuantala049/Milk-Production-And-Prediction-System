@@ -47,12 +47,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .quantity(dto.getQuantity())
                 .session(dto.getSession())
                 .startDate(startDate)
-<<<<<<< HEAD
-                .status(SubscriptionStatus.PENDING) // Start as PENDING
-=======
                 .animalType(dto.getAnimalType())
                 .status(SubscriptionStatus.ACTIVE)
->>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
                 .build();
 
         return subscriptionRepository.save(subscription);

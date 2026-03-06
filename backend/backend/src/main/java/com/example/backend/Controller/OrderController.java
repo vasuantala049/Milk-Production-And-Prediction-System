@@ -148,8 +148,11 @@ public class OrderController {
                 .status(order.getStatus())
                 .buyerId(order.getBuyer() != null ? order.getBuyer().getId() : null)
                 .buyerName(order.getBuyer() != null ? order.getBuyer().getName() : null)
-                .buyerEmail(order.getBuyer() != null ? order.getBuyer().getEmail() : null)
                 .farmId(order.getFarm() != null ? order.getFarm().getId() : null)
+                .farmName(order.getFarm() != null ? order.getFarm().getName() : null)
+                .animalType(order.getAnimalType())
+                .totalPrice(order.getTotalPrice())
                 .build();
     }
-}
+    }
+

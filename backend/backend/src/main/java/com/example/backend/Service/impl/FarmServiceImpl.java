@@ -33,13 +33,7 @@ public class FarmServiceImpl implements FarmService {
     private final ModelMapper modelMapper;
     private final com.example.backend.Repository.CattleRepository cattleRepository;
     private final com.example.backend.Service.MilkInventoryService milkInventoryService;
-<<<<<<< HEAD
-    private final com.example.backend.Repository.MilkAllocationRepository milkAllocationRepository;
-    private final com.example.backend.Repository.MilkInventoryRepository milkInventoryRepository;
-    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
-=======
     private final com.example.backend.Repository.CattleMilkEntryRepository cattleMilkEntryRepository;
->>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
 
     @Override
     @Transactional(readOnly = true)
@@ -225,8 +219,6 @@ public class FarmServiceImpl implements FarmService {
         }
     }
 
-<<<<<<< HEAD
-=======
     private final com.example.backend.Repository.MilkAllocationRepository milkAllocationRepository;
 
     // ---------- helper ----------
@@ -267,8 +259,9 @@ public class FarmServiceImpl implements FarmService {
 
         // Populate herd and worker counts
         dto.setHerdCount(cattleRepository.countByFarmId(farm.getId()));
-        dto.setWorkerCount(userRepository.countByAssignedFarms_IdAndRole(farm.getId(),
-                com.example.backend.Entity.type.UserRole.WORKER));
+        long workerCount = farmWorkerRepository.findByFarmId(farm.getId()).stream()
+                .filter(fw -> fw.getWorker().getRole() == UserRole.WORKER).count();
+        dto.setWorkerCount(workerCount);
         dto.setSelling(farm.isSelling());
 
         return dto;
@@ -290,7 +283,6 @@ public class FarmServiceImpl implements FarmService {
 
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
->>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
     @Override
     public com.example.backend.DTO.UserResponseDto createWorkerForFarm(Long farmId,
             com.example.backend.DTO.CreateUserRequestDto dto, User loggedInUser) {
@@ -338,70 +330,6 @@ public class FarmServiceImpl implements FarmService {
     }
 
     @Override
-<<<<<<< HEAD
-    public void updateWorkerShedForFarm(Long farmId, Long workerId, java.util.List<Long> shedIds, User loggedInUser) {
-        Farm farm = farmRepository.findById(farmId)
-                .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
-
-        if (!farm.getOwner().getId().equals(loggedInUser.getId())) {
-            throw new IllegalArgumentException("Only the farm owner can update worker assignments");
-        }
-
-        FarmWorker assignment = farmWorkerRepository.findByFarmIdAndWorkerId(farmId, workerId)
-                .orElseThrow(() -> new IllegalArgumentException("Worker is not assigned to this farm"));
-
-        // Remove all existing shed assignments for this worker–farm pair
-        farmWorkerShedRepository.deleteByFarmWorkerId(assignment.getId());
-
-        // Re-assign new sheds (all must belong to this farm)
-        if (shedIds != null && !shedIds.isEmpty()) {
-            for (Long shedId : shedIds) {
-                Shed shed = shedRepository.findById(shedId)
-                        .orElseThrow(() -> new IllegalArgumentException("Shed not found: " + shedId));
-                if (!shed.getFarm().getId().equals(farmId)) {
-                    throw new IllegalArgumentException("Shed does not belong to this farm");
-                }
-                FarmWorkerShed fws = new FarmWorkerShed();
-                fws.setFarmWorker(assignment);
-                fws.setShed(shed);
-                farmWorkerShedRepository.save(fws);
-            }
-        }
-    }
-
-    // ---------- helper ----------
-    private FarmResponseDto toResponseDto(Farm farm) {
-        FarmResponseDto dto = modelMapper.map(farm, FarmResponseDto.class);
-        dto.setOwnerId(farm.getOwner().getId());
-        dto.setPricePerLiter(farm.getPricePerLiter() != null ? farm.getPricePerLiter() : 0.0);
-
-        Double todayMilk = milkInventoryService.getTodayTotal(farm.getId());
-        dto.setTodayMilk(todayMilk != null ? todayMilk : 0.0);
-
-        java.time.LocalDate today = java.time.LocalDate.now();
-        double morningAvail = getAvailableForSession(farm.getId(), today,
-                com.example.backend.Entity.type.MilkSession.MORNING);
-        double eveningAvail = getAvailableForSession(farm.getId(), today,
-                com.example.backend.Entity.type.MilkSession.EVENING);
-        dto.setAvailableMilk(morningAvail + eveningAvail);
-
-        dto.setHerdCount(cattleRepository.countByFarmId(farm.getId()));
-        dto.setWorkerCount((long) farmWorkerRepository.findByFarmId(farm.getId()).size());
-        dto.setSelling(farm.isSelling());
-
-        return dto;
-    }
-
-    private Double getAvailableForSession(Long farmId, java.time.LocalDate date,
-            com.example.backend.Entity.type.MilkSession session) {
-        return milkInventoryRepository.findByFarmIdAndRecordDateAndSession(farmId, date, session)
-                .map(inventory -> {
-                    Double totalProduction = inventory.getMilkLiters();
-                    Double allocated = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
-                    return totalProduction - allocated;
-                })
-                .orElse(0.0);
-=======
     @Transactional(readOnly = true)
     public java.util.List<com.example.backend.DTO.ShedStatusDto> getShedStatus(Long farmId, User loggedInUser) {
         Farm farm = farmRepository.findById(farmId)
@@ -416,11 +344,18 @@ public class FarmServiceImpl implements FarmService {
         java.util.List<com.example.backend.Entity.CattleMilkEntry> todayEntriesRaw = cattleMilkEntryRepository.findByFarm_IdAndRecordDate(farmId, today);
         java.util.Set<Long> milkedCattleIds = todayEntriesRaw.stream().map(e -> e.getCattle().getId()).collect(java.util.stream.Collectors.toSet());
 
-        java.util.List<User> workers = userRepository.findByAssignedFarms_IdAndRole(farmId, UserRole.WORKER);
+        java.util.List<FarmWorker> farmWorkers = farmWorkerRepository.findByFarmId(farmId);
         java.util.Map<String, String> shedToWorkerMap = new java.util.HashMap<>();
-        for (User w : workers) {
-            if (w.getShed() != null && !w.getShed().isEmpty()) {
-                shedToWorkerMap.merge(w.getShed(), w.getName(), (a, b) -> a + ", " + b);
+        for (FarmWorker fw : farmWorkers) {
+            if (fw.getWorker().getRole() == UserRole.WORKER) {
+                java.util.List<com.example.backend.Entity.Shed> workerSheds = farmWorkerShedRepository
+                        .findByFarmWorkerId(fw.getId())
+                        .stream()
+                        .map(com.example.backend.Entity.FarmWorkerShed::getShed)
+                        .toList();
+                for (com.example.backend.Entity.Shed shed : workerSheds) {
+                    shedToWorkerMap.merge(shed.getName(), fw.getWorker().getName(), (a, b) -> a + ", " + b);
+                }
             }
         }
 
@@ -429,7 +364,7 @@ public class FarmServiceImpl implements FarmService {
             if (c.getStatus() == null || !"ACTIVE".equalsIgnoreCase(c.getStatus())) {
                 continue;
             }
-            String shed = c.getShed() != null && !c.getShed().isEmpty() ? c.getShed() : "Unassigned";
+            String shed = c.getShed() != null ? c.getShed().getName() : "Unassigned";
             com.example.backend.DTO.ShedStatusDto stat = shedStats.computeIfAbsent(shed, s -> new com.example.backend.DTO.ShedStatusDto(s, 0, 0, 0, shedToWorkerMap.getOrDefault(s, "Unassigned")));
             stat.setTotalCattle(stat.getTotalCattle() + 1);
             if (milkedCattleIds.contains(c.getId())) {
@@ -440,6 +375,5 @@ public class FarmServiceImpl implements FarmService {
         }
 
         return new java.util.ArrayList<>(shedStats.values());
->>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
     }
 }

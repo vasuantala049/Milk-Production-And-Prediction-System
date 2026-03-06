@@ -433,13 +433,7 @@ export function OwnerDashboard() {
             <div className="space-y-6">
               <QuickActions />
 
-<<<<<<< HEAD
-              <SubscribersRequestsSection farmId={activeFarm.id} />
-
-              {/* Recent Orders */}
-=======
               {/* Orders Management */}
->>>>>>> f4051592bd2e6cd5e5923edca4830c8ba95c860f
               <div className="bg-card border border-border rounded-xl p-4 shadow-card">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-foreground text-sm">Orders</h3>
