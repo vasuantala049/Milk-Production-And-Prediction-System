@@ -225,7 +225,7 @@ export function CustomerDashboard() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-lg font-bold text-foreground">₹{farm.pricePerLiter != null ? farm.pricePerLiter : "—"}<span className="text-xs font-normal text-muted-foreground">/L base</span></p>
+                      {/* <p className="text-lg font-bold text-foreground">₹{farm.pricePerLiter != null ? farm.pricePerLiter : "—"}<span className="text-xs font-normal text-muted-foreground">/L base</span></p> */}
                       <div className="flex gap-2 mt-0.5">
                         {farm.cowPrice != null && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Cow: ₹{farm.cowPrice}</span>}
                         {farm.buffaloPrice != null && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Buf: ₹{farm.buffaloPrice}</span>}

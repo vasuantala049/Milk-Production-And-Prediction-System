@@ -118,9 +118,9 @@ export function FarmCard({ farm, delay = 0, onDelete, onToggleSelling, isTogglin
           <div className="text-sm">
             <div className="text-muted-foreground mr-1">Prices:</div>
             <div className="flex flex-col gap-0.5">
-              <span className="font-semibold text-foreground">
+              {/* <span className="font-semibold text-foreground">
                 Base: {farm.pricePerLiter != null ? `₹${farm.pricePerLiter}/L` : "—"}
-              </span>
+              </span> */}
               {farm.cowPrice != null && <span className="text-xs text-muted-foreground">Cow: ₹{farm.cowPrice}/L</span>}
               {farm.buffaloPrice != null && <span className="text-xs text-muted-foreground">Buffalo: ₹{farm.buffaloPrice}/L</span>}
             </div>
