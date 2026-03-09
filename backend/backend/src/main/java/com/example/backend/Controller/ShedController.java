@@ -21,9 +21,9 @@ public class ShedController {
 
     private final ShedService shedService;
 
-    // GET all sheds for a farm — FARM_OWNER only
+    // GET all sheds for a farm — FARM_OWNER and FARM_WORKER
     @GetMapping
-    @PreAuthorize("hasRole('FARM_OWNER')")
+    @PreAuthorize("hasAnyRole('FARM_OWNER','FARM_WORKER')")
     public ResponseEntity<List<ShedResponseDto>> getSheds(@PathVariable Long farmId) {
         return ResponseEntity.ok(shedService.getShedsForFarm(farmId));
     }

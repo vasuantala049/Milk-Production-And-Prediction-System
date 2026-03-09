@@ -1,164 +1,106 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { apiFetch } from "../../api/client";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+ import { apiFetch } from "../../api/client";
 import {
-    Card,
-    CardContent,
-    Button,
-    TextField,
-    Stack,
-    Alert,
-    IconButton,
+  Card,
+  CardContent,
+  TextField,
+  Button,
+  Typography,
+  Stack,
+  CircularProgress,
 } from "@mui/material";
-import { Trash2 } from "lucide-react";
 
-export default function ShadePage() {
-    const { farmId } = useParams();
-    const navigate = useNavigate();
-    const [shades, setShades] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [newShadeName, setNewShadeName] = useState("");
-    const [actionLoading, setActionLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+export default function ShedPage() {
+  const { farmId } = useParams();
 
-    useEffect(() => {
-        // Only FARM_OWNER is allowed
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        if (user.role !== "FARM_OWNER") {
-            navigate(`/dashboard`);
-            return;
-        }
-        loadShades();
-    }, [farmId, navigate]);
+  const [sheds, setSheds] = useState([]);
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(true);
 
-    const loadShades = async () => {
-        setLoading(true);
-        try {
-            const data = await apiFetch(`/farms/${farmId}/sheds`);
-            setShades(data || []);
-        } catch (err) {
-            setError("Failed to load shades");
-            setShades([]);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const loadSheds = async () => {
+    try {
+      const data = await apiFetch(`/farms/${farmId}/sheds`);
+      setSheds(data || []);
+    } catch (err) {
+      console.error("Failed to fetch sheds", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleAddShade = async (e) => {
-        e.preventDefault();
-        if (!newShadeName.trim()) return;
+  useEffect(() => {
+    loadSheds();
+  }, [farmId]);
 
-        setError("");
-        setSuccess("");
-        setActionLoading(true);
+  const createShed = async () => {
+    if (!name.trim()) return;
 
-        try {
-            await apiFetch(`/farms/${farmId}/sheds`, {
-                method: "POST",
-                body: JSON.stringify({ name: newShadeName.trim() }),
-            });
-            setSuccess("Shade created successfully!");
-            setNewShadeName("");
-            loadShades();
-        } catch (err) {
-            setError(err?.message || "Failed to create shade.");
-        } finally {
-            setActionLoading(false);
-        }
-    };
+    try {
+      const newShed = await apiFetch(`/farms/${farmId}/sheds`, {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
 
-    const handleDeleteShade = async (shedId) => {
-        if (!window.confirm("Are you sure you want to delete this shade? Currently assigned cattle and workers will lose this assignment.")) {
-            return;
-        }
+      setSheds((prev) => [...prev, newShed]);
+      setName("");
+    } catch (err) {
+      console.error("Create shed failed", err);
+    }
+  };
 
-        setError("");
-        setSuccess("");
-        setActionLoading(true);
+  const deleteShed = async (shedId) => {
+    try {
+      await apiFetch(`/farms/${farmId}/sheds/${shedId}`, {
+        method: "DELETE",
+      });
 
-        try {
-            await apiFetch(`/farms/${farmId}/sheds/${shedId}`, {
-                method: "DELETE",
-            });
-            setSuccess("Shade deleted successfully!");
-            loadShades();
-        } catch (err) {
-            setError(err?.message || "Failed to delete shade.");
-        } finally {
-            setActionLoading(false);
-        }
-    };
+      setSheds((prev) => prev.filter((s) => s.id !== shedId));
+    } catch (err) {
+      console.error("Delete shed failed", err);
+    }
+  };
 
-    if (loading) return <div className="p-6">Loading shades...</div>;
+  if (loading) return <CircularProgress />;
 
-    return (
-        <div className="min-h-screen bg-background px-4 py-6">
-            <div className="max-w-2xl mx-auto">
-                <div className="mb-4">
-                    <Button onClick={() => navigate(-1)} variant="text">
-                        ← Back
-                    </Button>
-                </div>
+  return (
+    <div className="max-w-md mx-auto">
+      <Card>
+        <CardContent>
+          <Typography variant="h6">Farm Sheds</Typography>
 
-                <h1 className="text-2xl font-bold mb-6">Manage Shades</h1>
+          <Stack spacing={2} mt={2}>
+            <TextField
+              label="Shed name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
 
-                <Card className="mb-8">
-                    <CardContent>
-                        <h2 className="text-lg font-semibold mb-4">Add New Shade</h2>
-                        <form onSubmit={handleAddShade}>
-                            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                                <TextField
-                                    fullWidth
-                                    size="small"
-                                    label="Shade Name"
-                                    placeholder="e.g. Shade North, Lactating"
-                                    value={newShadeName}
-                                    onChange={(e) => setNewShadeName(e.target.value)}
-                                    disabled={actionLoading}
-                                />
-                                <Button
-                                    variant="contained"
-                                    color="primary"
-                                    type="submit"
-                                    disabled={actionLoading || !newShadeName.trim()}
-                                    className="whitespace-nowrap"
-                                >
-                                    Add Shade
-                                </Button>
-                            </Stack>
-                        </form>
+            <Button variant="contained" onClick={createShed}>
+              Add Shed
+            </Button>
+          </Stack>
 
-                        {error && <Alert severity="error" className="mt-4">{error}</Alert>}
-                        {success && <Alert severity="success" className="mt-4">{success}</Alert>}
-                    </CardContent>
-                </Card>
+          <Stack spacing={1} mt={3}>
+            {sheds.map((shed) => (
+              <Card key={shed.id}>
+                <CardContent
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <Typography>{shed.name}</Typography>
 
-                <h2 className="text-lg font-semibold mb-4">Current Shades</h2>
-
-                {shades.length === 0 ? (
-                    <p className="text-gray-500 italic">No shades created for this farm yet.</p>
-                ) : (
-                    <div className="space-y-3">
-                        {shades.map((shade) => (
-                            <Card key={shade.id} className="rounded-xl">
-                                <CardContent className="p-4 flex justify-between items-center">
-                                    <div>
-                                        <p className="font-semibold text-lg">{shade.name}</p>
-                                    </div>
-                                    <IconButton
-                                        color="error"
-                                        onClick={() => handleDeleteShade(shade.id)}
-                                        disabled={actionLoading}
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </IconButton>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
+                  <Button
+                    color="error"
+                    onClick={() => deleteShed(shed.id)}
+                  >
+                    Delete
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

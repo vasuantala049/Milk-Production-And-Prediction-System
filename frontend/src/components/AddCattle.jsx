@@ -1,95 +1,8 @@
-// import { useState } from "react";
-// import { useParams, useNavigate } from "react-router-dom";
-// import { apiFetch } from "../api/client";
-// import BarcodeScanner from "./BarcodeScanner";
-
-// export default function AddCattle() {
-//   const { farmId } = useParams();
-//   const navigate = useNavigate();
-
-//   const [tagId, setTagId] = useState("");
-//   const [breed, setBreed] = useState("");
-//   const [status, setStatus] = useState("ACTIVE");
-//   const [showScanner, setShowScanner] = useState(false);
-//   const [error, setError] = useState("");
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setError("");
-//     try {
-//       await apiFetch("/cattle", {
-//         method: "POST",
-//         body: JSON.stringify({
-//           tagId,
-//           breed,
-//           status,
-//           farmId: Number(farmId),
-//         }),
-//       });
-//       navigate(`/cattle/${farmId}`);
-//     } catch (err) {
-//       if (err.status === 409) {
-//         setError("Cattle with this tag ID already exists in this farm.");
-//       } else {
-//         setError(err.message || "Failed to add cattle.");
-//       }
-//     }
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-gray-100 px-6 py-4">
-//       <button onClick={() => navigate(`/cattle/${farmId}`)}>← Back</button>
-
-//       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl mt-4">
-//         {error && (
-//           <div className="mb-3 text-red-600 font-semibold">{error}</div>
-//         )}
-//         <input
-//           className="w-full mb-3 border p-2"
-//           placeholder="Tag ID"
-//           value={tagId}
-//           onChange={(e) => setTagId(e.target.value)}
-//         />
-
-//         <button type="button" onClick={() => setShowScanner(true)}>
-//           Scan
-//         </button>
-
-//         {showScanner && (
-//                   <BarcodeScanner
-//                     onScanSuccess={(value) => setTagId(value)}
-//                     onClose={() => setShowScanner(false)}
-//                   />
-//                 )}
-
-//         <input
-//           className="w-full mb-3 border p-2"
-//           placeholder="Breed"
-//           value={breed}
-//           onChange={(e) => setBreed(e.target.value)}
-//         />
-
-//         <select
-//           className="w-full mb-3 border p-2"
-//           value={status}
-//           onChange={(e) => setStatus(e.target.value)}
-//         >
-//           <option value="ACTIVE">Active</option>
-//           <option value="SICK">Sick</option>
-//           <option value="SOLD">Sold</option>
-//         </select>
-
-//         <button className="w-full bg-green-500 text-white py-2 rounded">
-//           Save Cattle
-//         </button>
-//       </form>
-//     </div>
-//   );
-// }
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
 import BarcodeScanner from "./BarcodeScanner";
+
 import {
   TextField,
   Button,
@@ -97,48 +10,72 @@ import {
   CardContent,
   MenuItem,
   Stack,
+  Typography,
+  Snackbar,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
 
-// Define cattle types and their breeds
 const CATTLE_TYPES = {
-  "COW": ["Holstein", "Jersey", "Guernsey", "Ayrshire", "Brown Swiss", "Milking Shorthorn", "Sahiwal", "Gir", "Red Sindhi"],
-  "BUFFALO": ["Murrah", "Nili Ravi", "Surti", "Jaffarabadi", "Bhadawari"],
-  "SHEEP": ["Merino", "Suffolk", "Dorper", "Rambouillet", "Lincoln", "Awassi"],
-  "GOAT": ["Saanen", "Toggenburg", "Alpine", "LaMancha", "Boer", "Nubian", "Angora"]
+  COW: ["Holstein Friesian", "Jersey", "Guernsey", "Ayrshire", "Brown Swiss", "Milking Shorthorn", "Gir", "Sahiwal", "Red Sindhi", "Tharparkar", "Rathi", "Kankrej", "Deoni", "HF Cross", "Jersey Cross", "Other"],
+  BUFFALO: ["Murrah", "Nili Ravi", "Surti", "Jaffarabadi", "Bhadawari", "Mehsana", "Pandharpuri", "Nagpuri", "Other"],
+  GOAT: ["Saanen", "Toggenburg", "Alpine", "LaMancha", "Nubian", "Jamunapari", "Beetal", "Barbari", "Malabari", "Other"]
 };
-
 export default function AddCattle() {
   const { farmId } = useParams();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (user.role !== "FARM_OWNER") {
-      navigate(`/cattle/${farmId}`);
-    }
-  }, [navigate, farmId]);
-
   const [tagId, setTagId] = useState("");
   const [type, setType] = useState("");
   const [breed, setBreed] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [shedId, setShedId] = useState("");
-  const [shades, setShades] = useState([]);
+
+  const [sheds, setSheds] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [error, setError] = useState("");
+
+  const [toast, setToast] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   useEffect(() => {
-    // Optionally fetch available shades for the dropdown
-    apiFetch(`/farms/${farmId}/sheds`)
-      .then((data) => setShades(data || []))
-      .catch((err) => console.error("Failed to load shades:", err));
+    loadSheds();
   }, [farmId]);
+
+  const loadSheds = async () => {
+    try {
+      const data = await apiFetch(`/farms/${farmId}/sheds`);
+      setSheds(data || []);
+    } catch (err) {
+      console.error("Failed to load sheds", err);
+    }
+  };
+
+  const resetForm = () => {
+    setTagId("");
+    setType("");
+    setBreed("");
+    setStatus("ACTIVE");
+    setShedId("");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+
+    if (!tagId || !type || !breed) {
+      setToast({
+        open: true,
+        message: "Tag, type and breed required",
+        severity: "error",
+      });
+      return;
+    }
 
     try {
+      setLoading(true);
+
       await apiFetch("/cattle", {
         method: "POST",
         body: JSON.stringify({
@@ -150,131 +87,134 @@ export default function AddCattle() {
           farmId: Number(farmId),
         }),
       });
-      navigate(`/cattle/${farmId}`);
+
+      resetForm();
+
+      setToast({
+        open: true,
+        message: "Cattle added",
+        severity: "success",
+      });
     } catch (err) {
-      if (err.status === 409) {
-        setError("Cattle with this tag ID already exists in this farm.");
-      } else {
-        setError(err.message || "Failed to add cattle.");
-      }
+      setToast({
+        open: true,
+        message: err.message || "Failed to add cattle",
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background px-4 py-6">
-      <div className="max-w-md mx-auto">
-        <Button variant="text" onClick={() => navigate(`/cattle/${farmId}`)}>
+    <div className="max-w-md mx-auto">
+       <Button variant="text" onClick={() => navigate(`/cattle/${farmId}`)}>
           ← Back
         </Button>
+      <Card>
+        <CardContent>
+          <Typography variant="h6">Add Cattle</Typography>
 
-        <Card className="mt-4">
-          <CardContent>
-            {error && (
-              <div className="text-red-600 font-semibold mb-2">
-                {error}
-              </div>
-            )}
+          <form onSubmit={handleSubmit}>
+            <Stack spacing={2} mt={2}>
+              <TextField
+                label="Tag ID"
+                value={tagId}
+                onChange={(e) => setTagId(e.target.value)}
+              />
 
-            <form onSubmit={handleSubmit}>
-              {/* 🔥 ALL spacing controlled here */}
-              <Stack spacing={2}>
-                <TextField
-                  fullWidth
-                  label="Tag ID"
-                  value={tagId}
-                  onChange={(e) => setTagId(e.target.value)}
-                  placeholder="Scan or enter tag ID"
-                />
+              <Button
+                variant="outlined"
+                onClick={() => setShowScanner(true)}
+              >
+                Scan Barcode
+              </Button>
 
-                <Button
-                  variant="outlined"
-                  onClick={() => setShowScanner(true)}
-                >
-                  Scan Barcode
-                </Button>
-
-                {showScanner && (
-                  <BarcodeScanner
-                    onScanSuccess={(value) => {
-                      setTagId(value);
-                      setShowScanner(false);
-                    }}
-                    onClose={() => setShowScanner(false)}
-                  />
-                )}
-
-                <TextField
-                  select
-                  fullWidth
-                  label="Type"
-                  value={type}
-                  onChange={(e) => {
-                    setType(e.target.value);
-                    setBreed(""); // Reset breed when type changes
+              {showScanner && (
+                <BarcodeScanner
+                  onScanSuccess={(v) => {
+                    setTagId(v);
+                    setShowScanner(false);
                   }}
-                >
-                  <MenuItem value="COW">Cow</MenuItem>
-                  <MenuItem value="BUFFALO">Buffalo</MenuItem>
-                  <MenuItem value="SHEEP">Sheep</MenuItem>
-                  <MenuItem value="GOAT">Goat</MenuItem>
-                </TextField>
+                  onClose={() => setShowScanner(false)}
+                />
+              )}
 
-                {type && (
-                  <TextField
-                    select
-                    fullWidth
-                    label="Breed"
-                    value={breed}
-                    onChange={(e) => setBreed(e.target.value)}
-                  >
-                    {CATTLE_TYPES[type].map((breedOption) => (
-                      <MenuItem key={breedOption} value={breedOption}>
-                        {breedOption}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                )}
+              <TextField
+                select
+                label="Type"
+                value={type}
+                onChange={(e) => {
+                  setType(e.target.value);
+                  setBreed("");
+                }}
+              >
+                <MenuItem value="COW">Cow</MenuItem>
+                <MenuItem value="BUFFALO">Buffalo</MenuItem>
+                <MenuItem value="SHEEP">Sheep</MenuItem>
+                <MenuItem value="GOAT">Goat</MenuItem>
+              </TextField>
 
+              {type && (
                 <TextField
                   select
-                  fullWidth
-                  label="Status"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
+                  label="Breed"
+                  value={breed}
+                  onChange={(e) => setBreed(e.target.value)}
                 >
-                  <MenuItem value="ACTIVE">Active</MenuItem>
-                  <MenuItem value="SICK">Sick</MenuItem>
-                  <MenuItem value="INACTIVE">Inactive</MenuItem>
-                </TextField>
-
-                <TextField
-                  select
-                  fullWidth
-                  label="Shade (Optional)"
-                  value={shedId}
-                  onChange={(e) => setShedId(e.target.value)}
-                >
-                  <MenuItem value=""><em>None</em></MenuItem>
-                  {shades.map((shade) => (
-                    <MenuItem key={shade.id} value={shade.id}>
-                      {shade.name}
+                  {CATTLE_TYPES[type].map((b) => (
+                    <MenuItem key={b} value={b}>
+                      {b}
                     </MenuItem>
                   ))}
                 </TextField>
+              )}
 
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="success"
-                  fullWidth
-                >
-                  Save Cattle
-                </Button>
-              </Stack>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+              <TextField
+                select
+                label="Status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <MenuItem value="ACTIVE">Active</MenuItem>
+                <MenuItem value="SICK">Sick</MenuItem>
+                <MenuItem value="INACTIVE">Inactive</MenuItem>
+              </TextField>
+
+              <TextField
+                select
+                label="Shed"
+                value={shedId}
+                onChange={(e) => setShedId(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>None</em>
+                </MenuItem>
+
+                {sheds.map((shed) => (
+                  <MenuItem key={shed.id} value={shed.id}>
+                    {shed.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <Button type="submit" disabled={loading} variant="contained">
+                {loading ? <CircularProgress size={20} /> : "Add Cattle"}
+              </Button>
+            </Stack>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3000}
+        onClose={() => setToast({ ...toast, open: false })}
+      >
+        <Alert severity={toast.severity} variant="filled">
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }
