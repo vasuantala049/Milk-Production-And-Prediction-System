@@ -79,6 +79,8 @@ export default function BuyMilk() {
     if (!farm) return 0;
     if (animalType === "COW" && farm.cowPrice) return farm.cowPrice;
     if (animalType === "BUFFALO" && farm.buffaloPrice) return farm.buffaloPrice;
+    if (animalType === "SHEEP" && farm.sheepPrice) return farm.sheepPrice;
+    if (animalType === "GOAT" && farm.goatPrice) return farm.goatPrice;
     return farm.pricePerLiter || 0;
   };
 
