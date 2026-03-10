@@ -15,7 +15,9 @@ import { Milk, Beef, Users, Warehouse, Store, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
+import { SubscribersRequestsSection } from "./SubscribersRequestsSection";
 
+// Main dashboard for farm owners
 export function OwnerDashboard() {
   const navigate = useNavigate();
 
@@ -48,6 +50,8 @@ export function OwnerDashboard() {
   const [pricesDialogOpen, setPricesDialogOpen] = useState(false);
   const [cowPrice, setCowPrice] = useState("");
   const [buffaloPrice, setBuffaloPrice] = useState("");
+  const [sheepPrice, setSheepPrice] = useState("");
+  const [goatPrice, setGoatPrice] = useState("");
   const [priceSubmitting, setPriceSubmitting] = useState(false);
   const [shedStatusList, setShedStatusList] = useState([]);
 
@@ -254,9 +258,20 @@ export function OwnerDashboard() {
     try {
       await apiFetch(`/farms/${activeFarm.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ cowPrice: parseFloat(cowPrice), buffaloPrice: parseFloat(buffaloPrice) })
+        body: JSON.stringify({ 
+          cowPrice: parseFloat(cowPrice), 
+          buffaloPrice: parseFloat(buffaloPrice),
+          sheepPrice: parseFloat(sheepPrice),
+          goatPrice: parseFloat(goatPrice)
+        })
       });
-      const updatedFarm = { ...activeFarm, cowPrice: parseFloat(cowPrice), buffaloPrice: parseFloat(buffaloPrice) };
+      const updatedFarm = { 
+        ...activeFarm, 
+        cowPrice: parseFloat(cowPrice), 
+        buffaloPrice: parseFloat(buffaloPrice),
+        sheepPrice: parseFloat(sheepPrice),
+        goatPrice: parseFloat(goatPrice)
+      };
       localStorage.setItem("activeFarm", JSON.stringify(updatedFarm));
       window.location.reload();
     } catch (err) {
@@ -319,7 +334,13 @@ export function OwnerDashboard() {
                 variant="outline"
                 size="sm"
                 className="h-7 text-[10px] gap-1.5"
-                onClick={() => setPricesDialogOpen(true)}
+                onClick={() => {
+                  setCowPrice(activeFarm?.cowPrice || "");
+                  setBuffaloPrice(activeFarm?.buffaloPrice || "");
+                  setSheepPrice(activeFarm?.sheepPrice || "");
+                  setGoatPrice(activeFarm?.goatPrice || "");
+                  setPricesDialogOpen(true);
+                }}
               >
                 Set Prices
               </Button>
@@ -481,7 +502,7 @@ export function OwnerDashboard() {
                           </div>
                           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
                             <span>{order.quantity?.toFixed(1)}L</span>
-                            <span>{order.animalType === "COW" ? "🐮 Cow" : order.animalType === "BUFFALO" ? "🐃 Buffalo" : "🐄 Any"}</span>
+                            <span>{order.animalType === "COW" ? "🐮 Cow" : order.animalType === "BUFFALO" ? "🐃 Buffalo" : order.animalType === "SHEEP" ? "🐑 Sheep" : order.animalType === "GOAT" ? "🐐 Goat" : "🐄 Any"}</span>
                             <span>{order.session}</span>
                             {order.totalPrice != null && (
                               <span className="text-emerald-600 font-semibold">₹{order.totalPrice.toFixed(2)}</span>
@@ -539,7 +560,7 @@ export function OwnerDashboard() {
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
                           <span>{sub.quantity?.toFixed(1)}L/day</span>
-                          <span>{sub.animalType === "COW" ? "🐮 Cow" : sub.animalType === "BUFFALO" ? "🐃 Buffalo" : "🐄 Any"}</span>
+                          <span>{sub.animalType === "COW" ? "🐮 Cow" : sub.animalType === "BUFFALO" ? "🐃 Buffalo" : sub.animalType === "SHEEP" ? "🐑 Sheep" : sub.animalType === "GOAT" ? "🐐 Goat" : "🐄 Any"}</span>
                           <span>{sub.session}</span>
                           <span>From {sub.startDate}</span>
                         </div>
@@ -613,6 +634,26 @@ export function OwnerDashboard() {
                   value={buffaloPrice}
                   onChange={(e) => setBuffaloPrice(e.target.value)}
                   placeholder="e.g. 60"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">Sheep Milk Price (per Liter)</label>
+                <input
+                  type="number"
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={sheepPrice}
+                  onChange={(e) => setSheepPrice(e.target.value)}
+                  placeholder="e.g. 80"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">Goat Milk Price (per Liter)</label>
+                <input
+                  type="number"
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={goatPrice}
+                  onChange={(e) => setGoatPrice(e.target.value)}
+                  placeholder="e.g. 85"
                 />
               </div>
             </div>

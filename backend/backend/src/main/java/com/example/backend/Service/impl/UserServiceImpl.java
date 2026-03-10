@@ -92,7 +92,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponseDto patchUser(Long id, UserPatchDto patchDto, com.example.backend.Entity.User loggedInUser) {
 
-        User user = userRepository.findByIdWithAssignedFarms(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         if (patchDto.getName() != null) {
@@ -113,37 +113,6 @@ public class UserServiceImpl implements UserService {
             if (user.getLocation() == null || user.getLocation().isEmpty()) {
                 user.setLocation(patchDto.getCity());
             }
-        }
-
-        // Only WORKER can be (re)assigned to a farm
-        if (patchDto.getFarmId() != null) {
-
-            if (user.getRole() != UserRole.WORKER) {
-                throw new IllegalArgumentException("Only WORKER can be assigned to a farm");
-            }
-
-            Farm farm = farmRepository.findById(patchDto.getFarmId())
-                    .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
-
-            // Only the owner of the farm can assign workers to it
-            if (loggedInUser.getRole() != UserRole.FARM_OWNER
-                    || !farm.getOwner().getId().equals(loggedInUser.getId())) {
-                throw new IllegalArgumentException("Only the farm owner can assign workers to this farm");
-            }
-
-            java.util.List<Farm> assigned = user.getAssignedFarms();
-            if (assigned == null) {
-                assigned = new java.util.ArrayList<>();
-                user.setAssignedFarms(assigned);
-            }
-            boolean alreadyAssigned = assigned.stream().anyMatch(f -> f.getId().equals(farm.getId()));
-            if (!alreadyAssigned) {
-                assigned.add(farm);
-            }
-        }
-
-        if (patchDto.getShed() != null) {
-            user.setShed(patchDto.getShed());
         }
 
         User saved = userRepository.save(user);

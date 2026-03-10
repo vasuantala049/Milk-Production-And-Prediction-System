@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, ShoppingCart, Milk, Clock, CheckCircle, Pause, ChevronRight, CreditCard, Bell } from "lucide-react";
+import { motion } from "framer-motion";
+import { MapPin, ShoppingCart, Milk, Clock, CheckCircle, Pause, ChevronRight } from "lucide-react";
 import { apiFetch } from "../../api/client";
 import { farmApi } from "../../api/farmApi";
-import { orderApi } from "../../api/orderApi";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
@@ -19,15 +18,14 @@ export function CustomerDashboard() {
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState(user.city || user.location || "");
   const [savingCity, setSavingCity] = useState(false);
-  const [payingOrderId, setPayingOrderId] = useState(null);
 
   useEffect(() => {
     let mounted = true;
     async function loadData() {
       try {
         const [farmsData, subsData, ordersData] = await Promise.all([
-          // Prefer user's saved city/location if present, otherwise load all farms
-          farmApi.getAllFarms(user?.city || user?.location || "").catch(() => []),
+          // Load all farms (not filtered by location) to ensure subscriptions show correct farm names
+          farmApi.getAllFarms("").catch(() => []),
           apiFetch(`/subscriptions/my-subscriptions`).catch(() => []),
           apiFetch(`/orders/my-orders`).catch(() => [])
         ]);
@@ -48,72 +46,7 @@ export function CustomerDashboard() {
   }, []);
 
   const activeSubscriptions = subscriptions.filter(s => s.status === 'ACTIVE');
-  const confirmedOrders = orders.filter(o => o.status === 'CONFIRMED');
-
-  // Compute whether the payment window for an order has expired on the client side
-  const isSlotExpired = (order) => {
-    if (!order.orderDate) return false;
-    const date = new Date(order.orderDate);
-    const cutoffHour = (order.session === 'EVENING') ? 20 : 10;
-    const deadline = new Date(date);
-    deadline.setHours(cutoffHour, 0, 0, 0);
-    return new Date() > deadline;
-  };
-
-  const payableOrders = confirmedOrders.filter(o => !isSlotExpired(o));
-  const expiredConfirmedOrders = confirmedOrders.filter(o => isSlotExpired(o));
-
-  const handlePayNow = async (order) => {
-    setPayingOrderId(order.id);
-    try {
-      const payData = await orderApi.createPayment(order.id);
-
-      if (!window.Razorpay) {
-        alert("Razorpay SDK not loaded. Please refresh the page.");
-        return;
-      }
-
-      const options = {
-        key: payData.key,
-        amount: payData.amount,
-        currency: payData.currency || 'INR',
-        name: payData.farmName || 'Milk Farm',
-        description: `Milk Order #${order.id}`,
-        order_id: payData.razorpayOrderId,
-        prefill: {
-          name: user?.name || '',
-          email: user?.email || '',
-        },
-        theme: { color: '#16a34a' },
-        handler: async (response) => {
-          try {
-            await orderApi.verifyPayment(order.id, {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-            // Refresh orders to show COMPLETED status
-            const newOrders = await apiFetch('/orders/my-orders').catch(() => []);
-            setOrders(Array.isArray(newOrders) ? newOrders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate)) : []);
-            alert('🎉 Payment successful! Your order is now COMPLETED.');
-          } catch (err) {
-            alert('Payment verification failed: ' + (err.message || 'Unknown error'));
-          } finally {
-            setPayingOrderId(null);
-          }
-        },
-        modal: {
-          ondismiss: () => setPayingOrderId(null),
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (err) {
-      alert('Failed to initiate payment: ' + (err.message || 'Unknown error'));
-      setPayingOrderId(null);
-    }
-  };
+  const recentOrders = orders.slice(0, 5);
 
   async function handleSaveCity() {
     if (!user?.id || !city) return;
@@ -175,79 +108,7 @@ export function CustomerDashboard() {
           Buy Milk
         </Button>
       </motion.div>
-
-      {/* Payment Notification Banner */}
-      <AnimatePresence>
-        {confirmedOrders.length > 0 && (
-          <motion.div
-            key="payment-banner"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl p-5 shadow-lg"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <Bell className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base">
-                  🎉 Your order{confirmedOrders.length > 1 ? 's have' : ' has'} been accepted!
-                </h3>
-                <p className="text-emerald-100 text-sm">
-                  {payableOrders.length > 0
-                    ? 'Complete your payment before the slot closes.'
-                    : 'Payment window has closed for all accepted orders.'}
-                </p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {/* Payable orders — show Pay Now button */}
-              {payableOrders.map(order => (
-                <div key={order.id} className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 flex items-center justify-between gap-3">
-                  <div className="text-sm">
-                    <span className="font-semibold">{order.farmName || `Order #${order.id}`}</span>
-                    <span className="text-emerald-100 ml-2">
-                      {order.quantity?.toFixed(1)}L ·{' '}
-                      {order.animalType === 'COW' ? '🐮 Cow' : order.animalType === 'BUFFALO' ? '🐃 Buffalo' : '🐄 Any'} ·{' '}
-                      {order.totalPrice != null ? `₹${order.totalPrice.toFixed(2)}` : '—'} ·{' '}
-                      <span className="font-medium">
-                        Closes {order.session === 'EVENING' ? '8:00 PM' : '10:00 AM'}
-                      </span>
-                    </span>
-                  </div>
-                  <button
-                    disabled={payingOrderId === order.id}
-                    onClick={() => handlePayNow(order)}
-                    className="flex items-center gap-1.5 bg-white text-emerald-700 font-semibold text-xs px-3 py-1.5 rounded-lg hover:bg-emerald-50 disabled:opacity-60 transition-colors shrink-0"
-                  >
-                    <CreditCard className="w-3.5 h-3.5" />
-                    {payingOrderId === order.id ? 'Opening...' : 'Pay Now'}
-                  </button>
-                </div>
-              ))}
-
-              {/* Expired orders — show locked badge */}
-              {expiredConfirmedOrders.map(order => (
-                <div key={order.id} className="bg-red-500/20 border border-red-300/30 rounded-lg px-4 py-3 flex items-center justify-between gap-3 opacity-80">
-                  <div className="text-sm">
-                    <span className="font-semibold">{order.farmName || `Order #${order.id}`}</span>
-                    <span className="text-red-100 ml-2">
-                      {order.quantity?.toFixed(1)}L ·{' '}
-                      {order.animalType === 'COW' ? '🐮 Cow' : order.animalType === 'BUFFALO' ? '🐃 Buffalo' : '🐄 Any'} ·{' '}
-                      {order.totalPrice != null ? `₹${order.totalPrice.toFixed(2)}` : '—'}
-                    </span>
-                  </div>
-                  <span className="flex items-center gap-1 bg-red-500/40 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0">
-                    🔒 Slot Expired
-                  </span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+      
       {/* Active Subscriptions */}
       {activeSubscriptions.length > 0 && (
         <motion.div
@@ -258,9 +119,6 @@ export function CustomerDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground">Active Subscriptions</h3>
-            <Link to="/subscriptions" className="text-sm text-primary hover:underline">
-              Manage all
-            </Link>
           </div>
 
           <div className="space-y-3">
@@ -338,9 +196,6 @@ export function CustomerDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground">Available Farms</h3>
-            <Link to="/buy-milk" className="text-sm text-primary hover:underline">
-              View all
-            </Link>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -370,13 +225,13 @@ export function CustomerDashboard() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-lg font-bold text-foreground">₹{farm.pricePerLiter != null ? farm.pricePerLiter : "—"}<span className="text-xs font-normal text-muted-foreground">/L base</span></p>
+                      {/* <p className="text-lg font-bold text-foreground">₹{farm.pricePerLiter != null ? farm.pricePerLiter : "—"}<span className="text-xs font-normal text-muted-foreground">/L base</span></p> */}
                       <div className="flex gap-2 mt-0.5">
                         {farm.cowPrice != null && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Cow: ₹{farm.cowPrice}</span>}
                         {farm.buffaloPrice != null && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Buf: ₹{farm.buffaloPrice}</span>}
                       </div>
                     </div>
-                    <Badge
+                    {/* <Badge
                       variant="outline"
                       className={cn(
                         (farm.availableMilk || 0) > 100
@@ -393,7 +248,7 @@ export function CustomerDashboard() {
                           </div>
                         )}
                       </div>
-                    </Badge>
+                    </Badge> */}
                   </div>
                 </div>
               </motion.div>
@@ -419,8 +274,8 @@ export function CustomerDashboard() {
             {orders.map((order) => {
               const farm = farms.find(f => f.id === order.farmId);
               const farmName = order.farmName || farm?.name || `Farm #${order.farmId}`;
-              const animalEmoji = order.animalType === "COW" ? "🐮" : order.animalType === "BUFFALO" ? "🐃" : "🐄";
-              const animalLabel = order.animalType === "COW" ? "Cow" : order.animalType === "BUFFALO" ? "Buffalo" : "Any";
+              const animalEmoji = order.animalType === "COW" ? "🐮" : order.animalType === "BUFFALO" ? "🐃" : order.animalType === "SHEEP" ? "🐑" : order.animalType === "GOAT" ? "🐐" : "🐄";
+              const animalLabel = order.animalType === "COW" ? "Cow" : order.animalType === "BUFFALO" ? "Buffalo" : order.animalType === "SHEEP" ? "Sheep" : order.animalType === "GOAT" ? "Goat" : "Any";
               return (
                 <div key={order.id} className="border border-border/60 rounded-md px-3 py-2.5 text-xs space-y-1.5">
                   <div className="flex items-center justify-between">

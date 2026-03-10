@@ -1,0 +1,65 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: milk-app
+  namespace: argocd
+
+  labels:
+    argocd-image-updater.argoproj.io/enabled: "true"
+
+  annotations:
+    # =========================
+    # IMAGE LIST
+    # =========================
+    argocd-image-updater.argoproj.io/image-list: |
+      frontend=vasu049/dairy-flow-frontend
+      backend=vasu049/dairy-flow-backend
+
+    # =========================
+    # SEMVER STRATEGY
+    # =========================
+    argocd-image-updater.argoproj.io/frontend.update-strategy: semver
+    argocd-image-updater.argoproj.io/backend.update-strategy: semver
+
+    # Allow only proper semver tags (v1.0.0)
+    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/backend.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+
+    # =========================
+    # HELM VALUE MAPPING
+    # (Adjust if your values.yaml structure is different)
+    # =========================
+    argocd-image-updater.argoproj.io/frontend.helm.image-name: frontend.image.repository
+    argocd-image-updater.argoproj.io/frontend.helm.image-tag: frontend.image.tag
+
+    argocd-image-updater.argoproj.io/backend.helm.image-name: backend.image.repository
+    argocd-image-updater.argoproj.io/backend.helm.image-tag: backend.image.tag
+
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/write-back-target: helmvalues
+    # =========================
+    # WRITE BACK TO GIT
+    # =========================
+    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/argocd-image-updater-git-creds
+    argocd-image-updater.argoproj.io/write-back-target: helm/dairy-flow/values.yaml  
+
+    # Notifications
+    notifications.argoproj.io/subscribe.on-deployed.email: "vasuantala098@gmail.com"
+    notifications.argoproj.io/subscribe.on-health-degraded.email: "vasuantala098@gmail.com"
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/vasuantala049/Milk-Production-And-Prediction-System.git
+    targetRevision: main
+    path: helm/dairy-flow
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

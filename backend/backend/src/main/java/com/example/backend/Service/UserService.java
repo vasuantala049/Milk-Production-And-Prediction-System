@@ -5,9 +5,6 @@ import com.example.backend.DTO.UserPatchDto;
 import com.example.backend.DTO.UserResponseDto;
 import jakarta.validation.Valid;
 
-import java.util.List;
-import java.util.Map;
-
 public interface UserService {
 
     UserResponseDto createNewUser(@Valid CreateUserRequestDto request);

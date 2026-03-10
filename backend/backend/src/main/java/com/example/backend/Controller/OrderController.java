@@ -16,7 +16,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,16 +49,12 @@ public class OrderController {
         return ResponseEntity.ok(dtos);
     }
 
-    /**
-     * Get all orders for a specific farm (owner/worker only)
-     */
     @GetMapping("/farm/{farmId}")
     public ResponseEntity<List<OrderResponseDto>> getFarmOrders(
             @PathVariable Long farmId,
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
-        // Verify user has access to this farm
         farmAccessService.verifyFarmAccess(user, farmId);
 
         List<Orders> orders;
@@ -90,16 +85,12 @@ public class OrderController {
         return ResponseEntity.ok(dtos);
     }
 
-    /**
-     * Get orders for a farm within a date range
-     */
     @GetMapping("/farm/{farmId}/date-range")
     public ResponseEntity<List<OrderResponseDto>> getFarmOrdersByDateRange(
             @PathVariable Long farmId,
             @RequestParam LocalDate startDate,
             @RequestParam LocalDate endDate,
             @AuthenticationPrincipal User user) {
-        // Verify user has access to this farm
         farmAccessService.verifyFarmAccess(user, farmId);
 
         List<Orders> orders = ordersRepository.findByFarm_IdAndOrderDateBetween(farmId, startDate, endDate);
@@ -123,9 +114,6 @@ public class OrderController {
         return ResponseEntity.ok(dtos);
     }
 
-    /**
-     * Get pending orders for a farm (owner/worker only)
-     */
     @GetMapping("/farm/{farmId}/pending")
     public ResponseEntity<List<OrderResponseDto>> getPendingOrders(
             @PathVariable Long farmId,
@@ -134,21 +122,15 @@ public class OrderController {
         return ResponseEntity.ok(pendingOrders);
     }
 
-    /**
-     * Approve a pending order
-     */
     @PatchMapping("/{orderId}/approve")
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
     public ResponseEntity<OrderResponseDto> approveOrder(
             @PathVariable Long orderId,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
+            @AuthenticationPrincipal User user) {
         OrderResponseDto approvedOrder = orderService.approveOrder(orderId, user);
         return ResponseEntity.ok(approvedOrder);
     }
 
-    /**
-     * Reject a pending order
-     */
     @PatchMapping("/{orderId}/reject")
     public ResponseEntity<OrderResponseDto> rejectOrder(
             @PathVariable Long orderId,
@@ -156,4 +138,21 @@ public class OrderController {
         OrderResponseDto rejectedOrder = orderService.rejectOrder(orderId, user);
         return ResponseEntity.ok(rejectedOrder);
     }
-}
+
+    private OrderResponseDto mapToDto(Orders order) {
+        return OrderResponseDto.builder()
+                .id(order.getId())
+                .orderDate(order.getOrderDate())
+                .quantity(order.getQuantity())
+                .session(order.getSession())
+                .status(order.getStatus())
+                .buyerId(order.getBuyer() != null ? order.getBuyer().getId() : null)
+                .buyerName(order.getBuyer() != null ? order.getBuyer().getName() : null)
+                .farmId(order.getFarm() != null ? order.getFarm().getId() : null)
+                .farmName(order.getFarm() != null ? order.getFarm().getName() : null)
+                .animalType(order.getAnimalType())
+                .totalPrice(order.getTotalPrice())
+                .build();
+    }
+    }
+

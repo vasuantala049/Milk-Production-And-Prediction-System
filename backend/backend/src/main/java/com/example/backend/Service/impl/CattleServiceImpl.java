@@ -3,12 +3,15 @@ package com.example.backend.Service.impl;
 import com.example.backend.DTO.CattlePatchDto;
 import com.example.backend.DTO.CattleResponseDto;
 import com.example.backend.DTO.CreateCattleDto;
+import com.example.backend.DTO.ShedResponseDto;
 import com.example.backend.Entity.Cattle;
 import com.example.backend.Entity.CattleMilkEntry;
 import com.example.backend.Entity.Farm;
+import com.example.backend.Entity.Shed;
 import com.example.backend.Repository.CattleRepository;
 import com.example.backend.Repository.FarmRepository;
 import com.example.backend.Repository.CattleMilkEntryRepository;
+import com.example.backend.Repository.ShedRepository;
 import com.example.backend.Service.CattleService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -25,6 +28,7 @@ public class CattleServiceImpl implements CattleService {
     private final CattleRepository cattleRepository;
     private final FarmRepository farmRepository;
     private final CattleMilkEntryRepository cattleMilkEntryRepository;
+    private final ShedRepository shedRepository;
     private final ModelMapper modelMapper;
 
     @Override
@@ -43,8 +47,17 @@ public class CattleServiceImpl implements CattleService {
         cattle.setBreed(dto.getBreed());
         cattle.setType(dto.getType());
         cattle.setStatus(dto.getStatus());
-        cattle.setShed(dto.getShed());
         cattle.setFarm(farm);
+
+        // Resolve shed by ID (farm-scoped)
+        if (dto.getShedId() != null) {
+            Shed shed = shedRepository.findById(dto.getShedId())
+                    .orElseThrow(() -> new IllegalArgumentException("Shed not found"));
+            if (!shed.getFarm().getId().equals(farm.getId())) {
+                throw new IllegalArgumentException("Shed does not belong to this farm");
+            }
+            cattle.setShed(shed);
+        }
 
         Cattle saved = cattleRepository.save(cattle);
         return toResponseDto(saved);
@@ -84,8 +97,13 @@ public class CattleServiceImpl implements CattleService {
             cattle.setStatus(patchDto.getStatus());
         }
 
-        if (patchDto.getShed() != null) {
-            cattle.setShed(patchDto.getShed());
+        if (patchDto.getShedId() != null) {
+            Shed shed = shedRepository.findById(patchDto.getShedId())
+                    .orElseThrow(() -> new IllegalArgumentException("Shed not found"));
+            if (!shed.getFarm().getId().equals(cattle.getFarm().getId())) {
+                throw new IllegalArgumentException("Shed does not belong to this farm");
+            }
+            cattle.setShed(shed);
         }
 
         Cattle saved = cattleRepository.save(cattle);
@@ -114,8 +132,12 @@ public class CattleServiceImpl implements CattleService {
 
     // -------- helper --------
     private CattleResponseDto toResponseDto(Cattle cattle) {
-        // Calculate average milk per day dynamically
         Double avgMilkPerDay = calculateAverageMilkPerDay(cattle.getId());
+
+        ShedResponseDto shedDto = null;
+        if (cattle.getShed() != null) {
+            shedDto = new ShedResponseDto(cattle.getShed().getId(), cattle.getShed().getName());
+        }
 
         return new CattleResponseDto(
                 cattle.getId(),
@@ -125,18 +147,16 @@ public class CattleServiceImpl implements CattleService {
                 cattle.getStatus(),
                 avgMilkPerDay,
                 cattle.getFarm().getId(),
-                cattle.getShed());
+                shedDto);
     }
 
     private Double calculateAverageMilkPerDay(Long cattleId) {
         try {
-            // First check if cattle has any milk entries
             java.util.List<CattleMilkEntry> entries = cattleMilkEntryRepository.findByCattle_Id(cattleId);
             if (entries.isEmpty()) {
                 return 0.0;
             }
 
-            // Calculate total milk and unique days
             double totalMilk = entries.stream()
                     .mapToDouble(CattleMilkEntry::getMilkLiters)
                     .sum();
@@ -148,7 +168,6 @@ public class CattleServiceImpl implements CattleService {
 
             return uniqueDays > 0 ? totalMilk / uniqueDays : 0.0;
         } catch (Exception e) {
-            // Return 0.0 if calculation fails
             return 0.0;
         }
     }

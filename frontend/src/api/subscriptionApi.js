@@ -34,4 +34,18 @@ export const subscriptionApi = {
       method: 'POST',
     });
   },
+
+  // Approve subscription (Owner) - farm-scoped
+  approveSubscription: async (subscriptionId, farmId) => {
+    return apiFetch(`/subscriptions/farm/${farmId}/${subscriptionId}/approve`, {
+      method: 'POST',
+    });
+  },
+
+  // Reject subscription (Owner) - farm-scoped
+  rejectSubscription: async (subscriptionId, farmId) => {
+    return apiFetch(`/subscriptions/farm/${farmId}/${subscriptionId}/reject`, {
+      method: 'POST',
+    });
+  },
 };

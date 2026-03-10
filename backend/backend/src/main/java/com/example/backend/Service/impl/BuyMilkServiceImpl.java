@@ -57,29 +57,12 @@ public class BuyMilkServiceImpl implements BuyMilkService {
 
         // 4. Validate time-based slot restrictions (for today's date only)
         LocalDate orderDate = dto.getDate();
-        if (orderDate.equals(LocalDate.now())) {
+        if (orderDate.equals(LocalDate.now()) && dto.getSession() != com.example.backend.Entity.type.MilkSession.ALL) {
             validateTimeSlot(dto.getSession());
         }
 
-        // 5. Fetch available milk for session + date to verify availability
-        MilkInventory inventory = milkInventoryRepository
-                .lockInventory(
-                        farm.getId(),
-                        dto.getDate(),
-                        dto.getSession())
-                .orElseThrow(() -> new IllegalStateException("Milk not available for selected session"));
-
-        // 6. Calculate available milk (total production - allocations)
-        Double totalProduction = inventory.getMilkLiters();
-        Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
-        Double availableMilk = totalProduction - allocatedMilk;
-
-        // 7. Check availability
-        if (availableMilk < requestedQty) {
-            throw new IllegalStateException("Insufficient milk available. Available: " + availableMilk + "L");
-        }
-
-        // 8. Create order with PENDING status (awaiting owner approval)
+        // 5. Create order with PENDING status (awaiting owner approval)
+        // NOTE: Stock availability check has been removed. Request will be sent to owner regardless of available stock.
         Orders order = new Orders();
         order.setOrderDate(LocalDate.now());
         order.setQuantity(requestedQty);
@@ -96,6 +79,10 @@ public class BuyMilkServiceImpl implements BuyMilkService {
             pricePerLiter = farm.getCowPrice();
         } else if ("BUFFALO".equalsIgnoreCase(animalType) && farm.getBuffaloPrice() != null) {
             pricePerLiter = farm.getBuffaloPrice();
+        } else if ("SHEEP".equalsIgnoreCase(animalType) && farm.getSheepPrice() != null) {
+            pricePerLiter = farm.getSheepPrice();
+        } else if ("GOAT".equalsIgnoreCase(animalType) && farm.getGoatPrice() != null) {
+            pricePerLiter = farm.getGoatPrice();
         } else {
             pricePerLiter = farm.getPricePerLiter() != null ? farm.getPricePerLiter() : 0.0;
         }

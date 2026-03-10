@@ -29,7 +29,8 @@ public class SubscriptionController {
     private final FarmAccessService farmAccessService;
 
     @PostMapping
-    public ResponseEntity<SubscriptionResponseDto> subscribe(@RequestBody SubscribeDto dto, @AuthenticationPrincipal User user) {
+    public ResponseEntity<SubscriptionResponseDto> subscribe(@RequestBody SubscribeDto dto,
+            @AuthenticationPrincipal User user) {
         Subscription subscription = subscriptionService.subscribe(dto, user);
         return ResponseEntity.ok(mapToDto(subscription));
     }
@@ -44,8 +45,35 @@ public class SubscriptionController {
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<SubscriptionResponseDto> cancelSubscription(@PathVariable Long id, @AuthenticationPrincipal User user) {
+    public ResponseEntity<SubscriptionResponseDto> cancelSubscription(@PathVariable Long id,
+            @AuthenticationPrincipal User user) {
         Subscription subscription = subscriptionService.cancelSubscription(id, user);
+        return ResponseEntity.ok(mapToDto(subscription));
+    }
+
+    /**
+     * Approve subscription - farm-scoped endpoint
+     * Owner can only approve subscriptions for their own farms
+     */
+    @PostMapping("/farm/{farmId}/{subscriptionId}/approve")
+    public ResponseEntity<SubscriptionResponseDto> approveSubscription(
+            @PathVariable Long farmId,
+            @PathVariable Long subscriptionId,
+            @AuthenticationPrincipal User user) {
+        Subscription subscription = subscriptionService.approveSubscription(subscriptionId, farmId, user);
+        return ResponseEntity.ok(mapToDto(subscription));
+    }
+
+    /**
+     * Reject subscription - farm-scoped endpoint
+     * Owner can only reject subscriptions for their own farms
+     */
+    @PostMapping("/farm/{farmId}/{subscriptionId}/reject")
+    public ResponseEntity<SubscriptionResponseDto> rejectSubscription(
+            @PathVariable Long farmId,
+            @PathVariable Long subscriptionId,
+            @AuthenticationPrincipal User user) {
+        Subscription subscription = subscriptionService.rejectSubscription(subscriptionId, farmId, user);
         return ResponseEntity.ok(mapToDto(subscription));
     }
 
@@ -57,8 +85,7 @@ public class SubscriptionController {
             @PathVariable Long farmId,
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size
-    ) {
+            @RequestParam(required = false) Integer size) {
         // Verify user has access to this farm
         farmAccessService.verifyFarmAccess(user, farmId);
 
@@ -85,8 +112,7 @@ public class SubscriptionController {
     public ResponseEntity<List<SubscriptionResponseDto>> getFarmSubscriptionsByStatus(
             @PathVariable Long farmId,
             @PathVariable SubscriptionStatus status,
-            @AuthenticationPrincipal User user
-    ) {
+            @AuthenticationPrincipal User user) {
         // Verify user has access to this farm
         farmAccessService.verifyFarmAccess(user, farmId);
 

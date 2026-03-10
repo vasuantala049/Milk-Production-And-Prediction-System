@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Milk, Beef, Users, Warehouse } from 'lucide-react';
+import { Milk, Beef, Users, Warehouse, Layers, ShoppingBag } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const variantStyles = {
@@ -30,6 +30,24 @@ export function QuickActions() {
       icon: Warehouse,
       label: 'Manage Farms',
       href: '/farms',
+      variant: 'secondary'
+    },
+    {
+      icon: Layers,
+      label: 'Manage Shades',
+      href: farmId ? `/farms/${farmId}/sheds` : '/farms',
+      variant: 'secondary'
+    },
+    {
+      icon: ShoppingBag,
+      label: 'Manage Orders',
+      href: farmId ? `/farms/${farmId}/orders` : '/farms',
+      variant: 'secondary'
+    },
+    {
+      icon: Users,
+      label: 'Subscriptions',
+      href: farmId ? `/farms/${farmId}/subscriptions` : '/farms',
       variant: 'secondary'
     },
   ];

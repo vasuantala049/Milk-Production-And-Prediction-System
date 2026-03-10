@@ -4,6 +4,8 @@ import com.example.backend.Entity.type.UserRole;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -27,5 +29,5 @@ public class CreateUserRequestDto {
     // REQUIRED when role = WORKER
     private Long farmId;
 
-    private String shed;
+    private List<Long> shedIds;
 }

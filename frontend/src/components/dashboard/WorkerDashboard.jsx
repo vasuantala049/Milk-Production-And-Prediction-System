@@ -7,15 +7,20 @@ import { apiFetch } from "../../api/client";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { cn } from "../../lib/utils";
+import { Card, CardContent } from "../ui/card"; // Assuming these are from shadcn/ui
+import { Grid, Box, Typography } from "@mui/material"; // Assuming MUI components
 
 export function WorkerDashboard() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const [assignedFarms, setAssignedFarms] = useState([]);
+  const [farms, setFarms] = useState([]);
+  const [myProfileOptions, setMyProfileOptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [user, setUser] = useState(null);
   const [cattle, setCattle] = useState([]);
   const [todayEntries, setTodayEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showEntries, setShowEntries] = useState(false);
+  const [showFarmSelection, setShowFarmSelection] = useState(false);
 
   // Resolve active farm from localStorage (if set) or fall back to first assigned farm
   const [activeFarmId, setActiveFarmId] = useState(() => {
@@ -27,9 +32,7 @@ export function WorkerDashboard() {
     }
   });
 
-  const activeFarm =
-    assignedFarms.find((f) => f.id === activeFarmId) ||
-    (assignedFarms.length > 0 ? assignedFarms[0] : null);
+  const activeFarm = farms.find((f) => f.id === activeFarmId) || null;
   const farmId = activeFarm?.id;
 
   const refreshTodayEntries = async () => {
@@ -45,32 +48,51 @@ export function WorkerDashboard() {
 
   // Load farms assigned to this worker
   useEffect(() => {
-    let mounted = true;
-    async function loadFarms() {
+    async function fetchDashboard() {
       try {
-        const farmsData = await apiFetch(`/farms/worker/${user.id}`).catch(() => []);
-        if (!mounted) return;
-        setAssignedFarms(Array.isArray(farmsData) ? farmsData : []);
+        const currentUser = JSON.parse(localStorage.getItem("user"));
+        if (!currentUser || currentUser.role !== "WORKER") {
+          throw new Error("Unauthorized access");
+        }
+        setUser(currentUser);
+
+        // Fetch user's assigned farms
+        const farmsData = await apiFetch(`/farms/me`);
+        setFarms(farmsData || []);
+
+        // Pre-fetch the worker's profile per farm so we know their specific sheds
+        // because /farms/me only gives generic Farm details, not worker assignments
+        const profiles = await Promise.all((farmsData || []).map(async farm => {
+          try {
+            // Get all workers for the farm, filter down to the current worker
+            const farmWorkers = await apiFetch(`/farms/${farm.id}/workers`);
+            const myProfile = farmWorkers.find(w => w.id == currentUser.id); // Loose equal for string/number comparison
+            return { farmId: farm.id, profile: myProfile };
+          } catch (e) {
+            return { farmId: farm.id, profile: null };
+          }
+        }));
+        setMyProfileOptions(profiles);
       } catch (err) {
-        if (!mounted) return;
-        setAssignedFarms([]);
+        setError(err.message || "Failed to load dashboard data");
+      } finally {
+        setLoading(false);
       }
     }
-    if (user.id) loadFarms();
-    return () => {
-      mounted = false;
-    };
-  }, [user.id]);
+    fetchDashboard();
+  }, [user?.id]);
 
-  // Persist active farm to localStorage when it changes
+  // Persist active farm to localStorage and handle initial selection screen
   useEffect(() => {
+    if (loading) return; // Wait until farms are loaded
+
     if (activeFarm) {
       localStorage.setItem("activeFarm", JSON.stringify(activeFarm));
-      if (activeFarmId !== activeFarm.id) {
-        setActiveFarmId(activeFarm.id);
-      }
+    } else if (farms.length > 0) {
+      // If no valid active farm, show the selection screen
+      setShowFarmSelection(true);
     }
-  }, [activeFarm, activeFarmId]);
+  }, [activeFarm, loading, farms.length]);
 
   // Load cattle + today's entries for current farm
   useEffect(() => {
@@ -114,6 +136,66 @@ export function WorkerDashboard() {
     return () => window.removeEventListener('focus', handleFocus);
   }, [farmId]);
 
+  if (showFarmSelection || !activeFarm) {
+    return (
+      <div className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
+            Select a Farm
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Pick a farm to start recording data
+          </p>
+        </motion.div>
+
+        <Grid container spacing={3}>
+          {farms.map((farm) => {
+            const farmProfileEntry = myProfileOptions.find(p => p.farmId === farm.id);
+            const mySheds = farmProfileEntry?.profile?.sheds || [];
+
+            return (
+              <Grid item xs={12} sm={6} md={4} key={farm.id}>
+                <Card
+                  onClick={() => {
+                    setActiveFarmId(farm.id);
+                    localStorage.setItem("activeFarm", JSON.stringify(farm));
+                    setShowFarmSelection(false);
+                  }}
+                  className="h-full cursor-pointer hover:shadow-xl transition-all duration-300 border-t-4 border-t-primary rounded-xl"
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between mb-4">
+                      <h4 className="font-semibold text-lg text-foreground">{farm.name}</h4>
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                        View
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">{farm.address || "—"}</p>
+
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {mySheds.length > 0 ? mySheds.map(s => (
+                        <Badge key={s.id} variant="secondary" className="text-[10px] py-0 px-2">📍 {s.name}</Badge>
+                      )) : <span className="text-xs italic text-muted-foreground">All Shades</span>}
+                    </div>
+                  </CardContent>
+                </Card>
+              </Grid>
+            );
+          })}
+        </Grid>
+
+        {farms.length === 0 && !loading && (
+          <div className="py-20 text-center">
+            <p className="text-muted-foreground italic">No farms assigned yet.</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -123,19 +205,29 @@ export function WorkerDashboard() {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-            Hello, {user?.name?.split(' ')[0] || "Worker"}! 👋
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Ready to record today's milk collection?
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
+              {activeFarm.name}
+            </h1>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFarmSelection(true)}
+              className="text-primary text-xs h-7"
+            >
+              Switch Farm
+            </Button>
+          </div>
+          <p className="text-muted-foreground">
+            {user?.name?.split(' ')[0] || "Worker"}'s Workspace
           </p>
         </div>
-        {farmId && (
+        <div className="flex gap-2">
           <Button onClick={() => navigate(`/milk/add/${farmId}`)} className="gap-2">
             <Plus className="w-5 h-5" />
             Add Milk Entry
           </Button>
-        )}
+        </div>
       </motion.div>
 
       {/* Entry Status */}
@@ -207,116 +299,122 @@ export function WorkerDashboard() {
         </motion.div>
       )}
 
-      {/* Assigned Farms */}
-      {assignedFarms.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h3 className="font-semibold text-foreground mb-4">Assigned Farms</h3>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {assignedFarms.map((farm, index) => (
-              <motion.div
-                key={farm.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 + index * 0.05 }}
-                className="bg-card border border-border rounded-xl p-5 shadow-card"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h4 className="font-semibold text-foreground">{farm.name || "—"}</h4>
-                    <p className="text-sm text-muted-foreground">{farm.address || farm.location || "—"}</p>
-                  </div>
-                  <Badge variant="outline" className="bg-success/10 border-success/30 text-success">
-                    Active
-                  </Badge>
-                </div>
+      {/* Sections and Cattle List removed from here to be part of the active farm view */}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Beef className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">{farm.cattleCount || farm.herdCount || "—"} cattle</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Milk className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">{farm.todayMilk != null ? `${farm.todayMilk}L` : "—"} today</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      )}
+      {/* Cattle List - Filtered by Worker's Assigned Shades */}
+      {(() => {
+        const farmProfile = myProfileOptions.find(p => p.farmId == farmId);
+        const myShedIds = farmProfile?.profile?.sheds?.map(s => s.id) || [];
 
-      {/* Cattle List */}
-      {cattle.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-card border border-border rounded-xl p-5 shadow-card"
-        >
-          <h3 className="font-semibold text-foreground mb-4">Cattle for Milking</h3>
-          <div className="divide-y divide-border">
-            {cattle
-              .map((c) => {
-                // Check which sessions are completed for this cattle
-                const hasMorning = todayEntries.some(
-                  e => e.cattleTagId === c.tagId && e.session === "MORNING"
-                );
-                const hasEvening = todayEntries.some(
-                  e => e.cattleTagId === c.tagId && e.session === "EVENING"
-                );
+        // Filter cattle that match the worker's assigned shades
+        const cattleToShow = cattle.filter(c => {
+          if (!c.shed?.id) return false; // Cattle must be assigned to a shade
+          return myShedIds.includes(c.shed.id);
+        });
 
-                return {
-                  cattle: c,
-                  hasMorning,
-                  hasEvening,
-                  hasPendingSession: !hasMorning || !hasEvening
-                };
-              })
-              // Filter out cattle with both sessions complete
-              .filter(item => item.hasPendingSession)
-              .slice(0, 10)
-              .map(({ cattle: c, hasMorning, hasEvening }) => (
-                <div key={c.id} className="py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-2 h-2 rounded-full",
-                      c.status === "ACTIVE" ? "bg-success" :
-                        c.status === "SICK" ? "bg-destructive" : "bg-muted"
-                    )} />
-                    <div>
-                      <p className="font-medium text-foreground">
-                        {c.tagId || "—"}
-                        {c.name && <span className="text-muted-foreground ml-1">({c.name})</span>}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{c.breed || "—"} • Avg {c.avgMilkPerDay != null ? `${c.avgMilkPerDay}L` : "—"}/day</p>
+        if (cattleToShow.length === 0) {
+          if (cattle.length > 0) {
+            return (
+              <div className="bg-card border border-border rounded-xl p-8 text-center shadow-card">
+                <p className="text-muted-foreground italic">
+                  No cattle found in your assigned shades for this farm.
+                </p>
+                {myShedIds.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    (You haven't been assigned to any specific shades by the owner yet)
+                  </p>
+                )}
+              </div>
+            );
+          }
+          return null;
+        }
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-card border border-border rounded-xl p-5 shadow-card"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground">Cattle for Milking</h3>
+              <Badge variant="secondary" className="font-normal">
+                {cattleToShow.length} cattle in your shades
+              </Badge>
+            </div>
+            <div className="divide-y divide-border">
+              {cattleToShow
+                .map((c) => {
+                  // Check which sessions are completed for this cattle
+                  const hasMorning = todayEntries.some(
+                    e => e.cattleTagId === c.tagId && e.session === "MORNING"
+                  );
+                  const hasEvening = todayEntries.some(
+                    e => e.cattleTagId === c.tagId && e.session === "EVENING"
+                  );
+
+                  return {
+                    cattle: c,
+                    hasMorning,
+                    hasEvening,
+                    hasPendingSession: !hasMorning || !hasEvening
+                  };
+                })
+                // Filter out cattle with both sessions complete
+                .filter(item => item.hasPendingSession)
+                .slice(0, 10)
+                .map(({ cattle: c, hasMorning, hasEvening }) => (
+                  <div key={c.id} className="py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        c.status === "ACTIVE" ? "bg-success" :
+                          c.status === "SICK" ? "bg-destructive" : "bg-muted"
+                      )} />
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {c.tagId || "—"}
+                          {c.name && <span className="text-muted-foreground ml-1">({c.name})</span>}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {c.breed || "—"} • {c.shed?.name || "No Shade"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {!hasMorning && (
+                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Morning
+                        </Badge>
+                      )}
+                      {!hasEvening && (
+                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Evening
+                        </Badge>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {!hasMorning && (
-                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Morning
-                      </Badge>
-                    )}
-                    {!hasEvening && (
-                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Evening
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-          </div>
-        </motion.div>
-      )}
+                ))}
 
-      {assignedFarms.length === 0 && !loading && (
+              {/* If all visible cattle have their sessions completed */}
+              {cattleToShow.length > 0 &&
+                cattleToShow.every(c =>
+                  todayEntries.some(e => e.cattleTagId === c.tagId && e.session === "MORNING") &&
+                  todayEntries.some(e => e.cattleTagId === c.tagId && e.session === "EVENING")
+                ) && (
+                  <div className="py-8 text-center">
+                    <p className="text-sm text-muted-foreground">✅ All milking for your assigned cattle is complete!</p>
+                  </div>
+                )}
+            </div>
+          </motion.div>
+        );
+      })()}
+
+      {farms.length === 0 && !loading && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

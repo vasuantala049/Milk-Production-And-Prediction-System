@@ -39,10 +39,10 @@ public class FarmAccessServiceImpl implements FarmAccessService {
 
         // WORKER
         if (user.getRole() == UserRole.WORKER) {
-            if (user.getAssignedFarms() == null || user.getAssignedFarms().isEmpty()) {
+            if (user.getFarms() == null || user.getFarms().isEmpty()) {
                 throw new IllegalArgumentException("Worker not assigned to any farm");
             }
-            boolean hasAccess = user.getAssignedFarms().stream()
+            boolean hasAccess = user.getFarms().stream()
                     .anyMatch(f -> f.getId().equals(cattleFarm.getId()));
             if (!hasAccess) {
                 throw new IllegalArgumentException("Worker not assigned to this farm");
@@ -66,8 +66,8 @@ public class FarmAccessServiceImpl implements FarmAccessService {
 
         // Check if user is an assigned worker
         if (user.getRole() == UserRole.WORKER) {
-            boolean hasAccess = user.getAssignedFarms() != null && 
-                    user.getAssignedFarms().stream()
+            boolean hasAccess = user.getFarms() != null &&
+                    user.getFarms().stream()
                             .anyMatch(f -> f.getId().equals(farmId));
             if (hasAccess) {
                 return;

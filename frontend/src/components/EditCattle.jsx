@@ -106,7 +106,8 @@ export default function EditCattle() {
   const navigate = useNavigate();
 
   const [status, setStatus] = useState("ACTIVE");
-  const [shed, setShed] = useState("");
+  const [shedId, setShedId] = useState("");
+  const [shades, setShades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -121,10 +122,14 @@ export default function EditCattle() {
 
     async function load() {
       try {
-        const dto = await apiFetch(`/cattle/${cattleId}`);
+        const [dto, shadesData] = await Promise.all([
+          apiFetch(`/cattle/${cattleId}`),
+          apiFetch(`/farms/${farmId}/sheds`).catch(() => [])
+        ]);
         if (!mounted) return;
         setStatus(dto.status || "ACTIVE");
-        setShed(dto.shed || "");
+        setShedId(dto.shed?.id || "");
+        setShades(shadesData || []);
       } catch (err) {
         setError(err.message || "Failed to load cattle");
       } finally {
@@ -145,7 +150,7 @@ export default function EditCattle() {
     try {
       await apiFetch(`/cattle/${cattleId}`, {
         method: "PATCH",
-        body: JSON.stringify({ status, shed }),
+        body: JSON.stringify({ status, shedId: shedId || null }),
       });
       navigate(`/cattle/${farmId}`);
     } catch (err) {
@@ -191,12 +196,19 @@ export default function EditCattle() {
                 </TextField>
 
                 <TextField
+                  select
                   fullWidth
-                  label="Shed (Optional)"
-                  value={shed}
-                  onChange={(e) => setShed(e.target.value)}
-                  placeholder="e.g. Shed A"
-                />
+                  label="Shade (Optional)"
+                  value={shedId}
+                  onChange={(e) => setShedId(e.target.value)}
+                >
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  {shades.map((shade) => (
+                    <MenuItem key={shade.id} value={shade.id}>
+                      {shade.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
 
                 {/* Buttons row */}
                 <Stack direction="row" spacing={2}>

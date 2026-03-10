@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -17,7 +18,5 @@ public class UserResponseDto {
     private UserRole role;
     private LocalDateTime createdAt;
     private String location;
-    private String shed;
-
-
+    private List<ShedResponseDto> sheds;
 }

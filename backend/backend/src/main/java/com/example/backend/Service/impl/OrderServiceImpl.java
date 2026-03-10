@@ -23,63 +23,37 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
-    private final OrdersRepository ordersRepository;
-    private final MilkInventoryRepository milkInventoryRepository;
-    private final MilkAllocationRepository milkAllocationRepository;
-    private final FarmAccessService farmAccessService;
+        private final OrdersRepository ordersRepository;
+        private final MilkInventoryRepository milkInventoryRepository;
+        private final MilkAllocationRepository milkAllocationRepository;
+        private final FarmAccessService farmAccessService;
 
-    @Override
-    @Transactional
-    public OrderResponseDto approveOrder(Long orderId, User user) {
-        // 1. Find order
-        Orders order = ordersRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+        @Override
+        @Transactional
+        public OrderResponseDto approveOrder(Long orderId, User user) {
+                // 1. Find order
+                Orders order = ordersRepository.findById(orderId)
+                                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        // 2. Verify user has access to the farm
-        farmAccessService.verifyFarmAccess(user, order.getFarm().getId());
+                // 2. Verify user has access to the farm
+                farmAccessService.verifyFarmAccess(user, order.getFarm().getId());
 
-        // 3. Verify order is in PENDING status
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw new IllegalStateException(
-                    "Only pending orders can be approved. Current status: " + order.getStatus());
+                // 3. Verify order is in PENDING status
+                if (order.getStatus() != OrderStatus.PENDING) {
+                        throw new IllegalStateException(
+                                        "Only pending orders can be approved. Current status: " + order.getStatus());
+                }
+
+                // 4. Update order status to CONFIRMED (no milk availability check required)
+                // Owner may have external milk sources not tracked in the system
+                order.setStatus(OrderStatus.CONFIRMED);
+                ordersRepository.save(order);
+
+                // 9. Return response
+                return mapToDto(order);
         }
 
-        // 4. Lock inventory and verify availability
-        MilkInventory inventory = milkInventoryRepository
-                .lockInventory(
-                        order.getFarm().getId(),
-                        order.getOrderDate(),
-                        order.getSession())
-                .orElseThrow(() -> new IllegalStateException("Milk inventory not found for this order"));
 
-        // 5. Calculate available milk
-        Double totalProduction = inventory.getMilkLiters();
-        Double allocatedMilk = milkAllocationRepository.sumAllocationsByInventoryId(inventory.getId());
-        Double availableMilk = totalProduction - allocatedMilk;
-
-        // 6. Verify sufficient milk is still available
-        if (availableMilk < order.getQuantity()) {
-            throw new IllegalStateException(
-                    "Insufficient milk available. Required: " + order.getQuantity() +
-                            "L, Available: " + availableMilk + "L");
-        }
-
-        // 7. Create allocation
-        MilkAllocation allocation = MilkAllocation.builder()
-                .milkInventory(inventory)
-                .quantity(order.getQuantity())
-                .type(AllocationType.ORDER)
-                .referenceId(order.getId())
-                .build();
-        milkAllocationRepository.save(allocation);
-
-        // 8. Update order status
-        order.setStatus(OrderStatus.CONFIRMED);
-        ordersRepository.save(order);
-
-        // 9. Return response
-        return mapToDto(order);
-    }
 
     @Override
     @Transactional

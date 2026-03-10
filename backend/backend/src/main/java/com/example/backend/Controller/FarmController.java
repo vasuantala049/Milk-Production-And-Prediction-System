@@ -3,7 +3,6 @@ package com.example.backend.Controller;
 import com.example.backend.DTO.*;
 import com.example.backend.Service.FarmService;
 import jakarta.validation.Valid;
-import com.example.backend.Service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

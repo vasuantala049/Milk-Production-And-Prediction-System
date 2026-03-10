@@ -217,7 +217,7 @@ export default function CattleList() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shed</span>
                     <span className="font-medium text-foreground">
-                      {c.shed || "Unassigned"}
+                      {c.shed?.name || "Unassigned"}
                     </span>
                   </div>
 

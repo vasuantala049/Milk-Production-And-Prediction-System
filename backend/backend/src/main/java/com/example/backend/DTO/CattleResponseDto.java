@@ -14,5 +14,5 @@ public class CattleResponseDto {
     private String status;
     private Double avgMilkPerDay;
     private Long farmId;
-    private String shed;
+    private ShedResponseDto shed;
 }

@@ -3,6 +3,7 @@ package com.example.backend.DTO;
 import com.example.backend.Entity.type.MilkSession;
 import com.example.backend.Entity.type.OrderStatus;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -11,6 +12,7 @@ import java.time.LocalDate;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class OrderResponseDto {
     private Long id;
     private LocalDate orderDate;
@@ -25,4 +27,3 @@ public class OrderResponseDto {
     private Double totalPrice;
     private String razorpayOrderId;
 }
-

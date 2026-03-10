@@ -44,8 +44,6 @@ public class User {
     @Column(name = "oauth_provider")
     private String oauthProvider;
 
-    private String shed;
-
     @Column(name = "oauth_provider_id")
     private String oauthProviderId;
 
@@ -53,15 +51,10 @@ public class User {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
-    // Worker-farm assignments (many-to-many)
+    // Worker-farm assignments (one-to-many)
     @JsonIgnore
-    @ManyToMany
-    @JoinTable(
-            name = "farm_workers",
-            joinColumns = @JoinColumn(name = "worker_id"),
-            inverseJoinColumns = @JoinColumn(name = "farm_id")
-    )
-    private List<Farm> assignedFarms;
+    @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL)
+    private List<FarmWorker> farmWorkerAssignments;
 
 
     // one user can own multiple farms
