@@ -24,8 +24,8 @@ export function CustomerDashboard() {
     async function loadData() {
       try {
         const [farmsData, subsData, ordersData] = await Promise.all([
-          // Prefer user's saved city/location if present, otherwise load all farms
-          farmApi.getAllFarms(user?.city || user?.location || "").catch(() => []),
+          // Load all farms (not filtered by location) to ensure subscriptions show correct farm names
+          farmApi.getAllFarms("").catch(() => []),
           apiFetch(`/subscriptions/my-subscriptions`).catch(() => []),
           apiFetch(`/orders/my-orders`).catch(() => [])
         ]);
@@ -108,7 +108,7 @@ export function CustomerDashboard() {
           Buy Milk
         </Button>
       </motion.div>
-
+      
       {/* Active Subscriptions */}
       {activeSubscriptions.length > 0 && (
         <motion.div
@@ -231,7 +231,7 @@ export function CustomerDashboard() {
                         {farm.buffaloPrice != null && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Buf: ₹{farm.buffaloPrice}</span>}
                       </div>
                     </div>
-                    <Badge
+                    {/* <Badge
                       variant="outline"
                       className={cn(
                         (farm.availableMilk || 0) > 100
@@ -248,7 +248,7 @@ export function CustomerDashboard() {
                           </div>
                         )}
                       </div>
-                    </Badge>
+                    </Badge> */}
                   </div>
                 </div>
               </motion.div>
@@ -274,8 +274,8 @@ export function CustomerDashboard() {
             {orders.map((order) => {
               const farm = farms.find(f => f.id === order.farmId);
               const farmName = order.farmName || farm?.name || `Farm #${order.farmId}`;
-              const animalEmoji = order.animalType === "COW" ? "🐮" : order.animalType === "BUFFALO" ? "🐃" : "🐄";
-              const animalLabel = order.animalType === "COW" ? "Cow" : order.animalType === "BUFFALO" ? "Buffalo" : "Any";
+              const animalEmoji = order.animalType === "COW" ? "🐮" : order.animalType === "BUFFALO" ? "🐃" : order.animalType === "SHEEP" ? "🐑" : order.animalType === "GOAT" ? "🐐" : "🐄";
+              const animalLabel = order.animalType === "COW" ? "Cow" : order.animalType === "BUFFALO" ? "Buffalo" : order.animalType === "SHEEP" ? "Sheep" : order.animalType === "GOAT" ? "Goat" : "Any";
               return (
                 <div key={order.id} className="border border-border/60 rounded-md px-3 py-2.5 text-xs space-y-1.5">
                   <div className="flex items-center justify-between">
