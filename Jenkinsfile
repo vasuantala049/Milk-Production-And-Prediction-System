@@ -2,28 +2,17 @@
 pipeline {
 
     agent { label "vinod" }
-     parameters {
-        string(name: 'IMAGE_TAG', defaultValue: '', description: 'Docker image tag to build and push')
-    }
+    
     environment {
         DOCKER_USER    = "vasu049"
         FRONTEND_IMAGE = "dairy-flow-frontend"
         BACKEND_IMAGE  = "dairy-flow-backend"
 
-         TAG_NAME       = "${params.IMAGE_TAG}"
+        TAG_NAME       = "v1.0.${BUILD_NUMBER}"
     }
 
     stages {
-        stage("Validate Parameters") {
-            steps {
-                script {
-                    if (!params.IMAGE_TAG?.trim()) {
-                        error "IMAGE_TAG parameter is required. Please provide a tag like v1.0.5"
-                    }
-                    echo "Building with tag: ${params.IMAGE_TAG}"
-                }
-            }
-        }
+        
         stage("Trivy Scan"){
             steps{
                  script{
