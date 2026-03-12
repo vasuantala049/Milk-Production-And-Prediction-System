@@ -11,8 +11,10 @@ import {
   Bar,
   Legend,
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 function ChartCard({ title, children, delay = 0 }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -20,28 +22,25 @@ function ChartCard({ title, children, delay = 0 }) {
       transition={{ duration: 0.4, delay }}
       className="bg-card border border-border rounded-xl p-5 shadow-card"
     >
-      <h3 className="font-semibold text-foreground mb-4">{title}</h3>
+      <h3 className="font-semibold text-foreground mb-4">{t(title)}</h3>
       {children}
     </motion.div>
   );
 }
 
-export function DailyProductionChart({ data = [] }) {
-  const chartData = data.map(item => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    liters: item.total || 0,
-  }));
+export function DailyProductionChart({ data = [], series = [] }) {
+  const { t } = useTranslation();
 
   return (
-    <ChartCard title="Daily Milk Production (Last 7 Days)" delay={0.3}>
+    <ChartCard title="dashboard.dailyMilkProduction" delay={0.3}>
       <div className="h-[280px]">
-        {chartData.length === 0 ? (
+        {data.length === 0 || series.length === 0 ? (
           <div className="h-full flex items-center justify-center text-muted-foreground">
-            No data available
+            {t('dashboard.noDataAvailable')}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
+            <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis
                 dataKey="date"
@@ -65,15 +64,21 @@ export function DailyProductionChart({ data = [] }) {
                   boxShadow: 'var(--shadow-md)',
                 }}
                 labelStyle={{ color: 'hsl(var(--foreground))' }}
+                formatter={(value) => [`${Number(value || 0).toFixed(1)}L`, undefined]}
               />
-              <Line
-                type="monotone"
-                dataKey="liters"
-                stroke="hsl(var(--primary))"
-                strokeWidth={3}
-                dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, strokeWidth: 0 }}
-              />
+              <Legend />
+              {series.map((item) => (
+                <Line
+                  key={item.key}
+                  type="monotone"
+                  dataKey={item.key}
+                  name={item.label}
+                  stroke={item.color}
+                  strokeWidth={3}
+                  dot={{ fill: item.color, strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -83,19 +88,18 @@ export function DailyProductionChart({ data = [] }) {
 }
 
 export function FarmComparisonChart({ farmsData = [] }) {
-  // Transform farms data into chart format
-  // Use availableMilk from FarmResponseDto as the comparison metric
+  const { t } = useTranslation();
   const chartData = farmsData.length > 0 ? farmsData.map(farm => ({
     name: farm.name || `Farm ${farm.id}`,
     milk: farm.todayMilk || 0,
   })) : [];
 
   return (
-    <ChartCard title="Farm Production Comparison" delay={0.4}>
+    <ChartCard title="dashboard.farmProductionComparison" delay={0.4}>
       <div className="h-[280px]">
         {chartData.length === 0 ? (
           <div className="h-full flex items-center justify-center text-muted-foreground">
-            No data available
+            {t('dashboard.noDataAvailable')}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">

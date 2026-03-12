@@ -8,8 +8,10 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
+import { useTranslation } from 'react-i18next';
 
 export function CustomerDashboard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [farms, setFarms] = useState([]);
@@ -77,10 +79,10 @@ export function CustomerDashboard() {
       >
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-            Welcome, {user?.name?.split(' ')[0] || "Customer"}! 🥛
+            {t('dashboard.welcome', { name: user?.name?.split(' ')[0] || t('common.customer') })}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Fresh milk from local farms, delivered to you
+            {t('dashboard.freshMilkDelivery')}
           </p>
 
           <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
@@ -89,7 +91,7 @@ export function CustomerDashboard() {
               <Input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Your city"
+                placeholder={t('dashboard.yourCity')}
                 className="h-8 w-44"
               />
             </div>
@@ -99,13 +101,13 @@ export function CustomerDashboard() {
               disabled={savingCity || !city}
               onClick={handleSaveCity}
             >
-              {savingCity ? "Saving..." : "Save city"}
+              {savingCity ? t('dashboard.saving') : t('dashboard.saveCity')}
             </Button>
           </div>
         </div>
         <Button onClick={() => navigate("/buy-milk")} className="gap-2">
           <ShoppingCart className="w-5 h-5" />
-          Buy Milk
+          {t('dashboard.buyMilk')}
         </Button>
       </motion.div>
       

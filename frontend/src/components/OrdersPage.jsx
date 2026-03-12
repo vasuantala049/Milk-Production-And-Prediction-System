@@ -4,10 +4,12 @@ import OrdersList from './OrdersList';
 import { Button } from './ui/button';
 import { ArrowLeft, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 export default function OrdersPage() {
     const { farmId } = useParams();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const activeFarm = JSON.parse(localStorage.getItem("activeFarm") || "{}");
 
     return (
@@ -28,13 +30,13 @@ export default function OrdersPage() {
                 <div>
                     <div className="flex items-center gap-2 text-primary mb-1">
                         <ShoppingBag size={16} />
-                        <span className="text-xs font-bold uppercase tracking-wider">Order Management</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">{t('orders.orderManagement')}</span>
                     </div>
                     <h1 className="text-3xl font-display font-bold text-foreground">
-                        {activeFarm.name || "Farm"} Orders
+                        {t('orders.farmOrdersTitle', { name: activeFarm.name || t('farms.farmName') })}
                     </h1>
                     <p className="text-muted-foreground">
-                        View and manage all milk orders for this farm
+                        {t('orders.viewManageOrders')}
                     </p>
                 </div>
             </motion.div>
@@ -46,9 +48,9 @@ export default function OrdersPage() {
                 className="bg-card border border-border rounded-2xl p-6 shadow-sm"
             >
                 <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-2">Order History</h2>
+                    <h2 className="text-xl font-semibold mb-2">{t('orders.orderHistory')}</h2>
                     <p className="text-sm text-muted-foreground italic">
-                        * Use the status filter in the table to find specific orders.
+                        {t('orders.useStatusFilter')}
                     </p>
                 </div>
                 <OrdersList farmId={farmId} initialStatus="CONFIRMED" />

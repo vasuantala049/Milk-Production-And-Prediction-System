@@ -9,17 +9,25 @@ import { StatCard } from "./StatCard";
 import { QuickActions } from "./QuickActions";
 import {
   DailyProductionChart,
-  FarmComparisonChart,
 } from "./ProductionChart";
 import { Milk, Beef, Users, Warehouse, Store, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
 import { SubscribersRequestsSection } from "./SubscribersRequestsSection";
+import { useTranslation } from 'react-i18next';
 
 // Main dashboard for farm owners
 export function OwnerDashboard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const TYPE_COLORS = {
+    COW: "#2f9e44",
+    BUFFALO: "#1c7ed6",
+    SHEEP: "#f08c00",
+    GOAT: "#ae3ec9",
+    UNKNOWN: "#6b7280",
+  };
 
   const [activeFarm] = useState(() => {
     try {
@@ -35,15 +43,18 @@ export function OwnerDashboard() {
   const [herdCount, setHerdCount] = useState(null);
   const [workerCount, setWorkerCount] = useState(null);
   const [activeCattleCount, setActiveCattleCount] = useState(null);
-  const [milkHistory, setMilkHistory] = useState([]);
+  const [milkTypeHistory, setMilkTypeHistory] = useState([]);
   const [farms, setFarms] = useState([]);
   const [daysRange, setDaysRange] = useState(7);
+  const [historyView, setHistoryView] = useState("TOTAL");
+  const [historyMode, setHistoryMode] = useState("SEPARATED");
   const [recentOrders, setRecentOrders] = useState([]);
   const [allOrders, setAllOrders] = useState([]);
   const [farmSubscriptions, setFarmSubscriptions] = useState([]);
   const [orderTab, setOrderTab] = useState("pending"); // "pending" | "all"
   const [subTab, setSubTab] = useState(false);
   const [todayEntries, setTodayEntries] = useState([]);
+  const [farmCattle, setFarmCattle] = useState([]);
   const [isToggling, setIsToggling] = useState(false);
   const [actionLoading, setActionLoading] = useState({});
 
@@ -102,13 +113,13 @@ export function OwnerDashboard() {
     async function loadHistory(farmId, days) {
       try {
         const data = await apiFetch(
-          `/milk/history?farmId=${farmId}&days=${days}`
+          `/milk/history/by-type?farmId=${farmId}&days=${days}`
         );
         if (!mounted) return;
-        setMilkHistory(Array.isArray(data) ? data : []);
+        setMilkTypeHistory(Array.isArray(data) ? data : []);
       } catch {
         if (!mounted) return;
-        setMilkHistory([]);
+        setMilkTypeHistory([]);
       }
     }
 
@@ -207,6 +218,32 @@ export function OwnerDashboard() {
     };
   }, [activeFarm?.id]);
 
+  /* ===========================
+     LOAD FARM CATTLE (OWNER VIEW)
+     =========================== */
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadFarmCattle(farmId) {
+      try {
+        const data = await apiFetch(`/cattle/farm/${farmId}`);
+        if (!mounted) return;
+        setFarmCattle(Array.isArray(data) ? data : []);
+      } catch {
+        if (!mounted) return;
+        setFarmCattle([]);
+      }
+    }
+
+    if (activeFarm?.id) {
+      loadFarmCattle(activeFarm.id);
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeFarm?.id]);
+
   const handleToggleSelling = async (farm) => {
     if (isToggling) return;
     try {
@@ -258,16 +295,16 @@ export function OwnerDashboard() {
     try {
       await apiFetch(`/farms/${activeFarm.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ 
-          cowPrice: parseFloat(cowPrice), 
+        body: JSON.stringify({
+          cowPrice: parseFloat(cowPrice),
           buffaloPrice: parseFloat(buffaloPrice),
           sheepPrice: parseFloat(sheepPrice),
           goatPrice: parseFloat(goatPrice)
         })
       });
-      const updatedFarm = { 
-        ...activeFarm, 
-        cowPrice: parseFloat(cowPrice), 
+      const updatedFarm = {
+        ...activeFarm,
+        cowPrice: parseFloat(cowPrice),
         buffaloPrice: parseFloat(buffaloPrice),
         sheepPrice: parseFloat(sheepPrice),
         goatPrice: parseFloat(goatPrice)
@@ -284,6 +321,102 @@ export function OwnerDashboard() {
   // Robust check for selling status
   const currentIsSelling = activeFarm?.isSelling === true || activeFarm?.selling === true;
 
+  const normalizeAnimalType = (value) => {
+    if (!value) return "UNKNOWN";
+    return String(value).trim().toUpperCase();
+  };
+
+  const formatAnimalTypeLabel = (value) => {
+    const normalized = normalizeAnimalType(value);
+    return t(`cattle.${normalized.toLowerCase()}`, normalized.charAt(0) + normalized.slice(1).toLowerCase());
+  };
+
+  const cattleTypeSummaries = Array.from(
+    farmCattle.reduce((map, cattle) => {
+      const normalizedType = normalizeAnimalType(cattle?.type);
+      const existing = map.get(normalizedType) || {
+        type: normalizedType,
+        count: 0,
+        morning: 0,
+        evening: 0,
+      };
+
+      existing.count += 1;
+      map.set(normalizedType, existing);
+      return map;
+    }, new Map()).values()
+  ).map((summary) => {
+    const morning = todayEntries
+      .filter((entry) => normalizeAnimalType(entry?.animalType) === summary.type && entry?.session === "MORNING")
+      .reduce((total, entry) => total + (Number(entry?.milkLiters) || 0), 0);
+
+    const evening = todayEntries
+      .filter((entry) => normalizeAnimalType(entry?.animalType) === summary.type && entry?.session === "EVENING")
+      .reduce((total, entry) => total + (Number(entry?.milkLiters) || 0), 0);
+
+    return {
+      ...summary,
+      morning,
+      evening,
+    };
+  });
+
+  const ownedTypeKeys = Array.from(
+    new Set(farmCattle.map((cattle) => normalizeAnimalType(cattle?.type)))
+  ).sort();
+
+  const chartData = Array.from({ length: daysRange }, (_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (daysRange - 1 - index));
+
+    const isoDate = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+    const row = {
+      rawDate: isoDate,
+      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    };
+
+    ownedTypeKeys.forEach((type) => {
+      row[type] = 0;
+    });
+
+    milkTypeHistory.forEach((entry) => {
+      if (entry?.date !== isoDate) return;
+      const type = normalizeAnimalType(entry?.animalType);
+      if (!ownedTypeKeys.includes(type)) return;
+
+      const selectedValue = historyView === "MORNING"
+        ? Number(entry?.morning) || 0
+        : historyView === "EVENING"
+          ? Number(entry?.evening) || 0
+          : Number(entry?.total) || 0;
+
+      row[type] = selectedValue;
+    });
+
+    return row;
+  });
+
+  const chartSeries = ownedTypeKeys.map((type) => ({
+    key: type,
+    label: formatAnimalTypeLabel(type),
+    color: TYPE_COLORS[type] || TYPE_COLORS.UNKNOWN,
+  }));
+
+  const combinedChartData = chartData.map((row) => ({
+    ...row,
+    COMBINED: ownedTypeKeys.reduce((sum, type) => sum + (Number(row[type]) || 0), 0),
+  }));
+
+  const displayedChartData = historyMode === "COMBINED" ? combinedChartData : chartData;
+  const displayedChartSeries = historyMode === "COMBINED"
+    ? [{ key: "COMBINED", label: t('dashboard.combinedMilkLine'), color: "#2f9e44" }]
+    : chartSeries;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -294,12 +427,12 @@ export function OwnerDashboard() {
       >
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold">
-            Good morning, {user?.name?.split(" ")[0] || "User"}!
+            {t('dashboard.goodMorning', { name: user?.name?.split(" ")[0] || t('common.user') })}
           </h1>
           <p className="text-muted-foreground mt-1">
             {activeFarm
-              ? `Here's what's happening at ${activeFarm.name} today`
-              : "Here's what's happening across your farms today"}
+              ? t('dashboard.happeningAtFarm', { farm: activeFarm.name })
+              : t('dashboard.happeningAcrossFarms')}
           </p>
           {activeFarm && (
             <div className="flex items-center gap-2 mt-2">
@@ -312,7 +445,7 @@ export function OwnerDashboard() {
                     : "border-muted-foreground/30 text-muted-foreground bg-muted/5"
                 )}
               >
-                {currentIsSelling ? "Selling ON" : "Selling OFF"}
+                {currentIsSelling ? t('dashboard.sellingOn') : t('dashboard.sellingOff')}
               </Badge>
               <Button
                 variant="outline"
@@ -328,7 +461,7 @@ export function OwnerDashboard() {
                 ) : (
                   <StorefrontIcon sx={{ fontSize: 14 }} />
                 )}
-                {isToggling ? "Updating..." : currentIsSelling ? "Stop Selling" : "Start Selling"}
+                {isToggling ? t('dashboard.updating') : currentIsSelling ? t('dashboard.stopSelling') : t('dashboard.startSelling')}
               </Button>
               <Button
                 variant="outline"
@@ -342,7 +475,7 @@ export function OwnerDashboard() {
                   setPricesDialogOpen(true);
                 }}
               >
-                Set Prices
+                {t('dashboard.setPrices')}
               </Button>
             </div>
           )}
@@ -351,7 +484,7 @@ export function OwnerDashboard() {
         {!activeFarm && (
           <Button onClick={() => navigate("/farms")}>
             <Warehouse className="w-4 h-4 mr-2" />
-            Select Farm
+            {t('dashboard.selectFarm')}
           </Button>
         )}
       </motion.div>
@@ -361,29 +494,29 @@ export function OwnerDashboard() {
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
-              title="Morning Milk"
+              title="dashboard.morningMilk"
               value={morningMilk != null ? `${morningMilk.toFixed(1)}L` : "—"}
               icon={Milk}
               variant="success"
             />
 
             <StatCard
-              title="Evening Milk"
+              title="dashboard.eveningMilk"
               value={eveningMilk != null ? `${eveningMilk.toFixed(1)}L` : "—"}
               icon={Milk}
               variant="success"
             />
 
             <StatCard
-              title="Active Cattle"
+              title="dashboard.activeCattle"
               value={activeCattleCount ?? "—"}
-              subtitle={herdCount != null ? `Total: ${herdCount}` : ""}
+              subtitle={herdCount != null ? t('dashboard.totalCattle', { count: herdCount }) : ""}
               icon={Beef}
               onClick={() => navigate(`/cattle/${activeFarm.id}`)}
             />
 
             <StatCard
-              title="Workers"
+              title="dashboard.workers"
               value={workerCount ?? "—"}
               icon={Users}
               variant="warning"
@@ -391,44 +524,131 @@ export function OwnerDashboard() {
             />
           </div>
 
+          <div className="bg-card border border-border rounded-xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground text-sm">
+                {t('dashboard.cattleTypeMilkSummary')}
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                {t('dashboard.cattleTypesCount', { count: cattleTypeSummaries.length })}
+              </span>
+            </div>
+
+            {cattleTypeSummaries.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {t('dashboard.noCattleTypes')}
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {cattleTypeSummaries.map((summary) => (
+                  <div key={summary.type} className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold text-foreground">
+                          {formatAnimalTypeLabel(summary.type)}
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          {t('dashboard.cattleTypeCount', { count: summary.count })}
+                        </p>
+                      </div>
+                      <div className="rounded-full bg-primary/10 p-2 text-primary">
+                        <Milk className="w-4 h-4" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                        <p className="text-[11px] font-medium text-emerald-700">
+                          {t('dashboard.morningMilk')}
+                        </p>
+                        <p className="text-sm font-semibold text-foreground">
+                          {summary.morning.toFixed(1)}L
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                        <p className="text-[11px] font-medium text-amber-700">
+                          {t('dashboard.eveningMilk')}
+                        </p>
+                        <p className="text-sm font-semibold text-foreground">
+                          {summary.evening.toFixed(1)}L
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Charts + Controls */}
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
               {/* 7 / 30 Days Toggle */}
-              <div className="flex items-center gap-2">
-                {[7, 30].map((d) => (
-                  <Button
-                    key={d}
-                    size="sm"
-                    variant={daysRange === d ? "default" : "outline"}
-                    className={cn(
-                      daysRange === d && "pointer-events-none"
-                    )}
-                    onClick={() => setDaysRange(d)}
-                  >
-                    {d} Days
-                  </Button>
-                ))}
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                  {[7, 30].map((d) => (
+                    <Button
+                      key={d}
+                      size="sm"
+                      variant={daysRange === d ? "default" : "outline"}
+                      className={cn(
+                        daysRange === d && "pointer-events-none"
+                      )}
+                      onClick={() => setDaysRange(d)}
+                    >
+                      {t('dashboard.days', { count: d })}
+                    </Button>
+                  ))}
+
+                  {[
+                    { value: "SEPARATED", label: t('dashboard.separated') },
+                    { value: "COMBINED", label: t('dashboard.combined') },
+                  ].map((option) => (
+                    <Button
+                      key={option.value}
+                      size="sm"
+                      variant={historyMode === option.value ? "default" : "outline"}
+                      className={cn(historyMode === option.value && "pointer-events-none")}
+                      onClick={() => setHistoryMode(option.value)}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 self-start lg:self-auto">
+                  {[
+                    { value: "TOTAL", label: t('dashboard.total') },
+                    { value: "MORNING", label: t('dashboard.morning') },
+                    { value: "EVENING", label: t('dashboard.evening') },
+                  ].map((option) => (
+                    <Button
+                      key={option.value}
+                      size="sm"
+                      variant={historyView === option.value ? "default" : "outline"}
+                      className={cn(historyView === option.value && "pointer-events-none")}
+                      onClick={() => setHistoryView(option.value)}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
               </div>
 
-              <DailyProductionChart data={milkHistory} />
-
-              {farms.length > 1 && (
-                <FarmComparisonChart farmsData={farms} />
-              )}
+              <DailyProductionChart data={displayedChartData} series={displayedChartSeries} />
 
               {/* Shed Status View */}
               <div className="bg-card border border-border rounded-xl p-4 shadow-card">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-foreground text-sm">
-                    Sheds Status
+                    {t('dashboard.shedsStatus')}
                   </h3>
                   <span className="text-xs text-muted-foreground">
-                    {shedStatusList.length} Sheds
+                    {t('dashboard.shedsCount', { count: shedStatusList.length })}
                   </span>
                 </div>
                 {shedStatusList.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No shed data available.</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.noShedData')}</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {shedStatusList.map((shed, idx) => (
@@ -438,9 +658,9 @@ export function OwnerDashboard() {
                           <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full">{shed.workerInCharge}</span>
                         </div>
                         <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Total: <span className="text-foreground">{shed.totalCattle}</span></span>
-                          <span>Milked: <span className="text-emerald-500 font-medium">{shed.milkedCattle}</span></span>
-                          <span>Remaining: <span className="text-amber-500 font-medium">{shed.remainingCattle}</span></span>
+                          <span>{t('dashboard.totalCattle')}: <span className="text-foreground">{shed.totalCattle}</span></span>
+                          <span>{t('dashboard.milked')}: <span className="text-emerald-500 font-medium">{shed.milkedCattle}</span></span>
+                          <span>{t('dashboard.remaining')}: <span className="text-amber-500 font-medium">{shed.remainingCattle}</span></span>
                         </div>
                       </div>
                     ))}
@@ -455,21 +675,21 @@ export function OwnerDashboard() {
               {/* Orders Management */}
               <div className="bg-card border border-border rounded-xl p-4 shadow-card">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-foreground text-sm">Orders</h3>
+                  <h3 className="font-semibold text-foreground text-sm">{t('dashboard.orders')}</h3>
                   <div className="flex gap-1">
                     <button
                       onClick={() => setOrderTab("pending")}
                       className={cn("text-[10px] px-2 py-0.5 rounded-full border font-medium transition-colors",
                         orderTab === "pending" ? "bg-amber-500 text-white border-amber-500" : "border-border text-muted-foreground hover:bg-muted")}
                     >
-                      Pending ({allOrders.filter(o => o.status === "PENDING").length})
+                      {t('dashboard.pending')} ({allOrders.filter(o => o.status === "PENDING").length})
                     </button>
                     <button
                       onClick={() => setOrderTab("all")}
                       className={cn("text-[10px] px-2 py-0.5 rounded-full border font-medium transition-colors",
                         orderTab === "all" ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-muted")}
                     >
-                      All ({allOrders.length})
+                      {t('dashboard.all')} ({allOrders.length})
                     </button>
                   </div>
                 </div>
@@ -480,7 +700,7 @@ export function OwnerDashboard() {
                     : allOrders;
                   return displayed.length === 0 ? (
                     <p className="text-xs text-muted-foreground">
-                      {orderTab === "pending" ? "No pending orders 🎉" : "No orders yet."}
+                      {orderTab === "pending" ? t('dashboard.noPendingOrders') : t('dashboard.noOrdersYet')}
                     </p>
                   ) : (
                     <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
@@ -488,7 +708,7 @@ export function OwnerDashboard() {
                         <div key={order.id} className="border border-border/60 rounded-md px-3 py-2 text-xs space-y-1.5">
                           <div className="flex items-center justify-between">
                             <span className="font-semibold text-foreground">
-                              {order.buyerName || `Buyer #${order.buyerId}`}
+                              {order.buyerName || t('dashboard.buyer', { id: order.buyerId })}
                             </span>
                             <span className={cn(
                               "px-2 py-0.5 rounded-full text-[10px] font-medium",
@@ -497,7 +717,7 @@ export function OwnerDashboard() {
                               order.status === "CANCELLED" && "bg-red-50 text-red-700 border border-red-200",
                               order.status === "COMPLETED" && "bg-blue-50 text-blue-700 border border-blue-200",
                             )}>
-                              {order.status}
+                              {t(`orders.${order.status.toLowerCase()}`)}
                             </span>
                           </div>
                           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
@@ -537,11 +757,11 @@ export function OwnerDashboard() {
               {/* Subscriptions Panel */}
               <div className="bg-card border border-border rounded-xl p-4 shadow-card">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-foreground text-sm">Subscriptions</h3>
-                  <span className="text-xs text-muted-foreground">{farmSubscriptions.length} total</span>
+                  <h3 className="font-semibold text-foreground text-sm">{t('dashboard.subscriptionsLabel')}</h3>
+                  <span className="text-xs text-muted-foreground">{t('dashboard.totalSubs', { count: farmSubscriptions.length })}</span>
                 </div>
                 {farmSubscriptions.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No subscriptions yet.</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.noSubscriptionsYet')}</p>
                 ) : (
                   <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                     {farmSubscriptions.map((sub) => (
@@ -574,16 +794,16 @@ export function OwnerDashboard() {
               <div className="bg-card border border-border rounded-xl p-4 shadow-card">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-foreground text-sm">
-                    Today's Milk Entries
+                    {t('dashboard.todaysMilkEntries')}
                   </h3>
                   <span className="text-xs text-muted-foreground">
-                    {todayEntries.length} entries
+                    {t('dashboard.entriesCount', { count: todayEntries.length })}
                   </span>
                 </div>
 
                 {todayEntries.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    No milk entries for today yet.
+                    {t('dashboard.noMilkEntriesToday')}
                   </p>
                 ) : (
                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
@@ -597,7 +817,7 @@ export function OwnerDashboard() {
                             {entry.cattleTagId} • {entry.session}
                           </p>
                           <p className="text-[11px] text-muted-foreground">
-                            {entry.milkLiters}L • Milked by: <span className="font-medium text-primary">{entry.workerName || "Unknown Worker"}</span>
+                            {entry.milkLiters}L • {t('dashboard.milkedBy')} <span className="font-medium text-primary">{entry.workerName || t('dashboard.unknownWorker')}</span>
                           </p>
                         </div>
                       </div>
@@ -614,10 +834,10 @@ export function OwnerDashboard() {
       {pricesDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-background rounded-xl p-6 max-w-sm w-full shadow-lg border border-border">
-            <h2 className="text-lg font-bold mb-4">Set Milk Prices</h2>
+            <h2 className="text-lg font-bold mb-4">{t('dashboard.setMilkPrices')}</h2>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-foreground">Cow Milk Price (per Liter)</label>
+                <label className="text-sm font-medium text-foreground">{t('dashboard.cowMilkPrice')}</label>
                 <input
                   type="number"
                   className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -627,7 +847,7 @@ export function OwnerDashboard() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground">Buffalo Milk Price (per Liter)</label>
+                <label className="text-sm font-medium text-foreground">{t('dashboard.buffaloMilkPrice')}</label>
                 <input
                   type="number"
                   className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -637,7 +857,7 @@ export function OwnerDashboard() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground">Sheep Milk Price (per Liter)</label>
+                <label className="text-sm font-medium text-foreground">{t('dashboard.sheepMilkPrice')}</label>
                 <input
                   type="number"
                   className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -647,7 +867,7 @@ export function OwnerDashboard() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground">Goat Milk Price (per Liter)</label>
+                <label className="text-sm font-medium text-foreground">{t('dashboard.goatMilkPrice')}</label>
                 <input
                   type="number"
                   className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -658,9 +878,9 @@ export function OwnerDashboard() {
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
-              <Button variant="outline" onClick={() => setPricesDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setPricesDialogOpen(false)}>{t('common.cancel')}</Button>
               <Button onClick={handleSavePrices} disabled={priceSubmitting}>
-                {priceSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                {priceSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t('common.save')}
               </Button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Search, Plus, Milk as MilkIcon, Trash2 } from "lucide-react";
 import { apiFetch } from "../api/client";
@@ -19,6 +20,7 @@ import { cn } from "../lib/utils";
 export default function CattleList() {
   const { farmId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [cattle, setCattle] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,18 +53,17 @@ export default function CattleList() {
   }, [cattle, search, status]);
 
   const handleDeleteCattle = async (cattleId) => {
-    if (!confirm("Are you sure you want to delete this cattle?")) return;
+    if (!confirm(t('cattle.deleteConfirm'))) return;
 
     try {
       await apiFetch(`/cattle/${cattleId}`, { method: "DELETE" });
       setCattle(cattle.filter((c) => c.id !== cattleId));
     } catch (err) {
-      alert(err.message || "Failed to delete cattle");
+      alert(err.message || t('cattle.cattleDeletedSuccess'));
     }
   };
 
   return (
-
     <div className="space-y-6">
       {/* Header */}
       <motion.div
@@ -72,10 +73,10 @@ export default function CattleList() {
       >
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-            Cattle Management
+            {t('cattle.cattleManagement')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Track and manage your cattle
+            {t('cattle.trackAndManage')}
           </p>
         </div>
         <div className="flex gap-2">
@@ -85,12 +86,12 @@ export default function CattleList() {
             className="gap-2"
           >
             <MilkIcon className="w-4 h-4" />
-            Add Milk
+            {t('cattle.addMilkButton')}
           </Button>
           {isOwner && (
             <Button onClick={() => navigate(`/cattle/add/${farmId}`)} className="gap-2">
               <Plus className="w-5 h-5" />
-              Add Cattle
+              {t('cattle.addCattle')}
             </Button>
           )}
         </div>
@@ -106,7 +107,7 @@ export default function CattleList() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
-            placeholder="Search by tag ID, name, or breed..."
+            placeholder={t('cattle.searchByTagOrBreed')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-12"
@@ -115,20 +116,20 @@ export default function CattleList() {
 
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="w-full sm:w-40 h-12">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder={t('cattle.allStatus')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="ACTIVE">Active</SelectItem>
-            <SelectItem value="SICK">Sick</SelectItem>
-            <SelectItem value="INACTIVE">Inactive</SelectItem>
+            <SelectItem value="all">{t('cattle.allStatus')}</SelectItem>
+            <SelectItem value="ACTIVE">{t('cattle.active')}</SelectItem>
+            <SelectItem value="SICK">{t('cattle.sick')}</SelectItem>
+            <SelectItem value="INACTIVE">{t('cattle.inactive')}</SelectItem>
           </SelectContent>
         </Select>
       </motion.div>
 
       {/* Loading */}
       {loading && (
-        <p className="text-muted-foreground">Loading cattle…</p>
+        <p className="text-muted-foreground">{t('cattle.loadingCattle')}</p>
       )}
 
       {/* Empty */}
@@ -139,7 +140,7 @@ export default function CattleList() {
           className="bg-card border border-border rounded-xl p-12 text-center shadow-card"
         >
           <p className="text-muted-foreground">
-            {search || status !== "all" ? "No cattle found matching your filters." : "No cattle found."}
+            {search || status !== "all" ? t('cattle.noMatchingFilter') : t('cattle.noCattleFound')}
           </p>
         </motion.div>
       )}
@@ -208,35 +209,35 @@ export default function CattleList() {
                 {/* Details */}
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type</span>
+                    <span className="text-muted-foreground">{t('cattle.type')}</span>
                     <span className="font-medium text-foreground">
                       {c.type || "—"}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Shed</span>
+                    <span className="text-muted-foreground">{t('cattle.shed')}</span>
                     <span className="font-medium text-foreground">
-                      {c.shed?.name || "Unassigned"}
+                      {c.shed?.name || t('cattle.unassigned')}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Breed</span>
+                    <span className="text-muted-foreground">{t('cattle.breedLabel')}</span>
                     <span className="font-medium text-foreground">
                       {c.breed || "—"}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Age</span>
+                    <span className="text-muted-foreground">{t('cattle.age')}</span>
                     <span className="font-medium text-foreground">
-                      {c.age != null ? `${c.age} years` : "—"}
+                      {c.age != null ? t('cattle.years', { count: c.age }) : "—"}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Avg. Milk/Day</span>
+                    <span className="text-muted-foreground">{t('cattle.avgMilkDay')}</span>
                     <span className="font-semibold text-foreground">
                       {c.avgMilkPerDay != null ? `${c.avgMilkPerDay.toFixed(2)}L` : "—"}
                     </span>
@@ -246,7 +247,7 @@ export default function CattleList() {
                 {/* Footer */}
                 {c.farmName && (
                   <div className="pt-3 border-t text-sm text-muted-foreground">
-                    Farm:{" "}
+                    {t('cattle.farmLabel')}:{" "}
                     <span className="font-medium text-foreground">
                       {c.farmName}
                     </span>
@@ -258,6 +259,5 @@ export default function CattleList() {
         ))}
       </motion.div>
     </div>
-
   );
 }

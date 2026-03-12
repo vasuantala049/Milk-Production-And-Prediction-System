@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { apiFetch } from "../api/client";
 import { subscriptionApi } from "../api/subscriptionApi";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -18,6 +19,7 @@ import {
 
 export default function PendingOrders() {
     const { farmId } = useParams();
+    const { t } = useTranslation();
     const [orders, setOrders] = useState([]);
     const [subscriptions, setSubscriptions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ export default function PendingOrders() {
             setOrders(ordersData || []);
             setSubscriptions(subsData || []);
         } catch (err) {
-            setError(err.message || "Failed to load pending requests");
+            setError(err.message || t('messages.errorOccurred'));
         } finally {
             setLoading(false);
         }
@@ -53,20 +55,20 @@ export default function PendingOrders() {
             await apiFetch(`/orders/${orderId}/approve`, { method: "PATCH" });
             setOrders(prev => prev.filter(o => o.id !== orderId));
         } catch (err) {
-            alert(err.message || "Failed to approve order");
+            alert(err.message || t('messages.errorOccurred'));
         } finally {
             setProcessingId(null);
         }
     };
 
     const handleRejectOrder = async (orderId) => {
-        if (!confirm("Are you sure you want to reject this order?")) return;
+        if (!confirm(t('pendingOrders.rejectOrderConfirm'))) return;
         setProcessingId(orderId);
         try {
             await apiFetch(`/orders/${orderId}/reject`, { method: "PATCH" });
             setOrders(prev => prev.filter(o => o.id !== orderId));
         } catch (err) {
-            alert(err.message || "Failed to reject order");
+            alert(err.message || t('messages.errorOccurred'));
         } finally {
             setProcessingId(null);
         }
@@ -78,20 +80,20 @@ export default function PendingOrders() {
             await subscriptionApi.approveSubscription(subId, farmId);
             setSubscriptions(prev => prev.filter(s => s.id !== subId));
         } catch (err) {
-            alert(err.message || "Failed to approve subscription");
+            alert(err.message || t('messages.errorOccurred'));
         } finally {
             setProcessingId(null);
         }
     };
 
     const handleRejectSubscription = async (subId) => {
-        if (!confirm("Are you sure you want to reject this subscription?")) return;
+        if (!confirm(t('pendingOrders.rejectSubConfirm'))) return;
         setProcessingId(subId);
         try {
             await subscriptionApi.rejectSubscription(subId, farmId);
             setSubscriptions(prev => prev.filter(s => s.id !== subId));
         } catch (err) {
-            alert(err.message || "Failed to reject subscription");
+            alert(err.message || t('messages.errorOccurred'));
         } finally {
             setProcessingId(null);
         }
@@ -105,30 +107,30 @@ export default function PendingOrders() {
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-4xl font-display font-bold text-foreground tracking-tight">
-                        Pending Requests
+                        {t('pendingOrders.pendingRequests')}
                     </h1>
                     <p className="text-muted-foreground mt-2 text-lg">
-                        Manage your incoming milk orders and subscription requests
+                        {t('pendingOrders.manageIncoming')}
                     </p>
                 </div>
                 <div className="flex bg-muted/50 p-1 rounded-xl border border-border/50">
                     <button
                         onClick={() => setActiveTab("orders")}
                         className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "orders"
-                                ? "bg-card text-foreground shadow-sm ring-1 ring-border/50"
-                                : "text-muted-foreground hover:text-foreground"
+                            ? "bg-card text-foreground shadow-sm ring-1 ring-border/50"
+                            : "text-muted-foreground hover:text-foreground"
                             }`}
                     >
-                        One-Time ({orders.length})
+                        {t('pendingOrders.oneTimeOrders')} ({orders.length})
                     </button>
                     <button
                         onClick={() => setActiveTab("subscriptions")}
                         className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "subscriptions"
-                                ? "bg-card text-foreground shadow-sm ring-1 ring-border/50"
-                                : "text-muted-foreground hover:text-foreground"
+                            ? "bg-card text-foreground shadow-sm ring-1 ring-border/50"
+                            : "text-muted-foreground hover:text-foreground"
                             }`}
                     >
-                        Subscriptions ({subscriptions.length})
+                        {t('pendingOrders.subscriptionsTab')} ({subscriptions.length})
                     </button>
                 </div>
             </header>
@@ -149,7 +151,7 @@ export default function PendingOrders() {
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="flex flex-col items-center gap-4">
                             <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                            <p className="text-muted-foreground font-medium animate-pulse">Loading requests...</p>
+                            <p className="text-muted-foreground font-medium animate-pulse">{t('pendingOrders.loadingRequests')}</p>
                         </div>
                     </div>
                 ) : (
@@ -163,7 +165,7 @@ export default function PendingOrders() {
                                 className="grid gap-6"
                             >
                                 {orders.length === 0 ? (
-                                    <EmptyState message="No pending one-time orders found" />
+                                    <EmptyState message={t('pendingOrders.noPendingOrders')} />
                                 ) : (
                                     orders.map((order) => (
                                         <RequestCard
@@ -174,6 +176,7 @@ export default function PendingOrders() {
                                             processingId={processingId}
                                             onApprove={handleApproveOrder}
                                             onReject={handleRejectOrder}
+                                            t={t}
                                         />
                                     ))
                                 )}</motion.div>
@@ -186,7 +189,7 @@ export default function PendingOrders() {
                                 className="grid gap-6"
                             >
                                 {subscriptions.length === 0 ? (
-                                    <EmptyState message="No pending subscription requests found" />
+                                    <EmptyState message={t('pendingOrders.noPendingSubscriptions')} />
                                 ) : (
                                     subscriptions.map((sub) => (
                                         <RequestCard
@@ -197,6 +200,7 @@ export default function PendingOrders() {
                                             processingId={processingId}
                                             onApprove={handleApproveSubscription}
                                             onReject={handleRejectSubscription}
+                                            t={t}
                                         />
                                     ))
                                 )}
@@ -209,7 +213,7 @@ export default function PendingOrders() {
     );
 }
 
-function RequestCard({ type, data, isOwner, processingId, onApprove, onReject }) {
+function RequestCard({ type, data, isOwner, processingId, onApprove, onReject, t }) {
     const isProcessing = processingId === data.id;
 
     return (
@@ -222,36 +226,36 @@ function RequestCard({ type, data, isOwner, processingId, onApprove, onReject })
                         </div>
                         <div>
                             <CardTitle className="text-base font-bold">
-                                {type === 'order' ? `Order #${data.id}` : `Subscription Request #${data.id}`}
+                                {type === 'order' ? t('pendingOrders.orderId', { id: data.id }) : t('pendingOrders.subscriptionRequest', { id: data.id })}
                             </CardTitle>
                             <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                                {type === 'order' ? 'One-Time Purchase' : 'Recurring Subscription'}
+                                {type === 'order' ? t('pendingOrders.oneTimePurchase') : t('pendingOrders.recurringSubscription')}
                             </p>
                         </div>
                     </div>
                     <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700 font-bold px-3 py-1">
-                        PENDING
+                        {t('pendingOrders.pending')}
                     </Badge>
                 </div>
             </CardHeader>
             <CardContent className="pt-6 pb-6">
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-8">
-                    <DetailItem icon={<User size={14} />} label="Buyer Details">
+                    <DetailItem icon={<User size={14} />} label={t('pendingOrders.buyerDetails')}>
                         <span className="font-bold text-foreground">
                             {data.buyerName || data.buyerEmail || `ID: ${data.buyerId}`}
                         </span>
                     </DetailItem>
-                    <DetailItem icon={<Milk size={14} />} label="Quantity">
+                    <DetailItem icon={<Milk size={14} />} label={t('pendingOrders.quantity')}>
                         <span className="font-bold text-foreground">{data.quantity}L</span>
-                        {type === 'subscription' && <span className="text-muted-foreground ml-1">/ day</span>}
+                        {type === 'subscription' && <span className="text-muted-foreground ml-1">{t('pendingOrders.perDay')}</span>}
                     </DetailItem>
-                    <DetailItem icon={<Clock size={14} />} label="Session Slot">
+                    <DetailItem icon={<Clock size={14} />} label={t('pendingOrders.sessionSlot')}>
                         <span className="font-bold text-foreground">{data.session}</span>
                     </DetailItem>
-                    <DetailItem icon={<Milk size={14} />} label="Milk Type">
-                        <span className="font-bold text-foreground">{data.animalType || 'Any'}</span>
+                    <DetailItem icon={<Milk size={14} />} label={t('pendingOrders.milkType')}>
+                        <span className="font-bold text-foreground">{data.animalType || t('pendingOrders.any')}</span>
                     </DetailItem>
-                    <DetailItem icon={<Calendar size={14} />} label={type === 'order' ? "Order Date" : "Start Date"}>
+                    <DetailItem icon={<Calendar size={14} />} label={type === 'order' ? t('pendingOrders.orderDate') : t('pendingOrders.startDate')}>
                         <span className="font-bold text-foreground">{type === 'order' ? data.orderDate : data.startDate}</span>
                     </DetailItem>
                 </div>
@@ -266,12 +270,12 @@ function RequestCard({ type, data, isOwner, processingId, onApprove, onReject })
                             {isProcessing ? (
                                 <div className="flex items-center gap-2">
                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>Processing...</span>
+                                    <span>{t('pendingOrders.processing')}</span>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <CheckCircleIcon size={18} />
-                                    <span>Approve {type === 'order' ? 'Order' : 'Subscription'}</span>
+                                    <span>{type === 'order' ? t('pendingOrders.approveOrder') : t('pendingOrders.approveSubscription')}</span>
                                 </div>
                             )}
                         </Button>
@@ -283,7 +287,7 @@ function RequestCard({ type, data, isOwner, processingId, onApprove, onReject })
                         >
                             <div className="flex items-center gap-2">
                                 <CancelIcon size={18} />
-                                <span>Reject Request</span>
+                                <span>{t('pendingOrders.rejectRequest')}</span>
                             </div>
                         </Button>
                     </div>

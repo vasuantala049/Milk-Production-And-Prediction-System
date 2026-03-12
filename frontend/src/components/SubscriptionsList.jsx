@@ -15,9 +15,11 @@ import {
   ToggleButtonGroup,
   ToggleButton,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { subscriptionApi } from '../api/subscriptionApi';
 
 const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
+  const { t } = useTranslation();
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,7 +41,7 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
       }
       setSubscriptions(data);
     } catch (err) {
-      setError(err.message || 'Failed to load subscriptions');
+      setError(err.message || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -87,27 +89,27 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
           }}
           size="small"
         >
-          <ToggleButton value="ALL">All</ToggleButton>
-          <ToggleButton value="ACTIVE">Active</ToggleButton>
-          <ToggleButton value="CANCELLED">Cancelled</ToggleButton>
-          <ToggleButton value="COMPLETED">Completed</ToggleButton>
+          <ToggleButton value="ALL">{t('common.all')}</ToggleButton>
+          <ToggleButton value="ACTIVE">{t('common.active')}</ToggleButton>
+          <ToggleButton value="CANCELLED">{t('common.cancelled')}</ToggleButton>
+          <ToggleButton value="COMPLETED">{t('common.completed')}</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
       {subscriptions.length === 0 ? (
-        <Alert severity="info">No subscriptions found for this farm.</Alert>
+        <Alert severity="info">{t('subscriptions.noSubscriptionsStatus')}</Alert>
       ) : (
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell><strong>ID</strong></TableCell>
-                <TableCell><strong>Customer ID</strong></TableCell>
-                <TableCell><strong>Quantity (L)</strong></TableCell>
-                <TableCell><strong>Session</strong></TableCell>
-                <TableCell><strong>Start Date</strong></TableCell>
-                <TableCell><strong>End Date</strong></TableCell>
-                <TableCell><strong>Status</strong></TableCell>
+                <TableCell><strong>{t('subscriptions.id')}</strong></TableCell>
+                <TableCell><strong>{t('subscriptions.customerId')}</strong></TableCell>
+                <TableCell><strong>{t('orders.quantityLiters')}</strong></TableCell>
+                <TableCell><strong>{t('orders.session')}</strong></TableCell>
+                <TableCell><strong>{t('subscriptions.startDate')}</strong></TableCell>
+                <TableCell><strong>{t('subscriptions.endDate')}</strong></TableCell>
+                <TableCell><strong>{t('orders.status')}</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -127,10 +129,10 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
                     />
                   </TableCell>
                   <TableCell>{sub.startDate}</TableCell>
-                  <TableCell>{sub.endDate || 'Ongoing'}</TableCell>
+                  <TableCell>{sub.endDate || t('subscriptions.ongoing')}</TableCell>
                   <TableCell>
                     <Chip
-                      label={sub.status}
+                      label={t(`common.${sub.status.toLowerCase()}`, sub.status)}
                       size="small"
                       color={getStatusColor(sub.status)}
                     />
@@ -143,7 +145,7 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
       )}
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-        Total Subscriptions: {subscriptions.length}
+        {t('subscriptions.totalSubscriptionsCount', { count: subscriptions.length })}
       </Typography>
     </Box>
   );

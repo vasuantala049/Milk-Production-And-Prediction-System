@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { CheckCircle, Clock, Milk, Beef, Plus } from "lucide-react";
@@ -12,6 +13,7 @@ import { Grid, Box, Typography } from "@mui/material"; // Assuming MUI component
 
 export function WorkerDashboard() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [farms, setFarms] = useState([]);
   const [myProfileOptions, setMyProfileOptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,8 +21,11 @@ export function WorkerDashboard() {
   const [user, setUser] = useState(null);
   const [cattle, setCattle] = useState([]);
   const [todayEntries, setTodayEntries] = useState([]);
+  const [farmTodayEntries, setFarmTodayEntries] = useState([]);
   const [showEntries, setShowEntries] = useState(false);
   const [showFarmSelection, setShowFarmSelection] = useState(false);
+  const [invitations, setInvitations] = useState([]);
+  const [invitationMsg, setInvitationMsg] = useState({ type: '', text: '' });
 
   // Resolve active farm from localStorage (if set) or fall back to first assigned farm
   const [activeFarmId, setActiveFarmId] = useState(() => {
@@ -35,16 +40,52 @@ export function WorkerDashboard() {
   const activeFarm = farms.find((f) => f.id === activeFarmId) || null;
   const farmId = activeFarm?.id;
 
+  const fetchInvitations = async () => {
+    try {
+      const data = await apiFetch('/users/me/invitations');
+      setInvitations(Array.isArray(data) ? data : []);
+    } catch {
+      setInvitations([]);
+    }
+  };
+
+  const respondToInvitation = async (invitationId, accept) => {
+    try {
+      await apiFetch(`/users/me/invitations/${invitationId}/respond?accept=${accept}`, { method: 'POST' });
+      setInvitationMsg({ type: 'success', text: accept ? t('workers.invitationAccepted') : t('workers.invitationDeclined') });
+      fetchInvitations();
+      if (accept) {
+        // Reload farms to show the newly accepted farm
+        const farmsData = await apiFetch('/farms/me');
+        setFarms(farmsData || []);
+      }
+      setTimeout(() => setInvitationMsg({ type: '', text: '' }), 3000);
+    } catch (err) {
+      setInvitationMsg({ type: 'error', text: err?.message || t('workers.assignError') });
+    }
+  };
+
   const refreshTodayEntries = async () => {
     if (farmId) {
       try {
-        const entriesData = await apiFetch(`/milk/today/entries?farmId=${farmId}`).catch(() => []);
+        const timestamp = Date.now();
+        const [entriesData, allEntriesData] = await Promise.all([
+          apiFetch(`/milk/today/entries?farmId=${farmId}&t=${timestamp}`).catch(() => []),
+          apiFetch(`/milk/today/entries?farmId=${farmId}&includeAllEntries=true&t=${timestamp}`).catch(() => [])
+        ]);
         setTodayEntries(Array.isArray(entriesData) ? entriesData : []);
+        setFarmTodayEntries(Array.isArray(allEntriesData) ? allEntriesData : []);
       } catch (err) {
         setTodayEntries([]);
+        setFarmTodayEntries([]);
       }
     }
   };
+
+  // Load invitations on mount
+  useEffect(() => {
+    fetchInvitations();
+  }, []);
 
   // Load farms assigned to this worker
   useEffect(() => {
@@ -101,22 +142,26 @@ export function WorkerDashboard() {
       if (!farmId) {
         setCattle([]);
         setTodayEntries([]);
+        setFarmTodayEntries([]);
         setLoading(false);
         return;
       }
       setLoading(true);
       try {
-        const [cattleData, entriesData] = await Promise.all([
+        const [cattleData, entriesData, allEntriesData] = await Promise.all([
           apiFetch(`/cattle/farm/${farmId}`).catch(() => []),
-          apiFetch(`/milk/today/entries?farmId=${farmId}`).catch(() => [])
+          apiFetch(`/milk/today/entries?farmId=${farmId}`).catch(() => []),
+          apiFetch(`/milk/today/entries?farmId=${farmId}&includeAllEntries=true`).catch(() => [])
         ]);
         if (!mounted) return;
         setCattle(Array.isArray(cattleData) ? cattleData : []);
         setTodayEntries(Array.isArray(entriesData) ? entriesData : []);
+        setFarmTodayEntries(Array.isArray(allEntriesData) ? allEntriesData : []);
       } catch (err) {
         if (!mounted) return;
         setCattle([]);
         setTodayEntries([]);
+        setFarmTodayEntries([]);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -136,18 +181,31 @@ export function WorkerDashboard() {
     return () => window.removeEventListener('focus', handleFocus);
   }, [farmId]);
 
+  // Auto-refresh entries every 2 seconds to sync across multiple workers in same shed
+  useEffect(() => {
+    if (!farmId) return;
+    // Refresh immediately when farm changes
+    refreshTodayEntries();
+    // Then set up interval for continuous sync
+    const interval = setInterval(() => {
+      refreshTodayEntries();
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [farmId]);
+
   if (showFarmSelection || !activeFarm) {
     return (
+      <>
       <div className="space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-            Select a Farm
+            {t('workerDashboard.selectFarm')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Pick a farm to start recording data
+            {t('workerDashboard.pickFarmDescription')}
           </p>
         </motion.div>
 
@@ -170,7 +228,7 @@ export function WorkerDashboard() {
                     <div className="flex items-start justify-between mb-4">
                       <h4 className="font-semibold text-lg text-foreground">{farm.name}</h4>
                       <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                        View
+                        {t('workerDashboard.view')}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">{farm.address || "—"}</p>
@@ -178,7 +236,7 @@ export function WorkerDashboard() {
                     <div className="flex flex-wrap gap-1 mt-2">
                       {mySheds.length > 0 ? mySheds.map(s => (
                         <Badge key={s.id} variant="secondary" className="text-[10px] py-0 px-2">📍 {s.name}</Badge>
-                      )) : <span className="text-xs italic text-muted-foreground">All Shades</span>}
+                      )) : <span className="text-xs italic text-muted-foreground">{t('workerDashboard.allShades')}</span>}
                     </div>
                   </CardContent>
                 </Card>
@@ -189,10 +247,47 @@ export function WorkerDashboard() {
 
         {farms.length === 0 && !loading && (
           <div className="py-20 text-center">
-            <p className="text-muted-foreground italic">No farms assigned yet.</p>
+            <p className="text-muted-foreground italic">{t('workerDashboard.noFarmsAssigned')}</p>
           </div>
         )}
-      </div>
+    </div>
+
+      {/* Pending invitations panel */}
+      {invitations.length > 0 && (
+        <div className="mt-8 bg-card border border-yellow-300 rounded-xl p-5 shadow-card">
+          <h3 className="font-semibold text-foreground mb-3">{t('workers.pendingInvitations')}</h3>
+          {invitationMsg.text && (
+            <div className={`mb-3 px-3 py-2 rounded text-sm ${invitationMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+              {invitationMsg.text}
+            </div>
+          )}
+          <div className="space-y-3">
+            {invitations.map((inv) => (
+              <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-border rounded-lg px-4 py-3">
+                <div>
+                  <p className="font-medium text-foreground">{inv.farmName}</p>
+                  <p className="text-sm text-muted-foreground">{inv.farmAddress || '—'}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => respondToInvitation(inv.id, true)}
+                    className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors"
+                  >
+                    {t('workers.accept')}
+                  </button>
+                  <button
+                    onClick={() => respondToInvitation(inv.id, false)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300 transition-colors"
+                  >
+                    {t('workers.decline')}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      </>
     );
   }
 
@@ -215,17 +310,17 @@ export function WorkerDashboard() {
               onClick={() => setShowFarmSelection(true)}
               className="text-primary text-xs h-7"
             >
-              Switch Farm
+              {t('workerDashboard.switchFarm')}
             </Button>
           </div>
           <p className="text-muted-foreground">
-            {user?.name?.split(' ')[0] || "Worker"}'s Workspace
+            {user?.name?.split(' ')[0] || t('dashboard.welcome')}{t('workerDashboard.workspaceLabel')}
           </p>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => navigate(`/milk/add/${farmId}`)} className="gap-2">
             <Plus className="w-5 h-5" />
-            Add Milk Entry
+            {t('workerDashboard.addMilkEntry')}
           </Button>
         </div>
       </motion.div>
@@ -243,7 +338,7 @@ export function WorkerDashboard() {
           if (todayEntries.length > 0) setShowEntries((prev) => !prev);
         }}
       >
-        <h3 className="font-semibold text-foreground mb-4">Today's Entry Status</h3>
+        <h3 className="font-semibold text-foreground mb-4">{t('workerDashboard.todayEntryStatus')}</h3>
         <div className="flex items-center gap-4">
           <div className={cn(
             "p-3 rounded-xl",
@@ -258,13 +353,13 @@ export function WorkerDashboard() {
           <div>
             <p className="font-medium text-foreground">
               {todayEntries.length > 0
-                ? `${todayEntries.length} entries recorded`
-                : 'No entries yet today'}
+                ? t('workerDashboard.entriesRecorded', { count: todayEntries.length })
+                : t('workerDashboard.noEntriesYet')}
             </p>
             <p className="text-sm text-muted-foreground">
               {todayEntries.length > 0
-                ? `Keep up the good work!`
-                : 'Start recording milk collection'}
+                ? t('workerDashboard.keepUpGoodWork')
+                : t('workerDashboard.startRecordingMilk')}
             </p>
           </div>
         </div>
@@ -277,9 +372,9 @@ export function WorkerDashboard() {
           className="bg-card border border-border rounded-xl p-5 shadow-card"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-foreground">Today's Entries</h3>
+            <h3 className="font-semibold text-foreground">{t('workerDashboard.todayEntries')}</h3>
             <Button variant="outline" size="sm" onClick={() => setShowEntries(false)}>
-              Close
+              {t('workerDashboard.close')}
             </Button>
           </div>
           <div className="space-y-2">
@@ -338,19 +433,19 @@ export function WorkerDashboard() {
             className="bg-card border border-border rounded-xl p-5 shadow-card"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground">Cattle for Milking</h3>
+              <h3 className="font-semibold text-foreground">{t('workerDashboard.cattleForMilking')}</h3>
               <Badge variant="secondary" className="font-normal">
-                {cattleToShow.length} cattle in your shades
+                {t('workerDashboard.cattleInYourShades', { count: cattleToShow.length })}
               </Badge>
             </div>
             <div className="divide-y divide-border">
               {cattleToShow
                 .map((c) => {
                   // Check which sessions are completed for this cattle
-                  const hasMorning = todayEntries.some(
+                  const hasMorning = farmTodayEntries.some(
                     e => e.cattleTagId === c.tagId && e.session === "MORNING"
                   );
-                  const hasEvening = todayEntries.some(
+                  const hasEvening = farmTodayEntries.some(
                     e => e.cattleTagId === c.tagId && e.session === "EVENING"
                   );
 
@@ -402,8 +497,8 @@ export function WorkerDashboard() {
               {/* If all visible cattle have their sessions completed */}
               {cattleToShow.length > 0 &&
                 cattleToShow.every(c =>
-                  todayEntries.some(e => e.cattleTagId === c.tagId && e.session === "MORNING") &&
-                  todayEntries.some(e => e.cattleTagId === c.tagId && e.session === "EVENING")
+                  farmTodayEntries.some(e => e.cattleTagId === c.tagId && e.session === "MORNING") &&
+                  farmTodayEntries.some(e => e.cattleTagId === c.tagId && e.session === "EVENING")
                 ) && (
                   <div className="py-8 text-center">
                     <p className="text-sm text-muted-foreground">✅ All milking for your assigned cattle is complete!</p>
@@ -421,6 +516,47 @@ export function WorkerDashboard() {
           className="bg-card border border-border rounded-xl p-12 text-center shadow-card"
         >
           <p className="text-muted-foreground">No farms assigned yet.</p>
+        </motion.div>
+      )}
+
+      {/* Pending invitations panel */}
+      {invitations.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-card border border-yellow-300 rounded-xl p-5 shadow-card"
+        >
+          <h3 className="font-semibold text-foreground mb-3">{t('workers.pendingInvitations')}</h3>
+          {invitationMsg.text && (
+            <div className={`mb-3 px-3 py-2 rounded text-sm ${invitationMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+              {invitationMsg.text}
+            </div>
+          )}
+          <div className="space-y-3">
+            {invitations.map((inv) => (
+              <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-border rounded-lg px-4 py-3">
+                <div>
+                  <p className="font-medium text-foreground">{inv.farmName}</p>
+                  <p className="text-sm text-muted-foreground">{inv.farmAddress || '—'}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => respondToInvitation(inv.id, true)}
+                    className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors"
+                  >
+                    {t('workers.accept')}
+                  </button>
+                  <button
+                    onClick={() => respondToInvitation(inv.id, false)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300 transition-colors"
+                  >
+                    {t('workers.decline')}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </motion.div>
       )}
     </div>
