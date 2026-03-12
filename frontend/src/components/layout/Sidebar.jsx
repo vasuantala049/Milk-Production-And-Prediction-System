@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 import {
@@ -15,10 +16,12 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -48,10 +51,10 @@ export function Sidebar() {
           </div>
           <div>
             <h1 className="font-display font-bold text-lg text-sidebar-foreground">
-              DairyFlow
+              {t('common.appName')}
             </h1>
             <p className="text-xs text-sidebar-foreground/60">
-              Farm Management
+              {t('common.tagline')}
             </p>
           </div>
         </Link>
@@ -72,7 +75,7 @@ export function Sidebar() {
           )}
         >
           <LayoutDashboard className="w-5 h-5" />
-          <span className="font-medium">Dashboard</span>
+          <span className="font-medium">{t('navigation.dashboard')}</span>
         </Link>
 
         {/* Farms - Hide for WORKER and CUSTOMER (Only OWNER sees this) */}
@@ -89,7 +92,7 @@ export function Sidebar() {
             )}
           >
             <Warehouse className="w-5 h-5" />
-            <span className="font-medium">Farms</span>
+            <span className="font-medium">{t('navigation.farms')}</span>
           </Link>
         )}
 
@@ -106,7 +109,7 @@ export function Sidebar() {
             )}
           >
             <Beef className="w-5 h-5" />
-            <span className="font-medium flex-1">Cattle</span>
+            <span className="font-medium flex-1">{t('cattle.cattle')}</span>
           </button>
         )}
 
@@ -124,7 +127,7 @@ export function Sidebar() {
             )}
           >
             <ShoppingBag className="w-5 h-5" />
-            <span className="font-medium">My Orders</span>
+            <span className="font-medium">{t('orders.myOrders')}</span>
           </Link>
         )}
       </nav>
@@ -157,8 +160,12 @@ export function Sidebar() {
           onClick={handleLogout}
         >
           <LogOut className="w-4 h-4 mr-3" />
-          Logout
+          {t('navigation.logout')}
         </Button>
+
+        <div className="mt-4 pt-4 border-t border-sidebar-border">
+          <LanguageSwitcher />
+        </div>
       </div>
     </div>
   );
@@ -178,7 +185,7 @@ export function Sidebar() {
             <Milk className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
           <span className="font-display font-bold text-sidebar-foreground">
-            DairyFlow
+            {t('common.appName')}
           </span>
         </div>
       </div>

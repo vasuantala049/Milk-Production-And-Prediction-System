@@ -1,19 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { apiFetch } from "../api/client";
-import { Card, CardContent, Button, TextField, Stack, Alert, Select, MenuItem, OutlinedInput, Checkbox, ListItemText } from '@mui/material';
+import { Card, CardContent, Button, TextField, Stack, Alert, Select, MenuItem, OutlinedInput, Checkbox, ListItemText, Chip } from '@mui/material';
 
 export default function WorkersList() {
   const { farmId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assignEmail, setAssignEmail] = useState("");
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState("");
   const [assignSuccess, setAssignSuccess] = useState("");
+  const [pendingInvitations, setPendingInvitations] = useState([]);
 
-  // New state for shades and inline editing
   const [shades, setShades] = useState([]);
   const [editingWorkerId, setEditingWorkerId] = useState(null);
   const [editShedIds, setEditShedIds] = useState([]);
@@ -21,6 +23,7 @@ export default function WorkersList() {
   useEffect(() => {
     refreshWorkers();
     loadShades();
+    refreshInvitations();
   }, [farmId]);
 
   const loadShades = async () => {
@@ -40,12 +43,21 @@ export default function WorkersList() {
       .finally(() => setLoading(false));
   };
 
+  const refreshInvitations = async () => {
+    try {
+      const data = await apiFetch(`/farms/${farmId}/invitations`);
+      setPendingInvitations(data || []);
+    } catch (err) {
+      setPendingInvitations([]);
+    }
+  };
+
   const handleAssignExisting = async (e) => {
     e.preventDefault();
     setAssignError("");
     setAssignSuccess("");
     if (!assignEmail) {
-      setAssignError("Enter a worker email");
+      setAssignError(t('workers.enterWorkerEmail'));
       return;
     }
     setAssignLoading(true);
@@ -54,11 +66,11 @@ export default function WorkersList() {
         method: "POST",
         body: JSON.stringify({ email: assignEmail })
       });
-      setAssignSuccess("Worker assigned");
+      setAssignSuccess(t('workers.invitationSent'));
       setAssignEmail("");
-      refreshWorkers();
+      refreshInvitations();
     } catch (err) {
-      setAssignError(err?.message || "Failed to assign worker");
+      setAssignError(err?.message || t('workers.assignError'));
     } finally {
       setAssignLoading(false);
     }
@@ -68,24 +80,24 @@ export default function WorkersList() {
     <div className="min-h-screen bg-background px-4 py-6">
       <div className="max-w-4xl mx-auto">
         <div className="mb-4">
-          <Button onClick={() => navigate('/dashboard')} variant="text">← Back to Dashboard</Button>
+          <Button onClick={() => navigate('/dashboard')} variant="text">{t('workers.backToDashboard')}</Button>
         </div>
 
-
-
+        {/* Send invitation card */}
         <Card className="mb-4">
           <CardContent>
+            <p className="text-sm text-gray-500 mb-3">{t('workers.invitationHint')}</p>
             <form onSubmit={handleAssignExisting}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
                 <TextField
-                  label="Worker Email"
+                  label={t('workers.workerEmail')}
                   type="email"
                   value={assignEmail}
                   onChange={(e) => setAssignEmail(e.target.value)}
                   size="small"
                 />
                 <Button variant="contained" color="success" type="submit" disabled={assignLoading}>
-                  {assignLoading ? "Assigning..." : "Assign to Farm"}
+                  {assignLoading ? t('workers.assignLoading') : t('workers.sendInvitation')}
                 </Button>
               </Stack>
             </form>
@@ -94,17 +106,36 @@ export default function WorkersList() {
           </CardContent>
         </Card>
 
+        {/* Pending invitations */}
+        {pendingInvitations.length > 0 && (
+          <Card className="mb-4">
+            <CardContent>
+              <p className="font-semibold mb-2">{t('workers.pendingInvitations')} ({pendingInvitations.length})</p>
+              <div className="space-y-2">
+                {pendingInvitations.map((inv) => (
+                  <div key={inv.id} className="flex items-center justify-between border rounded-lg px-3 py-2">
+                    <div>
+                      <p className="font-medium">{inv.workerName}</p>
+                      <p className="text-sm text-gray-500">{inv.workerEmail}</p>
+                    </div>
+                    <Chip label={t('workers.awaitingResponse')} color="warning" size="small" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {!loading && workers.length === 0 && (
-          <p className="italic text-gray-600">No workers assigned to this farm</p>
+          <p className="italic text-gray-600">{t('workers.noWorkersAssigned')}</p>
         )}
 
         <div className="space-y-3 mb-32">
           {workers.map((w) => {
             const isEditing = editingWorkerId === w.id;
-            // w.sheds is now an array of objects: [{ id, name }]
             const currentShadesText = w.sheds && w.sheds.length > 0
               ? w.sheds.map(s => s.name).join(", ")
-              : "All Sheds / Unassigned";
+              : t('workers.allShedsUnassigned');
 
             return (
               <Card key={w.id} className="rounded-xl">
@@ -115,7 +146,7 @@ export default function WorkersList() {
                       <p className="text-sm text-gray-500">{w.email}</p>
                     </div>
                     <div className="text-right min-w-[250px]">
-                      <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Assigned Shades</p>
+                      <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{t('workers.assignedShades')}</p>
 
                       {isEditing ? (
                         <div className="flex flex-col gap-2">
@@ -127,7 +158,7 @@ export default function WorkersList() {
                             onChange={(e) => setEditShedIds(e.target.value)}
                             input={<OutlinedInput size="small" />}
                             renderValue={(selected) => {
-                              if (selected.length === 0) return <em>None</em>;
+                              if (selected.length === 0) return <em>{t('cattle.none')}</em>;
                               return shades
                                 .filter((s) => selected.includes(s.id))
                                 .map((s) => s.name)
@@ -147,7 +178,7 @@ export default function WorkersList() {
                               variant="outlined"
                               onClick={() => setEditingWorkerId(null)}
                             >
-                              Cancel
+                              {t('common.cancel')}
                             </Button>
                             <Button
                               size="small"
@@ -165,7 +196,7 @@ export default function WorkersList() {
                                 }
                               }}
                             >
-                              Save
+                              {t('common.save')}
                             </Button>
                           </Stack>
                         </div>
@@ -180,7 +211,7 @@ export default function WorkersList() {
                               setEditingWorkerId(w.id);
                             }}
                           >
-                            Edit Shades
+                            {t('workers.editShades')}
                           </Button>
                         </>
                       )}

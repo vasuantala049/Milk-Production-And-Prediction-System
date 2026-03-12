@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Milk, Beef, Users, Warehouse, Layers, ShoppingBag } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 const variantStyles = {
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
@@ -10,43 +11,44 @@ const variantStyles = {
 };
 
 export function QuickActions() {
+  const { t } = useTranslation();
   const activeFarm = JSON.parse(localStorage.getItem("activeFarm") || "null");
   const farmId = activeFarm?.id;
 
   const actions = [
     {
       icon: Milk,
-      label: 'Add Milk Entry',
+      label: t('dashboard.addMilkEntry'),
       href: farmId ? `/milk/add/${farmId}` : '/farms',
       variant: 'primary'
     },
     {
       icon: Beef,
-      label: 'Add Cattle',
+      label: t('dashboard.addCattle'),
       href: farmId ? `/cattle/add/${farmId}` : '/farms',
       variant: 'secondary'
     },
     {
       icon: Warehouse,
-      label: 'Manage Farms',
+      label: t('dashboard.manageFarms'),
       href: '/farms',
       variant: 'secondary'
     },
     {
       icon: Layers,
-      label: 'Manage Shades',
+      label: t('dashboard.manageShades'),
       href: farmId ? `/farms/${farmId}/sheds` : '/farms',
       variant: 'secondary'
     },
     {
       icon: ShoppingBag,
-      label: 'Manage Orders',
+      label: t('dashboard.manageOrders'),
       href: farmId ? `/farms/${farmId}/orders` : '/farms',
       variant: 'secondary'
     },
     {
       icon: Users,
-      label: 'Subscriptions',
+      label: t('dashboard.subscriptions'),
       href: farmId ? `/farms/${farmId}/subscriptions` : '/farms',
       variant: 'secondary'
     },
@@ -59,7 +61,7 @@ export function QuickActions() {
       transition={{ duration: 0.4, delay: 0.2 }}
       className="bg-card border border-border rounded-xl p-5 shadow-card"
     >
-      <h3 className="font-semibold text-foreground mb-4">Quick Actions</h3>
+      <h3 className="font-semibold text-foreground mb-4">{t('dashboard.quickActions')}</h3>
       <div className="grid grid-cols-2 gap-3">
         {actions.map((action, index) => {
           const Icon = action.icon;

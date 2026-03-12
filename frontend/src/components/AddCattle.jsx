@@ -1,93 +1,6 @@
-// import { useState } from "react";
-// import { useParams, useNavigate } from "react-router-dom";
-// import { apiFetch } from "../api/client";
-// import BarcodeScanner from "./BarcodeScanner";
-
-// export default function AddCattle() {
-//   const { farmId } = useParams();
-//   const navigate = useNavigate();
-
-//   const [tagId, setTagId] = useState("");
-//   const [breed, setBreed] = useState("");
-//   const [status, setStatus] = useState("ACTIVE");
-//   const [showScanner, setShowScanner] = useState(false);
-//   const [error, setError] = useState("");
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setError("");
-//     try {
-//       await apiFetch("/cattle", {
-//         method: "POST",
-//         body: JSON.stringify({
-//           tagId,
-//           breed,
-//           status,
-//           farmId: Number(farmId),
-//         }),
-//       });
-//       navigate(`/cattle/${farmId}`);
-//     } catch (err) {
-//       if (err.status === 409) {
-//         setError("Cattle with this tag ID already exists in this farm.");
-//       } else {
-//         setError(err.message || "Failed to add cattle.");
-//       }
-//     }
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-gray-100 px-6 py-4">
-//       <button onClick={() => navigate(`/cattle/${farmId}`)}>← Back</button>
-
-//       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl mt-4">
-//         {error && (
-//           <div className="mb-3 text-red-600 font-semibold">{error}</div>
-//         )}
-//         <input
-//           className="w-full mb-3 border p-2"
-//           placeholder="Tag ID"
-//           value={tagId}
-//           onChange={(e) => setTagId(e.target.value)}
-//         />
-
-//         <button type="button" onClick={() => setShowScanner(true)}>
-//           Scan
-//         </button>
-
-//         {showScanner && (
-//                   <BarcodeScanner
-//                     onScanSuccess={(value) => setTagId(value)}
-//                     onClose={() => setShowScanner(false)}
-//                   />
-//                 )}
-
-//         <input
-//           className="w-full mb-3 border p-2"
-//           placeholder="Breed"
-//           value={breed}
-//           onChange={(e) => setBreed(e.target.value)}
-//         />
-
-//         <select
-//           className="w-full mb-3 border p-2"
-//           value={status}
-//           onChange={(e) => setStatus(e.target.value)}
-//         >
-//           <option value="ACTIVE">Active</option>
-//           <option value="SICK">Sick</option>
-//           <option value="SOLD">Sold</option>
-//         </select>
-
-//         <button className="w-full bg-green-500 text-white py-2 rounded">
-//           Save Cattle
-//         </button>
-//       </form>
-//     </div>
-//   );
-// }
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { apiFetch } from "../api/client";
 import BarcodeScanner from "./BarcodeScanner";
 import {
@@ -110,6 +23,7 @@ const CATTLE_TYPES = {
 export default function AddCattle() {
   const { farmId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -128,7 +42,6 @@ export default function AddCattle() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Optionally fetch available shades for the dropdown
     apiFetch(`/farms/${farmId}/sheds`)
       .then((data) => setShades(data || []))
       .catch((err) => console.error("Failed to load shades:", err));
@@ -153,9 +66,9 @@ export default function AddCattle() {
       navigate(`/cattle/${farmId}`);
     } catch (err) {
       if (err.status === 409) {
-        setError("Cattle with this tag ID already exists in this farm.");
+        setError(t('cattle.tagAlreadyExists'));
       } else {
-        setError(err.message || "Failed to add cattle.");
+        setError(err.message || t('addCattle.error'));
       }
     }
   };
@@ -164,7 +77,7 @@ export default function AddCattle() {
     <div className="min-h-screen bg-background px-4 py-6">
       <div className="max-w-md mx-auto">
         <Button variant="text" onClick={() => navigate(`/cattle/${farmId}`)}>
-          ← Back
+          {t('common.back')}
         </Button>
 
         <Card className="mt-4">
@@ -176,21 +89,20 @@ export default function AddCattle() {
             )}
 
             <form onSubmit={handleSubmit}>
-              {/* 🔥 ALL spacing controlled here */}
               <Stack spacing={2}>
                 <TextField
                   fullWidth
-                  label="Tag ID"
+                  label={t('cattle.tagId')}
                   value={tagId}
                   onChange={(e) => setTagId(e.target.value)}
-                  placeholder="Scan or enter tag ID"
+                  placeholder={t('cattle.scanOrEnterTagId')}
                 />
 
                 <Button
                   variant="outlined"
                   onClick={() => setShowScanner(true)}
                 >
-                  Scan Barcode
+                  {t('cattle.scanBarcode')}
                 </Button>
 
                 {showScanner && (
@@ -206,24 +118,24 @@ export default function AddCattle() {
                 <TextField
                   select
                   fullWidth
-                  label="Type"
+                  label={t('cattle.typeLabel')}
                   value={type}
                   onChange={(e) => {
                     setType(e.target.value);
-                    setBreed(""); // Reset breed when type changes
+                    setBreed("");
                   }}
                 >
-                  <MenuItem value="COW">Cow</MenuItem>
-                  <MenuItem value="BUFFALO">Buffalo</MenuItem>
-                  <MenuItem value="SHEEP">Sheep</MenuItem>
-                  <MenuItem value="GOAT">Goat</MenuItem>
+                  <MenuItem value="COW">{t('cattle.cow')}</MenuItem>
+                  <MenuItem value="BUFFALO">{t('cattle.buffalo')}</MenuItem>
+                  <MenuItem value="SHEEP">{t('cattle.sheep')}</MenuItem>
+                  <MenuItem value="GOAT">{t('cattle.goat')}</MenuItem>
                 </TextField>
 
                 {type && (
                   <TextField
                     select
                     fullWidth
-                    label="Breed"
+                    label={t('cattle.breedLabel')}
                     value={breed}
                     onChange={(e) => setBreed(e.target.value)}
                   >
@@ -238,23 +150,23 @@ export default function AddCattle() {
                 <TextField
                   select
                   fullWidth
-                  label="Status"
+                  label={t('cattle.statusLabel')}
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                 >
-                  <MenuItem value="ACTIVE">Active</MenuItem>
-                  <MenuItem value="SICK">Sick</MenuItem>
-                  <MenuItem value="INACTIVE">Inactive</MenuItem>
+                  <MenuItem value="ACTIVE">{t('cattle.active')}</MenuItem>
+                  <MenuItem value="SICK">{t('cattle.sick')}</MenuItem>
+                  <MenuItem value="INACTIVE">{t('cattle.inactive')}</MenuItem>
                 </TextField>
 
                 <TextField
                   select
                   fullWidth
-                  label="Shade (Optional)"
+                  label={t('cattle.shadeOptional')}
                   value={shedId}
                   onChange={(e) => setShedId(e.target.value)}
                 >
-                  <MenuItem value=""><em>None</em></MenuItem>
+                  <MenuItem value=""><em>{t('cattle.none')}</em></MenuItem>
                   {shades.map((shade) => (
                     <MenuItem key={shade.id} value={shade.id}>
                       {shade.name}
@@ -268,7 +180,7 @@ export default function AddCattle() {
                   color="success"
                   fullWidth
                 >
-                  Save Cattle
+                  {t('cattle.saveCattle')}
                 </Button>
               </Stack>
             </form>

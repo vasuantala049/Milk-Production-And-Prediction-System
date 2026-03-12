@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { apiFetch } from "../api/client";
 import { farmApi } from "../api/farmApi";
@@ -19,6 +20,7 @@ import LayersIcon from "@mui/icons-material/Layers";
 
 export default function YourFarms() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,7 +31,7 @@ export default function YourFarms() {
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) {
-      setError("You must be logged in to view farms.");
+      setError(t('farms.loggedInRequired'));
       setLoading(false);
       return;
     }
@@ -42,7 +44,6 @@ export default function YourFarms() {
 
         let list = [];
         if (storedUserObj.role === "BUYER") {
-          // Buyers can filter farms by area/city/address
           list = await farmApi.getAllFarms(area);
         } else {
           list = await farmApi.getMyFarms();
@@ -55,7 +56,7 @@ export default function YourFarms() {
           localStorage.setItem("activeFarm", JSON.stringify(list[0]));
         }
       } catch (err) {
-        setError(err.message || "Failed to load farms.");
+        setError(err.message || t('messages.errorOccurred'));
       } finally {
         setLoading(false);
       }
@@ -75,12 +76,12 @@ export default function YourFarms() {
   };
 
   const handleDeleteFarm = async (farmId) => {
-    if (!window.confirm("Delete this farm?")) return;
+    if (!window.confirm(t('farms.deleteFarmConfirm'))) return;
     try {
       await apiFetch(`/farms/${farmId}`, { method: "DELETE" });
       setFarms((prev) => prev.filter((f) => f.id !== farmId));
     } catch (err) {
-      alert(err.message || "Failed to delete farm");
+      alert(err.message || t('messages.errorOccurred'));
     }
   };
 
@@ -96,12 +97,11 @@ export default function YourFarms() {
         method: "PATCH",
         body: JSON.stringify({ isSelling: newStatus }),
       });
-      // Update local state
       setFarms((prev) =>
         prev.map((f) => (f.id === farm.id ? { ...f, isSelling: newStatus, selling: newStatus } : f))
       );
     } catch (err) {
-      alert(err.message || "Failed to update selling status");
+      alert(err.message || t('messages.errorOccurred'));
     } finally {
       setTogglingFarms(prev => {
         const next = new Set(prev);
@@ -120,7 +120,6 @@ export default function YourFarms() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   return (
-
     <div className="space-y-6">
       {/* Header */}
       <motion.div
@@ -130,17 +129,17 @@ export default function YourFarms() {
       >
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-            Farms
+            {t('farms.farmsTitle')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {user.role === 'BUYER' ? "Find fresh milk near you" : "Manage your dairy farms and track production"}
+            {user.role === 'BUYER' ? t('farms.findFreshMilk') : t('farms.manageFarmsSubtitle')}
           </p>
         </div>
 
         {user.role === "FARM_OWNER" && (
           <Button onClick={() => navigate("/farms/add")} className="gap-2">
             <AddIcon fontSize="small" />
-            Add Farm
+            {t('farms.addFarm')}
           </Button>
         )}
       </motion.div>
@@ -156,7 +155,7 @@ export default function YourFarms() {
           <div className="flex-1 relative">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search by area, city, or address..."
+              placeholder={t('farms.searchByArea')}
               value={area}
               onChange={(e) => setArea(e.target.value)}
               className="pl-10 h-12"
@@ -166,7 +165,7 @@ export default function YourFarms() {
         <div className="flex-1 relative">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search farms..."
+            placeholder={t('farms.searchFarms')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-12"
@@ -175,7 +174,7 @@ export default function YourFarms() {
       </motion.div>
 
       {/* Loading / Error */}
-      {loading && <p className="text-muted-foreground">Loading farms…</p>}
+      {loading && <p className="text-muted-foreground">{t('farms.loadingFarms')}</p>}
 
       {error && (
         <div className="bg-destructive/10 border border-destructive/20 text-destructive p-3 rounded-md">
@@ -213,7 +212,6 @@ export default function YourFarms() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log("Navigating to edit farm:", farm.id);
                       if (farm.id) navigate(`/edit-farm/${farm.id}`);
                     }}
                     className="h-8 w-8 p-0"
@@ -241,7 +239,7 @@ export default function YourFarms() {
                       navigate(`/farms/${farm.id}/pending-orders`);
                     }}
                     className="h-8 w-8 p-0"
-                    title="Pending Orders"
+                    title={t('orders.pendingOrders')}
                   >
                     <ReceiptIcon fontSize="small" />
                   </Button>
@@ -254,7 +252,7 @@ export default function YourFarms() {
                       navigate(`/farms/${farm.id}/sheds`);
                     }}
                     className="h-8 w-8 p-0"
-                    title="Manage Shades"
+                    title={t('dashboard.manageShades')}
                   >
                     <LayersIcon fontSize="small" />
                   </Button>
@@ -285,13 +283,10 @@ export default function YourFarms() {
           className="bg-card border border-border rounded-xl p-12 text-center shadow-card"
         >
           <p className="text-muted-foreground">
-            {search
-              ? "No farms found matching your search."
-              : "You don't have any farms yet."}
+            {search ? t('farms.noMatchSearch') : t('farms.noFarmsYet')}
           </p>
         </motion.div>
       )}
     </div>
-
   );
 }

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { cn } from "../../lib/utils";
+import { useTranslation } from 'react-i18next';
 
 const variants = {
   default: "bg-card border-border",
@@ -25,6 +26,7 @@ export function StatCard({
   delay = 0,
   onClick
 }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -39,13 +41,13 @@ export function StatCard({
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="text-sm font-medium text-muted-foreground">{t(title)}</p>
           <p className="mt-2 text-3xl font-display font-bold text-foreground">
             {value}
           </p>
 
           {subtitle && (
-            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t(subtitle)}</p>
           )}
 
           {trend && (
@@ -60,7 +62,7 @@ export function StatCard({
                 {trend.value}%
               </span>
               <span className="text-sm text-muted-foreground">
-                from yesterday
+                {t('dashboard.fromYesterday')}
               </span>
             </div>
           )}

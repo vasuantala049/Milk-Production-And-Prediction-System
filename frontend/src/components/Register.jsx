@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { apiFetch } from "../api/client";
 import {
   TextField,
@@ -8,9 +9,11 @@ import {
   CardContent,
   MenuItem
 } from "@mui/material";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -50,9 +53,9 @@ export default function Register() {
       navigate("/farms", { replace: true });
     } catch (err) {
       if (err.status === 409) {
-        setError("A user with this email already exists.");
+        setError(t('auth.emailAlreadyExists'));
       } else {
-        setError(err.message || "Failed to create account.");
+        setError(err.message || t('messages.errorOccurred'));
       }
     } finally {
       setLoading(false);
@@ -65,20 +68,21 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-10">
       <Card className="w-full max-w-md rounded-2xl shadow-lg">
         <CardContent className="p-7 sm:p-8">
-          {/* App name */}
-          <div className="text-center mb-6">
+          <div className="flex justify-between items-center mb-6">
+            {/* App name */}
             <h1 className="text-2xl font-semibold text-gray-900">
               DairyFlow
             </h1>
+            <LanguageSwitcher />
           </div>
 
           {/* Page title */}
           <div className="text-center mb-8">
             <h2 className="text-3xl font-semibold text-gray-900">
-              Create Account
+              {t('auth.register')}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              Enter your details to get started
+              {t('auth.dontHaveAccount')}
             </p>
           </div>
 
@@ -87,7 +91,7 @@ export default function Register() {
             <div>
               <TextField
                 fullWidth
-                label="Full name"
+                label={t('auth.firstName')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -97,7 +101,7 @@ export default function Register() {
             <div>
               <TextField
                 fullWidth
-                label="Email address"
+                label={t('auth.email')}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -108,7 +112,7 @@ export default function Register() {
             <div>
               <TextField
                 fullWidth
-                label="Password"
+                label={t('auth.password')}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -120,14 +124,14 @@ export default function Register() {
               <TextField
                 select
                 fullWidth
-                label="Role"
+                label={t('workers.role')}
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 InputLabelProps={{ shrink: true }}
               >
-                <MenuItem value="BUYER">Buyer</MenuItem>
-                <MenuItem value="FARM_OWNER">Farm Owner</MenuItem>
-                <MenuItem value="WORKER">Worker</MenuItem>
+                <MenuItem value="BUYER">{t('auth.khariddar')}</MenuItem>
+                <MenuItem value="FARM_OWNER">{t('auth.khetarNaMalik')}</MenuItem>
+                <MenuItem value="WORKER">{t('auth.karmachari')}</MenuItem>
               </TextField>
             </div>
 
@@ -136,14 +140,14 @@ export default function Register() {
               <div className="space-y-7 rounded-xl bg-gray-50 p-4">
                 <TextField
                   fullWidth
-                  label="Farm name"
+                  label={t('farms.farmName')}
                   value={farmName}
                   onChange={(e) => setFarmName(e.target.value)}
                   required
                 />
                 <TextField
                   fullWidth
-                  label="Farm address"
+                  label={t('farms.location')}
                   value={farmAddress}
                   onChange={(e) => setFarmAddress(e.target.value)}
                   required
@@ -165,19 +169,19 @@ export default function Register() {
               className="!py-3 !rounded-xl"
               sx={{ fontWeight: 600 }}
             >
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? t('common.loading') : t('auth.register')}
             </Button>
           </form>
 
           {/* Footer */}
           <p className="text-center text-sm text-gray-500 mt-8">
-            Already have an account?{" "}
+            {t('auth.alreadyHaveAccount')}{" "}
             <button
               type="button"
               onClick={() => navigate("/login")}
               className="text-gray-900 font-medium hover:underline"
             >
-              Login
+              {t('auth.login')}
             </button>
           </p>
         </CardContent>

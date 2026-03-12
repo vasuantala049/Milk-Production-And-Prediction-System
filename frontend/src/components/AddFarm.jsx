@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { apiFetch } from "../api/client";
 import { TextField, Button, Card, CardContent } from '@mui/material';
 
 export default function AddFarm() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (!stored) return;
@@ -13,6 +16,7 @@ export default function AddFarm() {
       navigate("/farms");
     }
   }, []);
+
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +25,6 @@ export default function AddFarm() {
     e.preventDefault();
     setLoading(true);
 
-    const user = JSON.parse(localStorage.getItem("user"));
     await apiFetch("/farms", {
       method: "POST",
       body: JSON.stringify({ name, address }),
@@ -33,14 +36,16 @@ export default function AddFarm() {
   return (
     <div className="min-h-screen bg-background px-4 py-6">
       <div className="max-w-md mx-auto">
-        <Button onClick={() => navigate("/farms")} variant="text">← Back</Button>
+        <Button onClick={() => navigate("/farms")} variant="text">{t('common.back')}</Button>
 
         <Card className="mt-4">
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <TextField fullWidth label="Farm name" value={name} onChange={(e) => setName(e.target.value)} />
-              <TextField fullWidth label="Farm address" value={address} onChange={(e) => setAddress(e.target.value)} />
-              <Button type="submit" variant="contained" color="success" fullWidth>{loading ? 'Saving...' : 'Save Farm'}</Button>
+              <TextField fullWidth label={t('addFarm.farmNameLabel')} value={name} onChange={(e) => setName(e.target.value)} />
+              <TextField fullWidth label={t('addFarm.farmAddressLabel')} value={address} onChange={(e) => setAddress(e.target.value)} />
+              <Button type="submit" variant="contained" color="success" fullWidth>
+                {loading ? t('addFarm.saving') : t('addFarm.saveFarm')}
+              </Button>
             </form>
           </CardContent>
         </Card>

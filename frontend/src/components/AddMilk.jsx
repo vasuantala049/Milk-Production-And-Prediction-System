@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/client";
 import BarcodeScanner from "../components/BarcodeScanner";
@@ -13,6 +14,7 @@ import {
 } from "@mui/material";
 
 export default function AddMilk() {
+  const { t } = useTranslation();
   const { farmId } = useParams();
   const navigate = useNavigate();
 
@@ -24,6 +26,7 @@ export default function AddMilk() {
   const [milkLiters, setMilkLiters] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [showScanner, setShowScanner] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -31,7 +34,7 @@ export default function AddMilk() {
     setError("");
 
     if (!tagId || !session || !milkLiters) {
-      setError("All fields are required");
+      setError(t('addMilk.errorRequired') || "All fields are required");
       return;
     }
 
@@ -46,9 +49,15 @@ export default function AddMilk() {
           milkLiters: Number(milkLiters),
         }),
       });
-      navigate("/dashboard");
+      // Success - clear fields and show success message
+      setTagId("");
+      setMilkLiters("");
+      setSuccess(t('addMilk.success') || "Milk entry added");
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err?.message || "Failed to add milk entry");
+      setError(err?.message || t('addMilk.error') || "Failed to add milk entry");
     } finally {
       setSubmitting(false);
     }
@@ -58,16 +67,22 @@ export default function AddMilk() {
     <div className="min-h-screen bg-background px-4 py-6">
       <div className="max-w-md mx-auto">
         <Button variant="text" onClick={() => navigate(-1)}>
-          ← Back
+          {t('common.back') || '← Back'}
         </Button>
 
         <Card className="mt-4">
           <CardContent>
-            <h2 className="text-xl font-bold mb-4">Add Milk Entry</h2>
+            <h2 className="text-xl font-bold mb-4">{t('addMilk.title')}</h2>
 
             {error && (
               <Alert severity="error" className="mb-4">
                 {error}
+              </Alert>
+            )}
+
+            {success && (
+              <Alert severity="success" className="mb-4">
+                {success}
               </Alert>
             )}
 
@@ -76,8 +91,8 @@ export default function AddMilk() {
                 {/* Tag ID Input */}
                 <TextField
                   fullWidth
-                  label="Cattle Tag ID"
-                  placeholder="Enter or scan Tag ID"
+                  label={t('addMilk.cattle') || 'Cattle Tag ID'}
+                  placeholder={t('addMilk.tagPlaceholder') || 'Enter or scan Tag ID'}
                   value={tagId}
                   onChange={(e) => setTagId(e.target.value)}
                   disabled={submitting}
@@ -85,7 +100,7 @@ export default function AddMilk() {
 
                 <div className="flex items-center gap-2">
                   <div className="flex-1 border-t border-gray-100" />
-                  <span className="text-xs text-muted-foreground">OR</span>
+                  <span className="text-xs text-muted-foreground">{t('common.or') || 'OR'}</span>
                   <div className="flex-1 border-t border-gray-100" />
                 </div>
 
@@ -94,7 +109,7 @@ export default function AddMilk() {
                   onClick={() => setShowScanner(true)}
                   disabled={submitting}
                 >
-                  Scan Barcode
+                  {t('addMilk.scanBarcode') || 'Scan Barcode'}
                 </Button>
 
                 {showScanner && (
@@ -111,19 +126,19 @@ export default function AddMilk() {
                 <TextField
                   select
                   fullWidth
-                  label="Milk Session"
+                  label={t('addMilk.session') || 'Milk Session'}
                   value={session}
                   onChange={(e) => setSession(e.target.value)}
                 >
-                  <MenuItem value="MORNING">Morning</MenuItem>
-                  <MenuItem value="EVENING">Evening</MenuItem>
+                  <MenuItem value="MORNING">{t('addMilk.morning') || 'Morning'}</MenuItem>
+                  <MenuItem value="EVENING">{t('addMilk.evening') || 'Evening'}</MenuItem>
                 </TextField>
 
                 {/* Milk Liters */}
                 <TextField
                   fullWidth
                   type="number"
-                  label="Milk (Liters)"
+                  label={t('addMilk.quantity') || 'Milk (Liters)'}
                   inputProps={{ step: 0.1, min: 0 }}
                   value={milkLiters}
                   onChange={(e) => setMilkLiters(e.target.value)}
@@ -138,7 +153,7 @@ export default function AddMilk() {
                   size="large"
                   disabled={submitting || !tagId}
                 >
-                  {submitting ? "Saving..." : "Save Milk Entry"}
+                  {submitting ? t('addMilk.saving') || 'Saving...' : t('addMilk.submit') || 'Save Milk Entry'}
                 </Button>
               </Stack>
             </form>

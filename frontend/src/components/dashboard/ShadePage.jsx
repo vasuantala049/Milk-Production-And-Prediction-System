@@ -11,10 +11,12 @@ import {
     IconButton,
 } from "@mui/material";
 import { Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function ShadePage() {
     const { farmId } = useParams();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [shades, setShades] = useState([]);
     const [loading, setLoading] = useState(true);
     const [newShadeName, setNewShadeName] = useState("");
@@ -38,7 +40,7 @@ export default function ShadePage() {
             const data = await apiFetch(`/farms/${farmId}/sheds`);
             setShades(data || []);
         } catch (err) {
-            setError("Failed to load shades");
+            setError(t('common.error'));
             setShades([]);
         } finally {
             setLoading(false);
@@ -58,18 +60,18 @@ export default function ShadePage() {
                 method: "POST",
                 body: JSON.stringify({ name: newShadeName.trim() }),
             });
-            setSuccess("Shade created successfully!");
+            setSuccess(t('sheds.shadeCreatedSuccess'));
             setNewShadeName("");
             loadShades();
         } catch (err) {
-            setError(err?.message || "Failed to create shade.");
+            setError(err?.message || t('sheds.failedToCreateShade'));
         } finally {
             setActionLoading(false);
         }
     };
 
     const handleDeleteShade = async (shedId) => {
-        if (!window.confirm("Are you sure you want to delete this shade? Currently assigned cattle and workers will lose this assignment.")) {
+        if (!window.confirm(t('sheds.deleteShadeConfirm'))) {
             return;
         }
 
@@ -81,38 +83,38 @@ export default function ShadePage() {
             await apiFetch(`/farms/${farmId}/sheds/${shedId}`, {
                 method: "DELETE",
             });
-            setSuccess("Shade deleted successfully!");
+            setSuccess(t('sheds.shadeDeletedSuccess'));
             loadShades();
         } catch (err) {
-            setError(err?.message || "Failed to delete shade.");
+            setError(err?.message || t('sheds.failedToDeleteShade'));
         } finally {
             setActionLoading(false);
         }
     };
 
-    if (loading) return <div className="p-6">Loading shades...</div>;
+    if (loading) return <div className="p-6">{t('sheds.loadingShades')}</div>;
 
     return (
         <div className="min-h-screen bg-background px-4 py-6">
             <div className="max-w-2xl mx-auto">
                 <div className="mb-4">
                     <Button onClick={() => navigate(-1)} variant="text">
-                        ← Back
+                        {t('common.back')}
                     </Button>
                 </div>
 
-                <h1 className="text-2xl font-bold mb-6">Manage Shades</h1>
+                <h1 className="text-2xl font-bold mb-6">{t('sheds.manageShades')}</h1>
 
                 <Card className="mb-8">
                     <CardContent>
-                        <h2 className="text-lg font-semibold mb-4">Add New Shade</h2>
+                        <h2 className="text-lg font-semibold mb-4">{t('sheds.addNewShade')}</h2>
                         <form onSubmit={handleAddShade}>
                             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                                 <TextField
                                     fullWidth
                                     size="small"
-                                    label="Shade Name"
-                                    placeholder="e.g. Shade North, Lactating"
+                                    label={t('sheds.shadeName')}
+                                    placeholder={t('sheds.shadeNamePlaceholder')}
                                     value={newShadeName}
                                     onChange={(e) => setNewShadeName(e.target.value)}
                                     disabled={actionLoading}
@@ -124,7 +126,7 @@ export default function ShadePage() {
                                     disabled={actionLoading || !newShadeName.trim()}
                                     className="whitespace-nowrap"
                                 >
-                                    Add Shade
+                                    {t('sheds.addShadeBtn')}
                                 </Button>
                             </Stack>
                         </form>
@@ -134,10 +136,10 @@ export default function ShadePage() {
                     </CardContent>
                 </Card>
 
-                <h2 className="text-lg font-semibold mb-4">Current Shades</h2>
+                <h2 className="text-lg font-semibold mb-4">{t('sheds.currentShades')}</h2>
 
                 {shades.length === 0 ? (
-                    <p className="text-gray-500 italic">No shades created for this farm yet.</p>
+                    <p className="text-gray-500 italic">{t('sheds.noShadesCreated')}</p>
                 ) : (
                     <div className="space-y-3">
                         {shades.map((shade) => (

@@ -18,9 +18,11 @@ import {
   ToggleButtonGroup,
   ToggleButton,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { orderApi } from '../api/orderApi';
 
 const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,7 +44,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
       }
       setOrders(data);
     } catch (err) {
-      setError(err.message || 'Failed to load orders');
+      setError(err.message || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -50,7 +52,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
 
   const handleDateFilter = async () => {
     if (!startDate || !endDate) {
-      alert('Please select both start and end dates');
+      alert(t('orders.selectDates'));
       return;
     }
     try {
@@ -62,7 +64,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
       }
       setOrders(data);
     } catch (err) {
-      setError(err.message || 'Failed to filter orders');
+      setError(err.message || t('orders.failedToFilter'));
     } finally {
       setLoading(false);
     }
@@ -119,15 +121,15 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
           }}
           size="small"
         >
-          <ToggleButton value="ALL">All</ToggleButton>
-          <ToggleButton value="CONFIRMED">Approved</ToggleButton>
-          <ToggleButton value="CANCELLED">Cancelled</ToggleButton>
+          <ToggleButton value="ALL">{t('common.all')}</ToggleButton>
+          <ToggleButton value="CONFIRMED">{t('common.approved')}</ToggleButton>
+          <ToggleButton value="CANCELLED">{t('common.cancelled')}</ToggleButton>
         </ToggleButtonGroup>
 
         <Box sx={{ flexGrow: 1 }} />
 
         <TextField
-          label="Start Date"
+          label={t('orders.startDate')}
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
@@ -135,7 +137,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
           size="small"
         />
         <TextField
-          label="End Date"
+          label={t('orders.endDate')}
           type="date"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
@@ -143,26 +145,26 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
           size="small"
         />
         <Button variant="contained" onClick={handleDateFilter}>
-          Filter
+          {t('common.filter')}
         </Button>
         <Button variant="outlined" onClick={handleClearFilter}>
-          Clear
+          {t('orders.clear')}
         </Button>
       </Stack>
 
       {orders.length === 0 ? (
-        <Alert severity="info">No {statusFilter.toLowerCase()} orders found for this farm.</Alert>
+        <Alert severity="info">{t('orders.noOrdersStatus', { status: statusFilter === 'ALL' ? '' : t(`common.${statusFilter.toLowerCase()}`) })}</Alert>
       ) : (
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell><strong>Order ID</strong></TableCell>
-                <TableCell><strong>Date</strong></TableCell>
-                <TableCell><strong>Quantity (L)</strong></TableCell>
-                <TableCell><strong>Session</strong></TableCell>
-                <TableCell><strong>Status</strong></TableCell>
-                <TableCell><strong>Buyer ID</strong></TableCell>
+                <TableCell><strong>{t('orders.orderId')}</strong></TableCell>
+                <TableCell><strong>{t('orders.date')}</strong></TableCell>
+                <TableCell><strong>{t('orders.quantityLiters')}</strong></TableCell>
+                <TableCell><strong>{t('orders.session')}</strong></TableCell>
+                <TableCell><strong>{t('orders.status')}</strong></TableCell>
+                <TableCell><strong>{t('orders.buyerId')}</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -180,7 +182,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={order.status}
+                      label={t(`common.${order.status.toLowerCase()}`, order.status)}
                       size="small"
                       color={getStatusColor(order.status)}
                     />
@@ -194,7 +196,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
       )}
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-        Total Orders: {orders.length}
+        {t('orders.totalOrders', { count: orders.length })}
       </Typography>
     </Box>
   );

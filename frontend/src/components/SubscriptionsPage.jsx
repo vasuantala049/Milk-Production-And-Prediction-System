@@ -4,10 +4,12 @@ import SubscriptionsList from './SubscriptionsList';
 import { Button } from './ui/button';
 import { ArrowLeft, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 export default function SubscriptionsPage() {
     const { farmId } = useParams();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const activeFarm = JSON.parse(localStorage.getItem("activeFarm") || "{}");
 
     return (
@@ -28,13 +30,13 @@ export default function SubscriptionsPage() {
                 <div>
                     <div className="flex items-center gap-2 text-primary mb-1">
                         <Users size={16} />
-                        <span className="text-xs font-bold uppercase tracking-wider">Subscription Management</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">{t('subscriptions.subscriptionManagement')}</span>
                     </div>
                     <h1 className="text-3xl font-display font-bold text-foreground">
-                        {activeFarm.name || "Farm"} Subscriptions
+                        {t('subscriptions.farmSubscriptionsTitle', { name: activeFarm.name || t('farms.farmName') })}
                     </h1>
                     <p className="text-muted-foreground">
-                        View and manage recurring milk subscriptions for this farm
+                        {t('subscriptions.viewManageSubscriptions')}
                     </p>
                 </div>
             </motion.div>
@@ -46,9 +48,9 @@ export default function SubscriptionsPage() {
                 className="bg-card border border-border rounded-2xl p-6 shadow-sm"
             >
                 <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-2">Subscriber List</h2>
+                    <h2 className="text-xl font-semibold mb-2">{t('subscriptions.subscriberList')}</h2>
                     <p className="text-sm text-muted-foreground italic">
-                        * Filters are available at the top of the table for different subscription statuses.
+                        {t('subscriptions.useStatusFilterSubs')}
                     </p>
                 </div>
                 <SubscriptionsList farmId={farmId} initialStatus="ACTIVE" />

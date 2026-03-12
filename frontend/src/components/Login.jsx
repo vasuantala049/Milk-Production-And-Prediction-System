@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { apiFetch } from "../api/client";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Milk, Eye, EyeOff } from "lucide-react";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
@@ -35,9 +38,9 @@ export default function Login() {
       navigate("/dashboard", { replace: true });
     } catch (err) {
       if (err.status === 401 || err.status === 403) {
-        setError("Invalid email or password");
+        setError(t('auth.invalidEmailOrPassword'));
       } else {
-        setError(err.message || "Network error");
+        setError(err.message || t('auth.networkError'));
       }
     } finally {
       setLoading(false);
@@ -64,16 +67,16 @@ export default function Login() {
                 <Milk className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-display font-bold text-white">DairyFlow</h1>
-                <p className="text-white/70">Farm Management System</p>
+                <h1 className="text-3xl font-display font-bold text-white">{t('common.appName')}</h1>
+                <p className="text-white/70">{t('common.tagline')}</p>
               </div>
             </div>
 
             <h2 className="text-4xl lg:text-5xl font-display font-bold text-white leading-tight mb-6">
-              Manage your dairy farm with ease
+              {t('auth.manageYourDairyFarmWithEase')}
             </h2>
             <p className="text-lg text-white/80 max-w-md">
-              Track milk production, manage cattle, handle workers, and grow your dairy business with our comprehensive management solution.
+              {t('auth.trackMilkProduction')}
             </p>
           </motion.div>
         </div>
@@ -93,22 +96,25 @@ export default function Login() {
               <Milk className="w-7 h-7 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-display font-bold text-foreground">DairyFlow</h1>
+              <h1 className="text-2xl font-display font-bold text-foreground">{t('common.appName')}</h1>
             </div>
           </div>
 
-          <div className="text-center lg:text-left mb-8">
-            <h2 className="text-2xl font-display font-bold text-foreground">Welcome back</h2>
-            <p className="text-muted-foreground mt-2">Sign in to continue to your dashboard</p>
+          <div className="flex justify-between items-center mb-8">
+            <div className="text-center lg:text-left">
+              <h2 className="text-2xl font-display font-bold text-foreground">{t('auth.login')}</h2>
+              <p className="text-muted-foreground mt-2">{t('auth.dontHaveAccount')} <button onClick={() => navigate("/register")} className="text-primary font-medium hover:underline">{t('auth.register')}</button></p>
+            </div>
+            <LanguageSwitcher />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder={t('auth.email')}
                 value={identity}
                 onChange={(e) => setIdentity(e.target.value)}
                 className="h-12"
@@ -117,12 +123,12 @@ export default function Login() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder={t('auth.password')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-12 pr-10"
@@ -145,17 +151,17 @@ export default function Login() {
             )}
 
             <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? t('common.loading') : t('auth.login')}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
+            {t('auth.dontHaveAccount')}{" "}
             <button
               onClick={() => navigate("/register")}
               className="text-primary font-medium hover:underline"
             >
-              Create an account
+              {t('auth.register')}
             </button>
           </p>
         </motion.div>

@@ -55,27 +55,6 @@ export function FarmCard({ farm, delay = 0, onDelete, onToggleSelling, isTogglin
                 {currentIsSelling ? "Selling ON" : "Selling OFF"}
               </Badge>
 
-              {farm.availableMilk != null && farm.todayMilk > 0 && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "font-medium",
-                    availabilityStatus === 'high' && "border-success/50 text-success bg-success/10",
-                    availabilityStatus === 'medium' && "border-warning/50 text-warning bg-warning/10",
-                    availabilityStatus === 'low' && "border-destructive/50 text-destructive bg-destructive/10"
-                  )}
-                >
-                  <div className="flex flex-col gap-0.5 text-center">
-                    <span>{farm.availableMilk}L available</span>
-                    {(farm.cowAvailableMilk > 0 || farm.buffaloAvailableMilk > 0) && (
-                      <span className="text-[10px] opacity-90 font-normal">
-                        {farm.cowAvailableMilk > 0 && `Cow: ${farm.cowAvailableMilk}L `}
-                        {farm.buffaloAvailableMilk > 0 && `Buf: ${farm.buffaloAvailableMilk}L`}
-                      </span>
-                    )}
-                  </div>
-                </Badge>
-              )}
             </div>
           </div>
           {/* Top right area left empty for YourFarms.jsx action buttons */}
