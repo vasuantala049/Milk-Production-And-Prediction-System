@@ -33,6 +33,9 @@ public class User {
     private String password;
 
     @Column(nullable = true)
+    private String address;
+
+    @Column(nullable = true)
     private String location;
 
     private String city;  // User's city for location-based farm filtering

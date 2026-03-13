@@ -20,6 +20,10 @@ public class CreateUserRequestDto {
 
     private String password;
 
+    private String address;
+
+    private String city;
+
     @NotNull
     private UserRole role;
 

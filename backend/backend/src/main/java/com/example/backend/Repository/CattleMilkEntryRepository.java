@@ -53,5 +53,28 @@ public interface CattleMilkEntryRepository extends JpaRepository<CattleMilkEntry
             Long enteredById
     );
 
+    java.util.List<CattleMilkEntry> findByFarm_IdAndRecordDateBetween(
+            Long farmId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
+
+                @Query("""
+                                SELECT e.recordDate,
+                                                         UPPER(e.cattle.type),
+                                                         COALESCE(SUM(CASE WHEN e.session = com.example.backend.Entity.type.MilkSession.MORNING THEN e.milkLiters ELSE 0 END), 0),
+                                                         COALESCE(SUM(CASE WHEN e.session = com.example.backend.Entity.type.MilkSession.EVENING THEN e.milkLiters ELSE 0 END), 0),
+                                                         COALESCE(SUM(e.milkLiters), 0)
+                                FROM CattleMilkEntry e
+                                WHERE e.farm.id = :farmId
+                                        AND e.recordDate >= :fromDate
+                                GROUP BY e.recordDate, UPPER(e.cattle.type)
+                                ORDER BY e.recordDate ASC
+                """)
+                java.util.List<Object[]> findDailyTypeTotals(
+                                                @org.springframework.data.repository.query.Param("farmId") Long farmId,
+                                                @org.springframework.data.repository.query.Param("fromDate") LocalDate fromDate
+                );
+
     java.util.List<CattleMilkEntry> findByCattle_Id(Long cattleId);
 }

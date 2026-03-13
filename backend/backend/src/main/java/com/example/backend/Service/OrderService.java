@@ -20,4 +20,9 @@ public interface OrderService {
      * Get all pending orders for a farm
      */
     List<OrderResponseDto> getPendingOrders(Long farmId, User user);
+
+    /**
+     * Buyer pays for an accepted order with exact total amount.
+     */
+    OrderResponseDto payForOrder(Long orderId, Double amount, User user);
 }

@@ -38,4 +38,17 @@ public interface FarmService {
             com.example.backend.DTO.CreateUserRequestDto dto, com.example.backend.Entity.User loggedInUser);
 
     List<com.example.backend.DTO.ShedStatusDto> getShedStatus(Long farmId, com.example.backend.Entity.User loggedInUser);
+
+    void updateWorkerSheds(Long farmId, Long workerId, com.example.backend.DTO.UpdateWorkerShedDto dto, com.example.backend.Entity.User loggedInUser);
+
+    // Invitation flow
+    com.example.backend.DTO.WorkerFarmInvitationDto inviteWorkerToFarm(Long farmId, String workerEmail, com.example.backend.Entity.User loggedInUser);
+
+    List<com.example.backend.DTO.WorkerFarmInvitationDto> getPendingInvitationsForWorker(com.example.backend.Entity.User loggedInUser);
+
+    com.example.backend.DTO.WorkerFarmInvitationDto respondToInvitation(Long invitationId, boolean accept, com.example.backend.Entity.User loggedInUser);
+
+    List<com.example.backend.DTO.WorkerFarmInvitationDto> getInvitationsForFarm(Long farmId, com.example.backend.Entity.User loggedInUser);
+
+    void removeWorkerFromFarm(Long farmId, Long workerId, com.example.backend.Entity.User loggedInUser);
 }

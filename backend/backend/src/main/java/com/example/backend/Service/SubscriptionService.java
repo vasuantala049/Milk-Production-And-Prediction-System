@@ -9,7 +9,9 @@ import java.util.List;
 public interface SubscriptionService {
     Subscription subscribe(SubscribeDto dto, User user);
 
-    Subscription cancelSubscription(Long id, User user);
+    Subscription cancelSubscription(Long id, Double amount, User user);
+
+    Subscription skipToday(Long id, User user);
 
     List<Subscription> getMySubscriptions(User user);
 
@@ -18,4 +20,6 @@ public interface SubscriptionService {
     Subscription approveSubscription(Long subscriptionId, Long farmId, User owner);
 
     Subscription rejectSubscription(Long subscriptionId, Long farmId, User owner);
+
+    Subscription paySubscriptionCycle(Long id, Double amount, User user);
 }

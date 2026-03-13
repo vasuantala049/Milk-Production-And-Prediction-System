@@ -1,0 +1,60 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor farmOwner
+actor worker
+actor buyer
+
+rectangle "Milk Production And Prediction System" {
+  usecase "Register / Login" as UC_Login
+  usecase "Manage Profile" as UC_Profile
+
+  usecase "Create Farm" as UC_CreateFarm
+  usecase "Manage Farm Details" as UC_ManageFarm
+  usecase "Manage Sheds" as UC_ManageSheds
+  usecase "Add / Update Cattle" as UC_ManageCattle
+  usecase "Assign Worker to Farm" as UC_AssignWorkerFarm
+  usecase "Assign Worker to Shed" as UC_AssignWorkerShed
+  usecase "View Milk Dashboard" as UC_Dashboard
+
+  usecase "Add Milk Entry" as UC_AddMilk
+  usecase "View Today Milk Summary" as UC_TodayMilk
+
+  usecase "Browse Farms" as UC_BrowseFarms
+  usecase "Buy Milk" as UC_BuyMilk
+  usecase "Track My Orders" as UC_TrackOrders
+  usecase "Create Subscription" as UC_Subscribe
+  usecase "Manage Subscription" as UC_ManageSubscription
+
+}
+
+farmOwner --> UC_Login
+farmOwner --> UC_Profile
+farmOwner --> UC_CreateFarm
+farmOwner --> UC_ManageFarm
+farmOwner --> UC_ManageSheds
+farmOwner --> UC_ManageCattle
+farmOwner --> UC_AssignWorkerFarm
+farmOwner --> UC_AssignWorkerShed
+farmOwner --> UC_Dashboard
+farmOwner --> UC_TodayMilk
+
+worker --> UC_Login
+worker --> UC_Profile
+worker --> UC_AddMilk
+worker --> UC_TodayMilk
+
+buyer --> UC_Login
+buyer --> UC_Profile
+buyer --> UC_BrowseFarms
+buyer --> UC_BuyMilk
+buyer --> UC_TrackOrders
+buyer --> UC_Subscribe
+buyer --> UC_ManageSubscription
+
+UC_BuyMilk .> UC_TrackOrders : <<include>>
+UC_Subscribe .> UC_ManageSubscription : <<extend>>
+UC_AssignWorkerShed .> UC_AssignWorkerFarm : <<include>>
+UC_AddMilk .> UC_TodayMilk : <<include>>
+@enduml

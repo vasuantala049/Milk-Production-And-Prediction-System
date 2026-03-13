@@ -16,6 +16,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -92,9 +93,45 @@ public class OrderServiceImpl implements OrderService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional
+    public OrderResponseDto payForOrder(Long orderId, Double amount, User user) {
+        Orders order = ordersRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        if (order.getBuyer() == null || !order.getBuyer().getId().equals(user.getId())) {
+            throw new IllegalStateException("Only the buyer can pay for this order");
+        }
+
+        if (order.getStatus() != OrderStatus.CONFIRMED) {
+            throw new IllegalStateException("Only confirmed orders can be paid");
+        }
+
+        if (Boolean.TRUE.equals(order.getPaid())) {
+            throw new IllegalStateException("Order is already paid");
+        }
+
+        if (amount == null) {
+            throw new IllegalArgumentException("Payment amount is required");
+        }
+
+        double expected = order.getTotalPrice() == null ? 0.0 : order.getTotalPrice();
+        if (Math.abs(amount - expected) > 0.0001) {
+            throw new IllegalArgumentException("Payment amount must be exactly " + expected);
+        }
+
+        order.setPaid(true);
+        order.setPaidAmount(amount);
+        order.setPaidAt(LocalDateTime.now());
+        ordersRepository.save(order);
+
+        return mapToDto(order);
+    }
+
     private OrderResponseDto mapToDto(Orders order) {
         OrderResponseDto dto = new OrderResponseDto();
         dto.setId(order.getId());
+        dto.setDisplayCode(resolveDisplayCode(order));
         dto.setOrderDate(order.getOrderDate());
         dto.setQuantity(order.getQuantity());
         dto.setSession(order.getSession());
@@ -105,6 +142,16 @@ public class OrderServiceImpl implements OrderService {
         dto.setFarmName(order.getFarm() != null ? order.getFarm().getName() : order.getFarmName());
         dto.setAnimalType(order.getAnimalType());
         dto.setTotalPrice(order.getTotalPrice());
+        dto.setPaid(Boolean.TRUE.equals(order.getPaid()));
+        dto.setPaidAmount(order.getPaidAmount());
+        dto.setPaidAt(order.getPaidAt());
         return dto;
+    }
+
+    private String resolveDisplayCode(Orders order) {
+        if (order.getDisplayCode() != null && !order.getDisplayCode().isBlank()) {
+            return order.getDisplayCode();
+        }
+        return String.format("%06d", order.getId());
     }
 }

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
@@ -15,6 +16,7 @@ import java.time.LocalDate;
 @Builder
 public class OrderResponseDto {
     private Long id;
+    private String displayCode;
     private LocalDate orderDate;
     private Double quantity;
     private MilkSession session;
@@ -25,4 +27,7 @@ public class OrderResponseDto {
     private String farmName;
     private String animalType;
     private Double totalPrice;
+    private Boolean paid;
+    private Double paidAmount;
+    private LocalDateTime paidAt;
 }

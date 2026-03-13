@@ -1,0 +1,189 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide circle
+
+enum UserRole {
+  FARM_OWNER
+  BUYER
+  ADMIN
+  WORKER
+}
+
+enum MilkSession {
+  MORNING
+  EVENING
+  ALL
+}
+
+enum OrderStatus {
+  PENDING
+  CREATED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  CANCELLED
+  COMPLETED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum AllocationType {
+  ORDER
+  SUBSCRIPTION
+  RESERVATION
+}
+
+class User {
+  +Long:id
+  +String:name
+  +String:email
+  +String:city
+  +UserRole:role
+  --
+  +updateProfile(name:String, city:String): void
+  +placeOrder(farmId:Long, qty:Double, session:MilkSession): Orders
+}
+
+class Farm {
+  +Long:id
+  +String:name
+  +String:city
+  +boolean:isSelling
+  +Double:pricePerLiter
+  --
+  +startSelling(pricePerLiter:Double): void
+  +assignWorker(worker:User): FarmWorker
+}
+
+class Shed {
+  +Long:id
+  +String:name
+  --
+  +assignWorker(fw:FarmWorker): FarmWorkerShed
+}
+
+class Cattle {
+  +Long:id
+  +String:tagId
+  +String:type
+  +String:status
+  --
+  +assignToShed(shed:Shed): void
+}
+
+class FarmWorker {
+  +Long:id
+  --
+  +assignToShed(shed:Shed): FarmWorkerShed
+}
+
+class FarmWorkerShed {
+  +Long:id
+  --
+  +unlinkWorkerFromShed(): void
+}
+
+class CattleMilkEntry {
+  +Long:id
+  +LocalDate:recordDate
+  +MilkSession:session
+  +Double:milkLiters
+  --
+  +isValidForDay(date:LocalDate): boolean
+}
+
+class MilkInventory {
+  +Long:id
+  +LocalDate:recordDate
+  +MilkSession:session
+  +Double:milkLiters
+  --
+  +reserveStock(liters:Double): boolean
+}
+
+class MilkAllocation {
+  +Long:id
+  +Double:quantity
+  +AllocationType:type
+  +Long:referenceId
+  --
+  +isReservation(): boolean
+}
+
+class Orders {
+  +Long:id
+  +Double:quantity
+  +OrderStatus:status
+  +MilkSession:session
+  +Double:totalPrice
+  --
+  +confirm(): void
+  +cancel(reason:String): void
+}
+
+class Subscription {
+  +Long:id
+  +Double:quantity
+  +MilkSession:session
+  +SubscriptionStatus:status
+  --
+  +activate(): void
+  +pause(): void
+}
+
+class WorkerFarmInvitation {
+  +Long:id
+  +InvitationStatus:status
+  --
+  +accept(): void
+  +decline(): void
+}
+
+User "1" -- "0..*" Farm : owns
+Farm "1" -- "0..*" Cattle : has
+Farm "1" -- "0..*" Shed : has
+Shed "0..1" -- "0..*" Cattle : shelters
+
+Farm "1" -- "0..*" FarmWorker : employs
+User "1" -- "0..*" FarmWorker : worksOnFarm
+FarmWorker "1" -- "0..*" FarmWorkerShed : assignments
+Shed "1" -- "0..*" FarmWorkerShed : hasWorkers
+
+Cattle "1" -- "0..*" CattleMilkEntry : milkEntries
+Farm "1" -- "0..*" CattleMilkEntry : records
+User "1" -- "0..*" CattleMilkEntry : enteredBy
+
+Farm "1" -- "0..*" MilkInventory : storesMilk
+User "0..1" -- "0..*" MilkInventory : enteredBy
+MilkInventory "1" -- "0..*" MilkAllocation : allocations
+
+User "1" -- "0..*" Orders : buysMilk
+Farm "1" -- "0..*" Orders : sellsMilk
+Subscription "0..1" -- "0..*" Orders : generates
+
+User "1" -- "0..*" Subscription : subscribes
+Farm "1" -- "0..*" Subscription : offers
+
+Farm "1" -- "0..*" WorkerFarmInvitation : invites
+User "1" -- "0..*" WorkerFarmInvitation : receives
+
+User --> UserRole
+CattleMilkEntry --> MilkSession
+MilkInventory --> MilkSession
+Orders --> MilkSession
+Orders --> OrderStatus
+Subscription --> MilkSession
+Subscription --> SubscriptionStatus
+WorkerFarmInvitation --> InvitationStatus
+MilkAllocation --> AllocationType
+@enduml

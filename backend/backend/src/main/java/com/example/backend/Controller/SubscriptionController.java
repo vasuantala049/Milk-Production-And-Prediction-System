@@ -1,6 +1,7 @@
 package com.example.backend.Controller;
 
 import com.example.backend.DTO.SubscribeDto;
+import com.example.backend.DTO.SubscriptionPaymentRequestDto;
 import com.example.backend.DTO.SubscriptionResponseDto;
 import com.example.backend.Entity.Subscription;
 import com.example.backend.Entity.User;
@@ -46,8 +47,27 @@ public class SubscriptionController {
 
     @PostMapping("/{id}/cancel")
     public ResponseEntity<SubscriptionResponseDto> cancelSubscription(@PathVariable Long id,
+            @RequestBody(required = false) SubscriptionPaymentRequestDto request,
             @AuthenticationPrincipal User user) {
-        Subscription subscription = subscriptionService.cancelSubscription(id, user);
+        Subscription subscription = subscriptionService.cancelSubscription(
+                id,
+                request != null ? request.getAmount() : null,
+                user);
+        return ResponseEntity.ok(mapToDto(subscription));
+    }
+
+    @PostMapping("/{id}/skip-today")
+    public ResponseEntity<SubscriptionResponseDto> skipToday(@PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        Subscription subscription = subscriptionService.skipToday(id, user);
+        return ResponseEntity.ok(mapToDto(subscription));
+    }
+
+    @PostMapping("/{id}/pay-cycle")
+    public ResponseEntity<SubscriptionResponseDto> paySubscriptionCycle(@PathVariable Long id,
+            @RequestBody SubscriptionPaymentRequestDto request,
+            @AuthenticationPrincipal User user) {
+        Subscription subscription = subscriptionService.paySubscriptionCycle(id, request.getAmount(), user);
         return ResponseEntity.ok(mapToDto(subscription));
     }
 
@@ -126,16 +146,81 @@ public class SubscriptionController {
     private SubscriptionResponseDto mapToDto(Subscription subscription) {
         return SubscriptionResponseDto.builder()
                 .id(subscription.getId())
+                .displayCode(resolveDisplayCode(subscription))
                 .buyerId(subscription.getBuyer() != null ? subscription.getBuyer().getId() : null)
                 .buyerName(subscription.getBuyer() != null ? subscription.getBuyer().getName() : null)
+                .buyerAddress(resolveBuyerAddress(subscription))
+                .buyerCity(subscription.getBuyer() != null ? subscription.getBuyer().getCity() : null)
                 .farmId(subscription.getFarm() != null ? subscription.getFarm().getId() : null)
                 .farmName(subscription.getFarm() != null ? subscription.getFarm().getName() : null)
                 .quantity(subscription.getQuantity())
                 .session(subscription.getSession())
                 .startDate(subscription.getStartDate())
                 .endDate(subscription.getEndDate())
+                .skipDate(subscription.getSkipDate())
                 .status(subscription.getStatus())
                 .animalType(subscription.getAnimalType())
+                .billingDayCounter(normalizeCounter(subscription.getBillingDayCounter()))
+                .maxBillingDays(30)
+                .paymentRequired(normalizeCounter(subscription.getBillingDayCounter()) >= 30)
+                .billingAmountDue(calculateBillingAmountDue(subscription))
+                .lastCyclePaidAt(subscription.getLastCyclePaidAt())
                 .build();
+    }
+
+    private int normalizeCounter(Integer counter) {
+        if (counter == null || counter < 0) {
+            return 0;
+        }
+        return Math.min(counter, 30);
+    }
+
+    private double calculateBillingAmountDue(Subscription subscription) {
+        double pricePerLiter = resolvePricePerLiter(subscription);
+        return normalizeCounter(subscription.getBillingDayCounter()) *
+                (subscription.getQuantity() == null ? 0.0 : subscription.getQuantity()) *
+                pricePerLiter;
+    }
+
+    private double resolvePricePerLiter(Subscription subscription) {
+        if (subscription.getFarm() == null) {
+            return 0.0;
+        }
+
+        String animalType = subscription.getAnimalType();
+        if (animalType == null) {
+            return subscription.getFarm().getPricePerLiter() == null ? 0.0 : subscription.getFarm().getPricePerLiter();
+        }
+
+        if ("COW".equalsIgnoreCase(animalType) && subscription.getFarm().getCowPrice() != null) {
+            return subscription.getFarm().getCowPrice();
+        }
+        if ("BUFFALO".equalsIgnoreCase(animalType) && subscription.getFarm().getBuffaloPrice() != null) {
+            return subscription.getFarm().getBuffaloPrice();
+        }
+        if ("SHEEP".equalsIgnoreCase(animalType) && subscription.getFarm().getSheepPrice() != null) {
+            return subscription.getFarm().getSheepPrice();
+        }
+        if ("GOAT".equalsIgnoreCase(animalType) && subscription.getFarm().getGoatPrice() != null) {
+            return subscription.getFarm().getGoatPrice();
+        }
+        return subscription.getFarm().getPricePerLiter() == null ? 0.0 : subscription.getFarm().getPricePerLiter();
+    }
+
+    private String resolveDisplayCode(Subscription subscription) {
+        if (subscription.getDisplayCode() != null && !subscription.getDisplayCode().isBlank()) {
+            return subscription.getDisplayCode();
+        }
+        return String.format("%06d", subscription.getId());
+    }
+
+    private String resolveBuyerAddress(Subscription subscription) {
+        if (subscription.getBuyer() == null) {
+            return null;
+        }
+        if (subscription.getBuyer().getAddress() != null && !subscription.getBuyer().getAddress().isBlank()) {
+            return subscription.getBuyer().getAddress();
+        }
+        return subscription.getBuyer().getLocation();
     }
 }

@@ -10,7 +10,8 @@ import java.time.LocalDate;
 @NoArgsConstructor @AllArgsConstructor
 @Builder
 @Table(name = "milk_forecast")
-public class MilkForecast {
+public class
+MilkForecast {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

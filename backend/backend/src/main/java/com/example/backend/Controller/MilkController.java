@@ -2,6 +2,7 @@ package com.example.backend.Controller;
 
 import com.example.backend.DTO.AddMilkInventoryRequestDto;
 import com.example.backend.DTO.MilkHistoryDto;
+import com.example.backend.DTO.MilkTypeHistoryDto;
 import com.example.backend.DTO.TodayMilkBreakdownDto;
 import com.example.backend.DTO.TodayMilkEntryDto;
 import com.example.backend.Entity.User;
@@ -63,11 +64,19 @@ public class MilkController {
         return ResponseEntity.ok(milkInventoryService.getLastNDaysMilk(farmId, days));
     }
 
+    @GetMapping("/history/by-type")
+    public ResponseEntity<java.util.List<MilkTypeHistoryDto>> getHistoryByType(
+            @RequestParam Long farmId,
+            @RequestParam(defaultValue = "7") int days) {
+        return ResponseEntity.ok(milkInventoryService.getLastNDaysMilkByType(farmId, days));
+    }
+
     @GetMapping("/today/entries")
     public ResponseEntity<java.util.List<TodayMilkEntryDto>> getTodayEntries(
             @RequestParam Long farmId,
+            @RequestParam(defaultValue = "false") boolean includeAllEntries,
             @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(milkInventoryService.getTodayEntries(farmId, user));
+        return ResponseEntity.ok(milkInventoryService.getTodayEntries(farmId, user, includeAllEntries));
     }
 
     @GetMapping("/availability")

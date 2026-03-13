@@ -8,6 +8,7 @@ import lombok.*;
 public class FarmPatchDto {
     private String name;
     private String address;
+    private String city;
     private Boolean isSelling;
 
     // TEMP until Spring Security

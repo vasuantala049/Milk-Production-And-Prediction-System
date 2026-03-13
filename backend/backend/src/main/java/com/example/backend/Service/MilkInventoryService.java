@@ -3,6 +3,7 @@ package com.example.backend.Service;
 import com.example.backend.DTO.AddMilkInventoryRequestDto;
 import com.example.backend.DTO.MilkAvailabilityDto;
 import com.example.backend.DTO.MilkHistoryDto;
+import com.example.backend.DTO.MilkTypeHistoryDto;
 import com.example.backend.DTO.TodayMilkBreakdownDto;
 import com.example.backend.DTO.TodayMilkEntryDto;
 import com.example.backend.Entity.User;
@@ -20,7 +21,8 @@ public interface MilkInventoryService {
 
 
     java.util.List<MilkHistoryDto> getLastNDaysMilk(Long farmId, int days);
-    java.util.List<TodayMilkEntryDto> getTodayEntries(Long farmId, User user);
+    java.util.List<MilkTypeHistoryDto> getLastNDaysMilkByType(Long farmId, int days);
+    java.util.List<TodayMilkEntryDto> getTodayEntries(Long farmId, User user, boolean includeAllEntries);
     
     // New methods for availability tracking
     MilkAvailabilityDto getAvailability(Long farmId, LocalDate date, MilkSession session);

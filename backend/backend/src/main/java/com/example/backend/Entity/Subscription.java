@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -19,6 +20,9 @@ public class Subscription {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(length = 6)
+    private String displayCode;
 
     @ManyToOne
     @JoinColumn(name = "buyer_id", nullable = false)
@@ -41,6 +45,16 @@ public class Subscription {
     private LocalDate startDate;
 
     private LocalDate endDate;
+
+    private LocalDate skipDate;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer billingDayCounter = 0;
+
+    private LocalDate billingCounterUpdatedDate;
+
+    private LocalDateTime lastCyclePaidAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "VARCHAR(50)")

@@ -1,0 +1,50 @@
+@startuml
+title Add Milk Entry - Sequence Diagram
+
+actor farmOwner
+actor worker
+participant "Frontend (Milk Form)" as frontend
+participant "MilkController" as controller
+participant "MilkInventoryService" as service
+participant "CattleRepository" as cattleRepo
+participant "CattleMilkEntryRepository" as milkEntryRepo
+participant "MilkInventoryRepository" as inventoryRepo
+participant "FarmRepository" as farmRepo
+
+== Worker/Farm Owner Opens Form ==
+worker -> frontend: Open Add Milk Entry page
+frontend --> worker: Show form (tagId, liters, session, date)
+
+== Submit Milk Entry ==
+worker -> frontend: Submit milk entry details
+frontend -> controller: Send new milk entry request
+controller -> service: Validate and process milk entry
+
+service -> farmRepo: Get selected farm
+farmRepo --> service: Farm details
+
+service -> cattleRepo: Find cattle by tag in farm
+cattleRepo --> service: Cattle details
+
+service -> milkEntryRepo: Save milk entry
+milkEntryRepo --> service: Milk entry saved
+
+service -> inventoryRepo: Check milk stock for same day and session
+alt Inventory exists
+  service -> inventoryRepo: Update existing milk stock
+else Inventory not found
+  service -> inventoryRepo: Create new milk stock record
+end
+inventoryRepo --> service: Milk stock saved
+
+service --> controller: Entry processed successfully
+controller --> frontend: Success message
+frontend --> worker: Show success notification
+
+== Optional Owner Review ==
+farmOwner -> frontend: View today's milk records
+frontend -> controller: Ask for today's milk summary
+controller --> frontend: Today's entries and total milk
+frontend --> farmOwner: Display latest milk data
+
+@enduml

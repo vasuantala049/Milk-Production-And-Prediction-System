@@ -89,6 +89,29 @@ public class CattleServiceImpl implements CattleService {
         Cattle cattle = cattleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Cattle not found"));
 
+        if (patchDto.getTagId() != null) {
+            String normalizedTagId = patchDto.getTagId().trim();
+            if (normalizedTagId.isEmpty()) {
+                throw new IllegalArgumentException("Tag ID cannot be blank");
+            }
+
+            cattleRepository.findByFarm_IdAndTagId(cattle.getFarm().getId(), normalizedTagId)
+                    .filter(existing -> !existing.getId().equals(cattle.getId()))
+                    .ifPresent(existing -> {
+                        throw new IllegalArgumentException("A cattle with this tagId already exists in this farm.");
+                    });
+
+            cattle.setTagId(normalizedTagId);
+        }
+
+        if (patchDto.getType() != null) {
+            String normalizedType = patchDto.getType().trim();
+            if (normalizedType.isEmpty()) {
+                throw new IllegalArgumentException("Type cannot be blank");
+            }
+            cattle.setType(normalizedType.toUpperCase());
+        }
+
         if (patchDto.getBreed() != null) {
             cattle.setBreed(patchDto.getBreed());
         }
@@ -97,7 +120,9 @@ public class CattleServiceImpl implements CattleService {
             cattle.setStatus(patchDto.getStatus());
         }
 
-        if (patchDto.getShedId() != null) {
+        if (patchDto.getShedId() == null) {
+            cattle.setShed(null);
+        } else {
             Shed shed = shedRepository.findById(patchDto.getShedId())
                     .orElseThrow(() -> new IllegalArgumentException("Shed not found"));
             if (!shed.getFarm().getId().equals(cattle.getFarm().getId())) {

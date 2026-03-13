@@ -14,6 +14,9 @@ import java.util.List;
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
     List<Subscription> findByBuyer(User buyer);
     List<Subscription> findAllByStatus(SubscriptionStatus status);
+    long countByFarm_Id(Long farmId);
+    Subscription findTopByFarm_IdAndDisplayCodeIsNotNullOrderByDisplayCodeDesc(Long farmId);
+    boolean existsByFarm_IdAndDisplayCode(Long farmId, String displayCode);
     
     // Farm-based queries for owner access
     List<Subscription> findByFarm_Id(Long farmId);

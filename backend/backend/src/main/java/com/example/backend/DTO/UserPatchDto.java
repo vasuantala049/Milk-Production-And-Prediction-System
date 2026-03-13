@@ -9,6 +9,7 @@ public class UserPatchDto {
 
     private String name;
     private String email;
+    private String address;
     private String location;
 
     private String city;

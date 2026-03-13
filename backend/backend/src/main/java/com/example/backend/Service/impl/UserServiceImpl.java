@@ -33,6 +33,9 @@ public class UserServiceImpl implements UserService {
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
         user.setRole(dto.getRole());
+        user.setAddress(normalize(dto.getAddress()));
+        user.setCity(normalize(dto.getCity()));
+        user.setLocation(normalize(dto.getAddress()));
         if (dto.getPassword() != null) {
             user.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
@@ -47,6 +50,7 @@ public class UserServiceImpl implements UserService {
                 Farm farm = new Farm();
                 farm.setName(dto.getFarm().getName());
                 farm.setAddress(dto.getFarm().getAddress());
+                farm.setCity(dto.getFarm().getCity());
                 farm.setOwner(user);
 
                 user.setFarms(List.of(farm));
@@ -65,7 +69,7 @@ public class UserServiceImpl implements UserService {
         }
 
         User saved = userRepository.save(user);
-        return modelMapper.map(saved, UserResponseDto.class);
+        return toUserResponse(saved);
     }
 
     @Override
@@ -73,7 +77,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        return modelMapper.map(user, UserResponseDto.class);
+        return toUserResponse(user);
     }
 
     @Override
@@ -83,9 +87,12 @@ public class UserServiceImpl implements UserService {
 
         user.setName(request.getName());
         user.setEmail(request.getEmail());
+        user.setAddress(normalize(request.getAddress()));
+        user.setCity(normalize(request.getCity()));
+        user.setLocation(normalize(request.getAddress()));
 
         User saved = userRepository.save(user);
-        return modelMapper.map(saved, UserResponseDto.class);
+        return toUserResponse(saved);
     }
 
     @Override
@@ -103,20 +110,42 @@ public class UserServiceImpl implements UserService {
             user.setEmail(patchDto.getEmail());
         }
 
-        if (patchDto.getLocation() != null) {
-            user.setLocation(patchDto.getLocation());
+        if (patchDto.getAddress() != null) {
+            user.setAddress(normalize(patchDto.getAddress()));
+            user.setLocation(normalize(patchDto.getAddress()));
         }
 
-        if (patchDto.getCity() != null) {
-            user.setCity(patchDto.getCity());
-            // Keep legacy "location" in sync so existing code continues to work
-            if (user.getLocation() == null || user.getLocation().isEmpty()) {
-                user.setLocation(patchDto.getCity());
+        if (patchDto.getLocation() != null) {
+            user.setLocation(patchDto.getLocation());
+            if (user.getAddress() == null || user.getAddress().isEmpty()) {
+                user.setAddress(normalize(patchDto.getLocation()));
             }
         }
 
+        if (patchDto.getCity() != null) {
+            user.setCity(normalize(patchDto.getCity()));
+        }
+
         User saved = userRepository.save(user);
-        return modelMapper.map(saved, UserResponseDto.class);
+        return toUserResponse(saved);
+    }
+
+    private UserResponseDto toUserResponse(User user) {
+        UserResponseDto response = modelMapper.map(user, UserResponseDto.class);
+        if ((response.getAddress() == null || response.getAddress().isBlank())
+                && user.getLocation() != null
+                && !user.getLocation().isBlank()) {
+            response.setAddress(user.getLocation());
+        }
+        return response;
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
 }

@@ -6,12 +6,15 @@ import com.example.backend.Entity.FarmWorker;
 import com.example.backend.Entity.FarmWorkerShed;
 import com.example.backend.Entity.Shed;
 import com.example.backend.Entity.User;
+import com.example.backend.Entity.WorkerFarmInvitation;
+import com.example.backend.Entity.type.InvitationStatus;
 import com.example.backend.Entity.type.UserRole;
 import com.example.backend.Repository.FarmRepository;
 import com.example.backend.Repository.FarmWorkerRepository;
 import com.example.backend.Repository.FarmWorkerShedRepository;
 import com.example.backend.Repository.ShedRepository;
 import com.example.backend.Repository.UserRepository;
+import com.example.backend.Repository.WorkerFarmInvitationRepository;
 import com.example.backend.Service.FarmService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -34,6 +37,7 @@ public class FarmServiceImpl implements FarmService {
     private final com.example.backend.Repository.CattleRepository cattleRepository;
     private final com.example.backend.Service.MilkInventoryService milkInventoryService;
     private final com.example.backend.Repository.CattleMilkEntryRepository cattleMilkEntryRepository;
+    private final WorkerFarmInvitationRepository invitationRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -107,7 +111,7 @@ public class FarmServiceImpl implements FarmService {
         java.util.List<Farm> farms;
         if (trimmedLocation != null && !trimmedLocation.isEmpty()) {
             java.util.Set<Farm> result = new java.util.LinkedHashSet<>();
-            result.addAll(farmRepository.findByCityIgnoreCaseAndIsSellingTrue(trimmedLocation));
+            result.addAll(farmRepository.findByCityContainingIgnoreCaseAndIsSellingTrue(trimmedLocation));
             result.addAll(farmRepository.findByAddressContainingIgnoreCaseAndIsSellingTrue(trimmedLocation));
             farms = new java.util.ArrayList<>(result);
         } else {
@@ -137,6 +141,7 @@ public class FarmServiceImpl implements FarmService {
         Farm farm = new Farm();
         farm.setName(dto.getName());
         farm.setAddress(dto.getAddress());
+        farm.setCity(dto.getCity());
         farm.setOwner(loggedInUser);
 
         Farm saved = farmRepository.save(farm);
@@ -156,6 +161,8 @@ public class FarmServiceImpl implements FarmService {
             farm.setName(patchDto.getName());
         if (patchDto.getAddress() != null)
             farm.setAddress(patchDto.getAddress());
+        if (patchDto.getCity() != null)
+            farm.setCity(patchDto.getCity());
         if (patchDto.getIsSelling() != null)
             farm.setSelling(patchDto.getIsSelling());
 
@@ -204,27 +211,8 @@ public class FarmServiceImpl implements FarmService {
 
     @Override
     public void assignWorkerToFarm(Long farmId, String workerEmail, User loggedInUser) {
-        Farm farm = farmRepository.findById(farmId)
-                .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
-
-        if (!farm.getOwner().getId().equals(loggedInUser.getId())) {
-            throw new IllegalArgumentException("Only the farm owner can assign workers to this farm");
-        }
-
-        User worker = userRepository.findByEmail(workerEmail)
-                .orElseThrow(() -> new IllegalArgumentException("Worker not found"));
-
-        if (worker.getRole() != UserRole.WORKER) {
-            throw new IllegalArgumentException("Target user is not a WORKER");
-        }
-
-        java.util.Optional<FarmWorker> existing = farmWorkerRepository.findByFarmIdAndWorkerId(farmId, worker.getId());
-        if (!existing.isPresent()) {
-            FarmWorker assignment = new FarmWorker();
-            assignment.setFarm(farm);
-            assignment.setWorker(worker);
-            farmWorkerRepository.save(assignment);
-        }
+        // Legacy: now redirects to invitation flow — sends invitation instead of direct assign
+        inviteWorkerToFarm(farmId, workerEmail, loggedInUser);
     }
 
     private final com.example.backend.Repository.MilkAllocationRepository milkAllocationRepository;
@@ -387,5 +375,175 @@ public class FarmServiceImpl implements FarmService {
         }
 
         return new java.util.ArrayList<>(shedStats.values());
+    }
+
+    @Override
+    public void updateWorkerSheds(Long farmId, Long workerId, com.example.backend.DTO.UpdateWorkerShedDto dto, User loggedInUser) {
+        Farm farm = farmRepository.findById(farmId)
+                .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+
+        if (!farm.getOwner().getId().equals(loggedInUser.getId())) {
+            throw new IllegalArgumentException("Only farm owner can update worker assignments");
+        }
+
+        User user = userRepository.findById(workerId)
+                .orElseThrow(() -> new IllegalArgumentException("Worker not found"));
+
+        if (user.getRole() != UserRole.WORKER) {
+            throw new IllegalArgumentException("User is not a worker");
+        }
+
+        FarmWorker farmWorker = farmWorkerRepository.findByFarmIdAndWorkerId(farmId, workerId)
+                .orElseThrow(() -> new IllegalArgumentException("Worker is not assigned to this farm"));
+
+        // Delete existing shed assignments for this worker on this farm
+        farmWorkerShedRepository.deleteByFarmWorkerId(farmWorker.getId());
+
+        // Add new shed assignments
+        if (dto.getShedIds() != null && !dto.getShedIds().isEmpty()) {
+            for (Long shedId : dto.getShedIds()) {
+                Shed shed = shedRepository.findById(shedId)
+                        .orElseThrow(() -> new IllegalArgumentException("Shed not found: " + shedId));
+                if (!shed.getFarm().getId().equals(farmId)) {
+                    throw new IllegalArgumentException("Shed does not belong to this farm");
+                }
+                FarmWorkerShed fws = new FarmWorkerShed();
+                fws.setFarmWorker(farmWorker);
+                fws.setShed(shed);
+                farmWorkerShedRepository.save(fws);
+            }
+        }
+    }
+
+    @Override
+    public WorkerFarmInvitationDto inviteWorkerToFarm(Long farmId, String workerEmail, User loggedInUser) {
+        Farm farm = farmRepository.findById(farmId)
+                .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+
+        if (!farm.getOwner().getId().equals(loggedInUser.getId())) {
+            throw new IllegalArgumentException("Only the farm owner can invite workers");
+        }
+
+        User worker = userRepository.findByEmail(workerEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Worker with that email not found"));
+
+        if (worker.getRole() != UserRole.WORKER) {
+            throw new IllegalArgumentException("Target user is not a WORKER");
+        }
+
+        // Already assigned
+        if (farmWorkerRepository.findByFarmIdAndWorkerId(farmId, worker.getId()).isPresent()) {
+            throw new IllegalArgumentException("Worker is already assigned to this farm");
+        }
+
+        // Check for existing pending invitation
+        if (invitationRepository.existsByFarmIdAndWorkerIdAndStatus(farmId, worker.getId(), InvitationStatus.PENDING)) {
+            throw new IllegalArgumentException("An invitation is already pending for this worker");
+        }
+
+        // Remove previous declined invitation so a fresh one can be sent
+        invitationRepository.deleteByFarmIdAndWorkerId(farmId, worker.getId());
+
+        WorkerFarmInvitation invitation = WorkerFarmInvitation.builder()
+                .farm(farm)
+                .worker(worker)
+                .status(InvitationStatus.PENDING)
+                .build();
+
+        WorkerFarmInvitation saved = invitationRepository.save(invitation);
+        return toInvitationDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkerFarmInvitationDto> getPendingInvitationsForWorker(User loggedInUser) {
+        return invitationRepository.findByWorkerIdAndStatus(loggedInUser.getId(), InvitationStatus.PENDING)
+                .stream()
+                .map(this::toInvitationDto)
+                .toList();
+    }
+
+    @Override
+    public WorkerFarmInvitationDto respondToInvitation(Long invitationId, boolean accept, User loggedInUser) {
+        WorkerFarmInvitation invitation = invitationRepository.findById(invitationId)
+                .orElseThrow(() -> new IllegalArgumentException("Invitation not found"));
+
+        if (!invitation.getWorker().getId().equals(loggedInUser.getId())) {
+            throw new IllegalArgumentException("This invitation is not for you");
+        }
+
+        if (invitation.getStatus() != InvitationStatus.PENDING) {
+            throw new IllegalArgumentException("Invitation already responded to");
+        }
+
+        if (accept) {
+            invitation.setStatus(InvitationStatus.ACCEPTED);
+            invitationRepository.save(invitation);
+
+            // Actually assign the worker to the farm
+            if (farmWorkerRepository.findByFarmIdAndWorkerId(invitation.getFarm().getId(), loggedInUser.getId()).isEmpty()) {
+                FarmWorker assignment = new FarmWorker();
+                assignment.setFarm(invitation.getFarm());
+                assignment.setWorker(loggedInUser);
+                farmWorkerRepository.save(assignment);
+            }
+        } else {
+            invitation.setStatus(InvitationStatus.DECLINED);
+            invitationRepository.save(invitation);
+        }
+
+        return toInvitationDto(invitation);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkerFarmInvitationDto> getInvitationsForFarm(Long farmId, User loggedInUser) {
+        Farm farm = farmRepository.findById(farmId)
+                .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+
+        if (!farm.getOwner().getId().equals(loggedInUser.getId())) {
+            throw new IllegalArgumentException("Only the farm owner can view invitations");
+        }
+
+        return invitationRepository.findByFarmIdAndStatus(farmId, InvitationStatus.PENDING)
+                .stream()
+                .map(this::toInvitationDto)
+                .toList();
+    }
+
+    @Override
+    public void removeWorkerFromFarm(Long farmId, Long workerId, User loggedInUser) {
+        Farm farm = farmRepository.findById(farmId)
+                .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+
+        if (!farm.getOwner().getId().equals(loggedInUser.getId())) {
+            throw new IllegalArgumentException("Only the farm owner can remove workers");
+        }
+
+        FarmWorker farmWorker = farmWorkerRepository.findByFarmIdAndWorkerId(farmId, workerId)
+                .orElseThrow(() -> new IllegalArgumentException("Worker is not assigned to this farm"));
+
+        // Delete shed assignments first (cascade safety)
+        farmWorkerShedRepository.deleteByFarmWorkerId(farmWorker.getId());
+
+        // Delete any pending invitations
+        invitationRepository.deleteByFarmIdAndWorkerId(farmId, workerId);
+
+        // Delete the farm-worker link
+        farmWorkerRepository.delete(farmWorker);
+    }
+
+    private WorkerFarmInvitationDto toInvitationDto(WorkerFarmInvitation inv) {
+        return WorkerFarmInvitationDto.builder()
+                .id(inv.getId())
+                .farmId(inv.getFarm().getId())
+                .farmName(inv.getFarm().getName())
+                .farmAddress(inv.getFarm().getAddress())
+                .workerId(inv.getWorker().getId())
+                .workerName(inv.getWorker().getName())
+                .workerEmail(inv.getWorker().getEmail())
+                .status(inv.getStatus())
+                .createdAt(inv.getCreatedAt())
+                .build();
     }
 }

@@ -17,11 +17,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
 public class BuyMilkServiceImpl implements BuyMilkService {
+
+    private static final SecureRandom DISPLAY_CODE_RANDOM = new SecureRandom();
 
     private final OrdersRepository ordersRepository;
     private final MilkInventoryRepository milkInventoryRepository;
@@ -55,13 +58,7 @@ public class BuyMilkServiceImpl implements BuyMilkService {
             throw new IllegalArgumentException("Quantity must be 0.5L or a whole number of liters (1L, 2L, 3L...)");
         }
 
-        // 4. Validate time-based slot restrictions (for today's date only)
-        LocalDate orderDate = dto.getDate();
-        if (orderDate.equals(LocalDate.now()) && dto.getSession() != com.example.backend.Entity.type.MilkSession.ALL) {
-            validateTimeSlot(dto.getSession());
-        }
-
-        // 5. Create order with PENDING status (awaiting owner approval)
+        // 4. Create order with PENDING status (awaiting owner approval)
         // NOTE: Stock availability check has been removed. Request will be sent to owner regardless of available stock.
         Orders order = new Orders();
         order.setOrderDate(LocalDate.now());
@@ -71,6 +68,8 @@ public class BuyMilkServiceImpl implements BuyMilkService {
         order.setBuyer(buyer);
         order.setFarm(farm);
         order.setAnimalType(dto.getAnimalType());
+        order.setDisplayCode(nextDisplayCode(farm.getId()));
+        order.setPaid(false);
 
         // Compute total price based on animal type and farm prices
         double pricePerLiter;
@@ -98,6 +97,7 @@ public class BuyMilkServiceImpl implements BuyMilkService {
         // 9. Map to DTO and return
         OrderResponseDto dto1 = new OrderResponseDto();
         dto1.setId(order.getId());
+        dto1.setDisplayCode(resolveDisplayCode(order));
         dto1.setOrderDate(order.getOrderDate());
         dto1.setQuantity(order.getQuantity());
         dto1.setSession(order.getSession());
@@ -105,26 +105,27 @@ public class BuyMilkServiceImpl implements BuyMilkService {
         dto1.setBuyerId(buyer != null ? buyer.getId() : null);
         dto1.setFarmId(farm != null ? farm.getId() : null);
         dto1.setAnimalType(order.getAnimalType());
+        dto1.setTotalPrice(order.getTotalPrice());
+        dto1.setPaid(Boolean.FALSE);
 
         return dto1;
     }
 
-    /**
-     * Validates time-based slot restrictions for same-day orders
-     */
-    private void validateTimeSlot(com.example.backend.Entity.type.MilkSession session) {
-        java.time.LocalTime now = java.time.LocalTime.now();
-
-        if (session == com.example.backend.Entity.type.MilkSession.MORNING) {
-            // Morning slot (6 AM - 10 AM) cannot be selected after 10 AM
-            if (now.isAfter(java.time.LocalTime.of(10, 0))) {
-                throw new IllegalStateException("Morning slot (6 AM - 10 AM) cannot be selected after 10:00 AM");
-            }
-        } else if (session == com.example.backend.Entity.type.MilkSession.EVENING) {
-            // Evening slot (4 PM - 8 PM) cannot be selected after 8 PM
-            if (now.isAfter(java.time.LocalTime.of(20, 0))) {
-                throw new IllegalStateException("Evening slot (4 PM - 8 PM) cannot be selected after 8:00 PM");
+    private String nextDisplayCode(Long farmId) {
+        for (int attempt = 0; attempt < 50; attempt++) {
+            String candidate = String.valueOf(100000 + DISPLAY_CODE_RANDOM.nextInt(900000));
+            if (!ordersRepository.existsByFarm_IdAndDisplayCode(farmId, candidate)) {
+                return candidate;
             }
         }
+        throw new IllegalStateException("Unable to generate a unique order display code for this farm");
     }
+
+    private String resolveDisplayCode(Orders order) {
+        if (order.getDisplayCode() != null && !order.getDisplayCode().isBlank()) {
+            return order.getDisplayCode();
+        }
+        return String.format("%06d", order.getId());
+    }
+
 }

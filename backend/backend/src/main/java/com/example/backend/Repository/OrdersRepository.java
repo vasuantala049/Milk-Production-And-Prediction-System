@@ -17,6 +17,11 @@ import org.springframework.data.repository.query.Param;
 @Repository
 public interface OrdersRepository extends JpaRepository<Orders, Long> {
     List<Orders> findByBuyer(User buyer);
+    List<Orders> findByBuyerOrderByOrderDateDescIdDesc(User buyer);
+    long countByFarm_Id(Long farmId);
+    Orders findTopByFarm_IdAndDisplayCodeIsNotNullOrderByDisplayCodeDesc(Long farmId);
+    boolean existsByFarm_IdAndDisplayCode(Long farmId, String displayCode);
+    List<Orders> findBySubscription_IdAndOrderDateAndStatus(Long subscriptionId, LocalDate orderDate, OrderStatus status);
 
     // Farm-based queries for owner/worker access
     List<Orders> findByFarm_IdOrderByOrderDateDesc(Long farmId);

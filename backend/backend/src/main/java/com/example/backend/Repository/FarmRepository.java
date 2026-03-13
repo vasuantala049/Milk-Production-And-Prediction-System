@@ -30,6 +30,8 @@ public interface FarmRepository extends JpaRepository<Farm, Long> {
     // Filtered by selling status
     List<Farm> findByIsSellingTrue();
 
+    List<Farm> findByCityContainingIgnoreCaseAndIsSellingTrue(String city);
+
     List<Farm> findByCityIgnoreCaseAndIsSellingTrue(String city);
 
     List<Farm> findByAddressContainingIgnoreCaseAndIsSellingTrue(String address);

@@ -45,6 +45,9 @@ public class AuthController {
         user.setEmail(request.getEmail());
         user.setRole(request.getRole());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setAddress(normalize(request.getAddress()));
+        user.setCity(normalize(request.getCity()));
+        user.setLocation(normalize(request.getAddress()));
 
                 // 🔥 ROLE-BASED LOGIC (this was missing)
                 if (request.getRole() == UserRole.WORKER) {
@@ -62,6 +65,7 @@ public class AuthController {
             Farm farm = new Farm();
             farm.setName(request.getFarm().getName());
             farm.setAddress(request.getFarm().getAddress());
+                        farm.setCity(request.getFarm().getCity());
             farm.setOwner(user);
             user.setFarms(List.of(farm));
         }
@@ -73,7 +77,7 @@ public class AuthController {
 
         String token = jwtTokenProvider.generateToken(userDetails);
 
-        UserResponseDto userResponse = modelMapper.map(savedUser, UserResponseDto.class);
+        UserResponseDto userResponse = toUserResponse(savedUser);
         AuthResponseDto response = AuthResponseDto.builder()
                 .token(token)
                 .user(userResponse)
@@ -100,7 +104,7 @@ public class AuthController {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        UserResponseDto userResponse = modelMapper.map(user, UserResponseDto.class);
+        UserResponseDto userResponse = toUserResponse(user);
         AuthResponseDto response = AuthResponseDto.builder()
                 .token(token)
                 .user(userResponse)
@@ -108,5 +112,23 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+
+        private UserResponseDto toUserResponse(User user) {
+                UserResponseDto response = modelMapper.map(user, UserResponseDto.class);
+                if ((response.getAddress() == null || response.getAddress().isBlank())
+                                && user.getLocation() != null
+                                && !user.getLocation().isBlank()) {
+                        response.setAddress(user.getLocation());
+                }
+                return response;
+        }
+
+        private String normalize(String value) {
+                if (value == null) {
+                        return null;
+                }
+                String trimmed = value.trim();
+                return trimmed.isEmpty() ? null : trimmed;
+        }
 }
 

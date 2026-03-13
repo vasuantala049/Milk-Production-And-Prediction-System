@@ -8,6 +8,7 @@ import lombok.*;
 public class CreateFarmDto {
     private String name;
     private String address;
+    private String city;
 
     // TEMP until Spring Security
     private Long ownerId;

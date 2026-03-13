@@ -32,18 +32,19 @@ public class FarmController {
     // GET all farms (Public/Customer)
     @GetMapping
     public ResponseEntity<List<FarmResponseDto>> getAllFarms(
-            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false, name = "location") String legacyLocation,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
-        String searchLoc = location;
-        if (searchLoc == null && user != null) {
-            // Prefer the user's city if set, otherwise fall back to generic location
+        String searchCity = city != null ? city : legacyLocation;
+        if (searchCity == null && user != null) {
+            // Prefer the user's city if set, otherwise fall back to the legacy location field.
             if (user.getCity() != null && !user.getCity().isEmpty()) {
-                searchLoc = user.getCity();
+                searchCity = user.getCity();
             } else {
-                searchLoc = user.getLocation();
+                searchCity = user.getLocation();
             }
         }
-        return ResponseEntity.ok(farmService.getAllFarms(searchLoc));
+        return ResponseEntity.ok(farmService.getAllFarms(searchCity));
     }
 
     // GET farm by id
@@ -86,16 +87,25 @@ public class FarmController {
         return ResponseEntity.ok(farmService.getMyFarms(user));
     }
 
-    // Owner-only: assign a worker to this farm
+    // Owner-only: invite a worker to this farm (sends invitation, not direct assign)
     @PostMapping("/{farmId}/assign-worker")
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
-    public ResponseEntity<Void> assignWorker(
+    public ResponseEntity<com.example.backend.DTO.WorkerFarmInvitationDto> assignWorker(
             @PathVariable Long farmId,
             @RequestBody com.example.backend.DTO.AssignWorkerDto dto,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
 
-        farmService.assignWorkerToFarm(farmId, dto.getEmail(), user);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(farmService.inviteWorkerToFarm(farmId, dto.getEmail(), user));
+    }
+
+    // GET pending invitations for current farm (owner only)
+    @GetMapping("/{farmId}/invitations")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
+    public ResponseEntity<java.util.List<com.example.backend.DTO.WorkerFarmInvitationDto>> getFarmInvitations(
+            @PathVariable Long farmId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
+
+        return ResponseEntity.ok(farmService.getInvitationsForFarm(farmId, user));
     }
 
     // Create and assign a NEW worker to this farm (only OWNER)
@@ -109,6 +119,31 @@ public class FarmController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(farmService.createWorkerForFarm(farmId, dto, user));
+    }
+
+    // Update worker's shed assignments (only OWNER)
+    @PatchMapping("/{farmId}/workers/{workerId}/shed")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
+    public ResponseEntity<Void> updateWorkerSheds(
+            @PathVariable Long farmId,
+            @PathVariable Long workerId,
+            @RequestBody com.example.backend.DTO.UpdateWorkerShedDto dto,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
+
+        farmService.updateWorkerSheds(farmId, workerId, dto, user);
+        return ResponseEntity.ok().build();
+    }
+
+    // Remove a worker from a farm (only OWNER)
+    @DeleteMapping("/{farmId}/workers/{workerId}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('FARM_OWNER')")
+    public ResponseEntity<Void> removeWorker(
+            @PathVariable Long farmId,
+            @PathVariable Long workerId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.Entity.User user) {
+
+        farmService.removeWorkerFromFarm(farmId, workerId, user);
+        return ResponseEntity.noContent().build();
     }
 
     // DELETE farm (only OWNER) - for now just deletes by id

@@ -17,6 +17,8 @@ public class UserResponseDto {
     private String email;
     private UserRole role;
     private LocalDateTime createdAt;
+    private String address;
+    private String city;
     private String location;
     private List<ShedResponseDto> sheds;
 }

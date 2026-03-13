@@ -1,6 +1,7 @@
 package com.example.backend.Controller;
 
 import com.example.backend.DTO.OrderResponseDto;
+import com.example.backend.DTO.OrderPaymentRequestDto;
 import com.example.backend.Entity.Orders;
 import com.example.backend.Entity.User;
 import com.example.backend.Repository.OrdersRepository;
@@ -30,22 +31,8 @@ public class OrderController {
 
     @GetMapping("/my-orders")
     public ResponseEntity<List<OrderResponseDto>> getMyOrders(@AuthenticationPrincipal User user) {
-        List<Orders> orders = ordersRepository.findByBuyer(user);
-        List<OrderResponseDto> dtos = orders.stream().map(order -> {
-            OrderResponseDto d = new OrderResponseDto();
-            d.setId(order.getId());
-            d.setOrderDate(order.getOrderDate());
-            d.setQuantity(order.getQuantity());
-            d.setSession(order.getSession());
-            d.setStatus(order.getStatus());
-            d.setBuyerId(order.getBuyer() != null ? order.getBuyer().getId() : null);
-            d.setBuyerName(order.getBuyer() != null ? order.getBuyer().getName() : order.getBuyerName());
-            d.setFarmId(order.getFarm() != null ? order.getFarm().getId() : null);
-            d.setFarmName(order.getFarm() != null ? order.getFarm().getName() : order.getFarmName());
-            d.setAnimalType(order.getAnimalType());
-            d.setTotalPrice(order.getTotalPrice());
-            return d;
-        }).collect(Collectors.toList());
+        List<Orders> orders = ordersRepository.findByBuyerOrderByOrderDateDescIdDesc(user);
+        List<OrderResponseDto> dtos = orders.stream().map(this::mapToDto).collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
     }
 
@@ -66,21 +53,7 @@ public class OrderController {
             orders = ordersRepository.findByFarm_IdOrderByOrderDateDesc(farmId);
         }
 
-        List<OrderResponseDto> dtos = orders.stream().map(order -> {
-            OrderResponseDto d = new OrderResponseDto();
-            d.setId(order.getId());
-            d.setOrderDate(order.getOrderDate());
-            d.setQuantity(order.getQuantity());
-            d.setSession(order.getSession());
-            d.setStatus(order.getStatus());
-            d.setBuyerId(order.getBuyer() != null ? order.getBuyer().getId() : null);
-            d.setBuyerName(order.getBuyer() != null ? order.getBuyer().getName() : order.getBuyerName());
-            d.setFarmId(order.getFarm() != null ? order.getFarm().getId() : null);
-            d.setFarmName(order.getFarm() != null ? order.getFarm().getName() : order.getFarmName());
-            d.setAnimalType(order.getAnimalType());
-            d.setTotalPrice(order.getTotalPrice());
-            return d;
-        }).collect(Collectors.toList());
+        List<OrderResponseDto> dtos = orders.stream().map(this::mapToDto).collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
     }
@@ -95,21 +68,7 @@ public class OrderController {
 
         List<Orders> orders = ordersRepository.findByFarm_IdAndOrderDateBetween(farmId, startDate, endDate);
 
-        List<OrderResponseDto> dtos = orders.stream().map(order -> {
-            OrderResponseDto d = new OrderResponseDto();
-            d.setId(order.getId());
-            d.setOrderDate(order.getOrderDate());
-            d.setQuantity(order.getQuantity());
-            d.setSession(order.getSession());
-            d.setStatus(order.getStatus());
-            d.setBuyerId(order.getBuyer() != null ? order.getBuyer().getId() : null);
-            d.setBuyerName(order.getBuyer() != null ? order.getBuyer().getName() : order.getBuyerName());
-            d.setFarmId(order.getFarm() != null ? order.getFarm().getId() : null);
-            d.setFarmName(order.getFarm() != null ? order.getFarm().getName() : order.getFarmName());
-            d.setAnimalType(order.getAnimalType());
-            d.setTotalPrice(order.getTotalPrice());
-            return d;
-        }).collect(Collectors.toList());
+        List<OrderResponseDto> dtos = orders.stream().map(this::mapToDto).collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
     }
@@ -139,9 +98,19 @@ public class OrderController {
         return ResponseEntity.ok(rejectedOrder);
     }
 
+    @PostMapping("/{orderId}/pay")
+    public ResponseEntity<OrderResponseDto> payOrder(
+            @PathVariable Long orderId,
+            @RequestBody OrderPaymentRequestDto request,
+            @AuthenticationPrincipal User user) {
+        OrderResponseDto paidOrder = orderService.payForOrder(orderId, request.getAmount(), user);
+        return ResponseEntity.ok(paidOrder);
+    }
+
     private OrderResponseDto mapToDto(Orders order) {
         return OrderResponseDto.builder()
                 .id(order.getId())
+                .displayCode(resolveDisplayCode(order))
                 .orderDate(order.getOrderDate())
                 .quantity(order.getQuantity())
                 .session(order.getSession())
@@ -152,7 +121,17 @@ public class OrderController {
                 .farmName(order.getFarm() != null ? order.getFarm().getName() : null)
                 .animalType(order.getAnimalType())
                 .totalPrice(order.getTotalPrice())
+                .paid(Boolean.TRUE.equals(order.getPaid()))
+                .paidAmount(order.getPaidAmount())
+                .paidAt(order.getPaidAt())
                 .build();
     }
+
+    private String resolveDisplayCode(Orders order) {
+        if (order.getDisplayCode() != null && !order.getDisplayCode().isBlank()) {
+            return order.getDisplayCode();
+        }
+        return String.format("%06d", order.getId());
     }
+} 
 

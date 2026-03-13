@@ -1,0 +1,58 @@
+Chapter 1: Introduction
+
+1.1 Project Overview
+Milk Production and Prediction System is a modern web-based platform designed to support dairy farm operations and milk distribution through a unified digital environment. The project connects farm owners, workers, and customers in a single system so that farm management activities and milk-related services can be handled more efficiently. Unlike a basic record-keeping application, this system combines operational management with customer-facing ordering and subscription workflows.
+
+The platform provides:
+● Role-based access control: Separate workflows for farm owners, workers, and customers based on their responsibilities.
+● Farm management: Owners can create and manage farms, update farm details, and organize farm-related operations.
+● Cattle and shed management: The system maintains cattle records, shed information, and related farm structure data.
+● Worker management: Farm owners can add workers and manage worker assignments within farms.
+● Milk entry and availability tracking: Daily milk data can be recorded and tracked for operational use and customer supply handling.
+● Customer ordering and subscriptions: Customers can place one-time milk orders or start recurring milk subscriptions.
+● Order and subscription approval workflows: Farm owners can review and manage customer requests before fulfillment.
+● Barcode-assisted entry support: Milk entry workflows include barcode or QR-based scanning support for faster cattle identification.
+● Multilingual interface support: The frontend includes language support to improve accessibility for different users.
+
+The project is built to improve farm-level organization, reduce manual coordination, and provide a clearer workflow for milk collection, allocation, and customer service. Its structure supports both operational users inside the farm and customers interacting with the farm digitally.
+
+1.2 Project Objectives
+The primary goals of the Milk Production and Prediction System include:
+● Digitize dairy farm operations: Replace scattered manual processes with a centralized web-based system.
+● Improve farm management efficiency: Enable structured handling of farms, cattle, workers, sheds, and milk records.
+● Support milk sales and service delivery: Allow customers to place orders and maintain recurring subscriptions through a single platform.
+● Strengthen role-based collaboration: Provide distinct and secure workflows for owners, workers, and customers.
+● Enhance operational visibility: Help users monitor milk availability, daily entries, and order-related activities more clearly.
+● Provide secure access control: Protect application data and user actions through authenticated and authorized access.
+● Support usability and accessibility: Deliver a responsive interface with multilingual support and task-oriented screens.
+● Enable deployment readiness: Maintain a project structure that supports containerization, infrastructure provisioning, and cloud-oriented deployment workflows.
+
+1.3 Scope
+Milk Production and Prediction System is a full-stack web platform focused on dairy farm management, milk inventory handling, and customer ordering services.
+
+Frontend Technologies:
+● React.js: For building dynamic and modular user interface components.
+● Vite: For frontend development tooling and build performance.
+● Material UI: For structured interface components used across forms and screens.
+● Tailwind CSS: For utility-based styling and responsive layout support.
+● React Router: For protected and role-oriented navigation within the application.
+● i18next: For multilingual support in the user interface.
+● Recharts: For visual presentation of dashboard and operational data.
+● html5-qrcode: For barcode or QR-based scanning in milk entry workflows.
+
+Backend Technologies:
+● Spring Boot: For backend application development and API implementation.
+● Spring Security: For securing protected endpoints and enforcing access rules.
+● JWT: For authentication and session-related access control.
+● Spring Data JPA: For database interaction and entity management.
+● MySQL: As the primary relational database for persistent application data.
+● Redis: For caching-related support in the backend architecture.
+● ModelMapper: For DTO and entity mapping across service layers.
+
+Infrastructure and Deployment Scope:
+● Docker: For containerizing frontend and backend services.
+● Helm: For Kubernetes-based application deployment templates.
+● Terraform: For infrastructure provisioning support.
+● Jenkins and Argo CD configuration: For CI/CD and deployment workflow preparation.
+
+The scope of the current project includes authentication, user management, farm management, cattle records, shed management, worker assignment, milk entry, milk availability, customer orders, recurring subscriptions, and deployment-related configuration. It is limited to the features and technologies currently represented in the repository and does not extend beyond the implemented project structure.

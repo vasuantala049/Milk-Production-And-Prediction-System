@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter @Setter
@@ -22,6 +23,9 @@ public class Orders {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = 6)
+    private String displayCode;
+
     private LocalDate orderDate;
 
     private Double quantity;
@@ -34,6 +38,13 @@ public class Orders {
 
     private Double totalPrice;
 
+    @Builder.Default
+    private Boolean paid = false;
+
+    private Double paidAmount;
+
+    private LocalDateTime paidAt;
+
     private String buyerName;
 
     private String farmName;
@@ -45,4 +56,8 @@ public class Orders {
     @ManyToOne
     @JoinColumn(name = "farm_id", nullable = false)
     private Farm farm;
+
+    @ManyToOne
+    @JoinColumn(name = "subscription_id")
+    private Subscription subscription;
 }

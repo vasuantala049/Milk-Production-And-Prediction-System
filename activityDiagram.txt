@@ -1,0 +1,29 @@
+@startuml
+title Buy Milk - Activity Diagram
+
+start
+
+:Buyer opens buy milk page;
+:Browse farms and choose milk type;
+:Enter quantity and preferred session;
+
+if (All details valid?) then (yes)
+  :Create milk order request;
+  :Send order to farm owner;
+
+  if (Owner accepts order?) then (yes)
+    :Confirm order;
+    :Show order confirmed message;
+    :Buyer views confirmed status;
+  else (no)
+    :Mark order as rejected;
+    :Show order rejected message;
+    :Buyer views rejected status;
+  endif
+
+else (no)
+  :Show error: please fill all required details;
+endif
+
+stop
+@enduml
