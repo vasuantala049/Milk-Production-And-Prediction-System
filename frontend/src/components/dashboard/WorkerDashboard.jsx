@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { CheckCircle, Clock, Milk, Beef, Plus } from "lucide-react";
+import { CheckCircle, Clock, Milk, Beef, Plus, RefreshCw, ChevronsUpDown } from "lucide-react";
 import { apiFetch } from "../../api/client";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { cn } from "../../lib/utils";
+import { useLazyList } from "../../hooks/useLazyList";
 import { Card, CardContent } from "../ui/card"; // Assuming these are from shadcn/ui
 import { Grid, Box, Typography } from "@mui/material"; // Assuming MUI components
 
@@ -26,6 +27,7 @@ export function WorkerDashboard() {
   const [showFarmSelection, setShowFarmSelection] = useState(false);
   const [invitations, setInvitations] = useState([]);
   const [invitationMsg, setInvitationMsg] = useState({ type: '', text: '' });
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Resolve active farm from localStorage (if set) or fall back to first assigned farm
   const [activeFarmId, setActiveFarmId] = useState(() => {
@@ -39,6 +41,24 @@ export function WorkerDashboard() {
 
   const activeFarm = farms.find((f) => f.id === activeFarmId) || null;
   const farmId = activeFarm?.id;
+
+  const {
+    visibleItems: visibleFarms,
+    hasMore: hasMoreFarms,
+    loadMore: loadMoreFarms,
+  } = useLazyList(farms, 6, 6);
+
+  const {
+    visibleItems: visibleInvitations,
+    hasMore: hasMoreInvitations,
+    loadMore: loadMoreInvitations,
+  } = useLazyList(invitations, 5, 5);
+
+  const {
+    visibleItems: visibleTodayEntries,
+    hasMore: hasMoreTodayEntries,
+    loadMore: loadMoreTodayEntries,
+  } = useLazyList(todayEntries, 8, 8);
 
   const fetchInvitations = async () => {
     try {
@@ -186,11 +206,6 @@ export function WorkerDashboard() {
     if (!farmId) return;
     // Refresh immediately when farm changes
     refreshTodayEntries();
-    // Then set up interval for continuous sync
-    const interval = setInterval(() => {
-      refreshTodayEntries();
-    }, 2000);
-    return () => clearInterval(interval);
   }, [farmId]);
 
   if (showFarmSelection || !activeFarm) {
@@ -210,7 +225,7 @@ export function WorkerDashboard() {
         </motion.div>
 
         <Grid container spacing={3}>
-          {farms.map((farm) => {
+          {visibleFarms.map((farm) => {
             const farmProfileEntry = myProfileOptions.find(p => p.farmId === farm.id);
             const mySheds = farmProfileEntry?.profile?.sheds || [];
 
@@ -245,6 +260,12 @@ export function WorkerDashboard() {
           })}
         </Grid>
 
+        {hasMoreFarms && (
+          <div className="flex justify-center mt-4">
+            <Button variant="outline" onClick={loadMoreFarms}>{t('common.loadMore')}</Button>
+          </div>
+        )}
+
         {farms.length === 0 && !loading && (
           <div className="py-20 text-center">
             <p className="text-muted-foreground italic">{t('workerDashboard.noFarmsAssigned')}</p>
@@ -262,7 +283,7 @@ export function WorkerDashboard() {
             </div>
           )}
           <div className="space-y-3">
-            {invitations.map((inv) => (
+            {visibleInvitations.map((inv) => (
               <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-border rounded-lg px-4 py-3">
                 <div>
                   <p className="font-medium text-foreground">{inv.farmName}</p>
@@ -285,6 +306,11 @@ export function WorkerDashboard() {
               </div>
             ))}
           </div>
+          {hasMoreInvitations && (
+            <div className="flex justify-center mt-4">
+              <Button variant="outline" onClick={loadMoreInvitations}>{t('common.loadMore')}</Button>
+            </div>
+          )}
         </div>
       )}
       </>
@@ -305,11 +331,12 @@ export function WorkerDashboard() {
               {activeFarm.name}
             </h1>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => setShowFarmSelection(true)}
-              className="text-primary text-xs h-7"
+              className="h-8 rounded-full border-primary/25 bg-primary/5 px-3 text-xs font-medium text-primary shadow-sm transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
             >
+              <ChevronsUpDown className="w-3.5 h-3.5 mr-1" />
               {t('workerDashboard.switchFarm')}
             </Button>
           </div>
@@ -318,6 +345,20 @@ export function WorkerDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isRefreshing}
+            onClick={async () => {
+              setIsRefreshing(true);
+              await refreshTodayEntries();
+              setIsRefreshing(false);
+            }}
+            className="gap-2"
+          >
+            <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+            {t('workerDashboard.refresh')}
+          </Button>
           <Button onClick={() => navigate(`/milk/add/${farmId}`)} className="gap-2">
             <Plus className="w-5 h-5" />
             {t('workerDashboard.addMilkEntry')}
@@ -378,7 +419,7 @@ export function WorkerDashboard() {
             </Button>
           </div>
           <div className="space-y-2">
-            {todayEntries.map((entry, idx) => (
+            {visibleTodayEntries.map((entry, idx) => (
               <div key={`${entry.cattleTagId}-${entry.session}-${idx}`} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
                 <div className="flex flex-col">
                   <span className="font-medium text-foreground">{entry.cattleTagId || "—"}</span>
@@ -391,6 +432,11 @@ export function WorkerDashboard() {
               </div>
             ))}
           </div>
+          {hasMoreTodayEntries && (
+            <div className="flex justify-center mt-4">
+              <Button variant="outline" onClick={loadMoreTodayEntries}>{t('common.loadMore')}</Button>
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -534,7 +580,7 @@ export function WorkerDashboard() {
             </div>
           )}
           <div className="space-y-3">
-            {invitations.map((inv) => (
+            {visibleInvitations.map((inv) => (
               <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-border rounded-lg px-4 py-3">
                 <div>
                   <p className="font-medium text-foreground">{inv.farmName}</p>
@@ -557,6 +603,11 @@ export function WorkerDashboard() {
               </div>
             ))}
           </div>
+          {hasMoreInvitations && (
+            <div className="flex justify-center mt-4">
+              <Button variant="outline" onClick={loadMoreInvitations}>{t('common.loadMore')}</Button>
+            </div>
+          )}
         </motion.div>
       )}
     </div>

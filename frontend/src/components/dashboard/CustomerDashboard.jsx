@@ -1,25 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MapPin, ShoppingCart, Milk, Clock, CheckCircle, Pause, ChevronRight } from "lucide-react";
 import { apiFetch } from "../../api/client";
 import { farmApi } from "../../api/farmApi";
+import { subscriptionApi } from "../../api/subscriptionApi";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
+import { useLazyList } from "../../hooks/useLazyList";
 import { useTranslation } from 'react-i18next';
 
 export function CustomerDashboard() {
   const { t } = useTranslation();
+  const today = new Date().toISOString().slice(0, 10);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [farms, setFarms] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [city, setCity] = useState(user.city || user.location || "");
-  const [savingCity, setSavingCity] = useState(false);
+  const [address, setAddress] = useState(user.address || user.location || "");
+  const [city, setCity] = useState(user.city || "");
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [processingSubscriptionPaymentId, setProcessingSubscriptionPaymentId] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -47,25 +52,51 @@ export function CustomerDashboard() {
     return () => { mounted = false; };
   }, []);
 
-  const activeSubscriptions = subscriptions.filter(s => s.status === 'ACTIVE');
+  const activeSubscriptions = useMemo(
+    () => subscriptions.filter((subscription) => subscription.status === 'ACTIVE'),
+    [subscriptions]
+  );
   const recentOrders = orders.slice(0, 5);
 
-  async function handleSaveCity() {
-    if (!user?.id || !city) return;
+  const {
+    visibleItems: visibleActiveSubscriptions,
+    hasMore: hasMoreActiveSubscriptions,
+    loadMore: loadMoreActiveSubscriptions,
+  } = useLazyList(activeSubscriptions, 4, 4);
+
+  const {
+    visibleItems: visibleFarms,
+    hasMore: hasMoreFarms,
+    loadMore: loadMoreFarms,
+  } = useLazyList(farms, 6, 6);
+
+  const {
+    visibleItems: visibleOrders,
+    hasMore: hasMoreOrders,
+    loadMore: loadMoreOrders,
+  } = useLazyList(orders, 8, 8);
+
+  const formatRupees = (value) => {
+    if (value == null || Number.isNaN(Number(value))) return "₹0.00";
+    return `₹${Number(value).toFixed(2)}`;
+  };
+
+  async function handleSaveLocation() {
+    if (!user?.id || !address || !city) return;
     try {
-      setSavingCity(true);
+      setSavingLocation(true);
       await apiFetch(`/users/${user.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ city, location: city }),
+        body: JSON.stringify({ address, city, location: address }),
       });
 
-      const updatedUser = { ...user, city, location: city };
+      const updatedUser = { ...user, address, city, location: address };
       localStorage.setItem("user", JSON.stringify(updatedUser));
       window.location.reload();
     } catch (e) {
-      alert(e.message || "Failed to save city");
+      alert(e.message || "Failed to save address and city");
     } finally {
-      setSavingCity(false);
+      setSavingLocation(false);
     }
   }
 
@@ -89,19 +120,25 @@ export function CustomerDashboard() {
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-muted-foreground" />
               <Input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder={t('dashboard.yourAddress')}
+                className="h-8 w-52"
+              />
+              <Input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder={t('dashboard.yourCity')}
-                className="h-8 w-44"
+                className="h-8 w-40"
               />
             </div>
             <Button
               variant="outline"
               size="sm"
-              disabled={savingCity || !city}
-              onClick={handleSaveCity}
+              disabled={savingLocation || !address || !city}
+              onClick={handleSaveLocation}
             >
-              {savingCity ? t('dashboard.saving') : t('dashboard.saveCity')}
+              {savingLocation ? t('dashboard.saving') : t('dashboard.saveAddressCity')}
             </Button>
           </div>
         </div>
@@ -124,7 +161,7 @@ export function CustomerDashboard() {
           </div>
 
           <div className="space-y-3">
-            {activeSubscriptions.map((sub) => {
+            {visibleActiveSubscriptions.map((sub) => {
               const farm = farms.find(f => f.id === sub.farmId);
               return (
                 <div
@@ -144,8 +181,19 @@ export function CustomerDashboard() {
                     <div>
                       <p className="font-medium text-foreground">{farm?.name || `Farm #${sub.farmId}`}</p>
                       <p className="text-sm text-muted-foreground">
-                        {sub.quantity || "—"}L/day • {sub.session}
+                        #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.quantity || "—"}L/day • {sub.session}
                       </p>
+                      <p className="text-xs mt-1 text-muted-foreground">
+                        {t('subscriptions.billingDays')}: <span className="font-semibold text-foreground">{sub.billingDayCounter || 0}/{sub.maxBillingDays || 30}</span>
+                      </p>
+                      {sub.paymentRequired && (
+                        <p className="text-xs mt-1 text-emerald-700 font-medium">
+                          {t('subscriptions.paymentDue')}: {formatRupees(sub.billingAmountDue)}
+                        </p>
+                      )}
+                      {sub.skipDate === today && (
+                        <p className="text-xs text-amber-600 mt-1">{t('subscriptions.skippedToday')}</p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -165,27 +213,81 @@ export function CustomerDashboard() {
                     </Badge>
 
                     {sub.status === 'ACTIVE' && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={async () => {
-                          if (!confirm("Cancel subscription?")) return;
-                          try {
-                            await apiFetch(`/subscriptions/${sub.id}/cancel`, { method: "POST" });
-                            setSubscriptions(prev => prev.map(s => s.id === sub.id ? { ...s, status: 'CANCELLED' } : s));
-                          } catch (e) {
-                            alert("Failed to cancel: " + e.message);
-                          }
-                        }}
-                      >
-                        Cancel
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={sub.skipDate === today || sub.paymentRequired}
+                          onClick={async () => {
+                            if (!confirm(t('subscriptions.skipTodayConfirm'))) return;
+                            try {
+                              const updated = await subscriptionApi.skipToday(sub.id);
+                              setSubscriptions(prev => prev.map(s => s.id === sub.id ? updated : s));
+                            } catch (e) {
+                              alert(t('subscriptions.skipTodayFailed') + ": " + e.message);
+                            }
+                          }}
+                        >
+                          {sub.skipDate === today ? t('subscriptions.skippedToday') : t('subscriptions.skipToday')}
+                        </Button>
+                        {sub.paymentRequired && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            disabled={processingSubscriptionPaymentId === sub.id}
+                            onClick={async () => {
+                              if (!confirm(t('subscriptions.payCycleConfirm', { amount: formatRupees(sub.billingAmountDue) }))) return;
+                              try {
+                                setProcessingSubscriptionPaymentId(sub.id);
+                                const updated = await subscriptionApi.payCycle(sub.id, sub.billingAmountDue);
+                                setSubscriptions(prev => prev.map(s => s.id === sub.id ? updated : s));
+                              } catch (e) {
+                                alert(t('subscriptions.payCycleFailed') + ": " + e.message);
+                              } finally {
+                                setProcessingSubscriptionPaymentId(null);
+                              }
+                            }}
+                          >
+                            {processingSubscriptionPaymentId === sub.id
+                              ? t('subscriptions.processingPayment')
+                              : t('subscriptions.payNow', { amount: formatRupees(sub.billingAmountDue) })}
+                          </Button>
+                        )}
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            const hasOutstandingAmount = Number(sub.billingAmountDue || 0) > 0;
+                            const confirmMessage = hasOutstandingAmount
+                              ? t('subscriptions.cancelWithPaymentConfirm', { amount: formatRupees(sub.billingAmountDue) })
+                              : t('subscriptions.cancelConfirm');
+                            if (!confirm(confirmMessage)) return;
+                            try {
+                              const updated = await subscriptionApi.cancelSubscription(
+                                sub.id,
+                                hasOutstandingAmount ? sub.billingAmountDue : null
+                              );
+                              setSubscriptions(prev => prev.map(s => s.id === sub.id ? updated : s));
+                            } catch (e) {
+                              alert(t('subscriptions.cancelFailed') + ": " + e.message);
+                            }
+                          }}
+                        >
+                          {t('common.cancel')}
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {hasMoreActiveSubscriptions && (
+            <div className="flex justify-center mt-4">
+              <Button variant="outline" onClick={loadMoreActiveSubscriptions}>{t('common.loadMore')}</Button>
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -201,7 +303,7 @@ export function CustomerDashboard() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {farms.slice(0, 6).map((farm, index) => (
+            {visibleFarms.map((farm, index) => (
               <motion.div
                 key={farm.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -221,6 +323,11 @@ export function CustomerDashboard() {
                         <MapPin className="w-3 h-3" />
                         {farm.address || farm.location || "—"}
                       </div>
+                      {farm.city && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {farm.city}
+                        </div>
+                      )}
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                   </div>
@@ -256,6 +363,12 @@ export function CustomerDashboard() {
               </motion.div>
             ))}
           </div>
+
+          {hasMoreFarms && (
+            <div className="flex justify-center mt-4">
+              <Button variant="outline" onClick={loadMoreFarms}>{t('common.loadMore')}</Button>
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -273,7 +386,7 @@ export function CustomerDashboard() {
           </div>
 
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-            {orders.map((order) => {
+            {visibleOrders.map((order) => {
               const farm = farms.find(f => f.id === order.farmId);
               const farmName = order.farmName || farm?.name || `Farm #${order.farmId}`;
               const animalEmoji = order.animalType === "COW" ? "🐮" : order.animalType === "BUFFALO" ? "🐃" : order.animalType === "SHEEP" ? "🐑" : order.animalType === "GOAT" ? "🐐" : "🐄";
@@ -293,6 +406,7 @@ export function CustomerDashboard() {
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+                    <span>#{order.displayCode || String(order.id).padStart(6, '0')}</span>
                     <span>{order.quantity?.toFixed(1)}L</span>
                     <span>{animalEmoji} {animalLabel} Milk</span>
                     <span>{order.session}</span>
@@ -305,6 +419,12 @@ export function CustomerDashboard() {
               );
             })}
           </div>
+
+          {hasMoreOrders && (
+            <div className="flex justify-center mt-4">
+              <Button variant="outline" onClick={loadMoreOrders}>{t('common.loadMore')}</Button>
+            </div>
+          )}
         </motion.div>
       )}
 

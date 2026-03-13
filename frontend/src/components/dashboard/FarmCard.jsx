@@ -38,7 +38,7 @@ export function FarmCard({ farm, delay = 0, onDelete, onToggleSelling, isTogglin
               </h3>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
                 <MapPin className="w-3.5 h-3.5" />
-                {farm.address || "No address"}
+                {[farm.address, farm.city].filter(Boolean).join(', ') || "No address"}
               </div>
             </div>
 
@@ -93,18 +93,7 @@ export function FarmCard({ farm, delay = 0, onDelete, onToggleSelling, isTogglin
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 pt-4 border-t border-border gap-3">
-          <div className="text-sm">
-            <div className="text-muted-foreground mr-1">Prices:</div>
-            <div className="flex flex-col gap-0.5">
-              {/* <span className="font-semibold text-foreground">
-                Base: {farm.pricePerLiter != null ? `₹${farm.pricePerLiter}/L` : "—"}
-              </span> */}
-              {farm.cowPrice != null && <span className="text-xs text-muted-foreground">Cow: ₹{farm.cowPrice}/L</span>}
-              {farm.buffaloPrice != null && <span className="text-xs text-muted-foreground">Buffalo: ₹{farm.buffaloPrice}/L</span>}
-            </div>
-          </div>
-
+        <div className="flex flex-row items-center justify-between mt-4 pt-4 border-t border-border gap-3">
           <Button
             variant="outline"
             size="sm"

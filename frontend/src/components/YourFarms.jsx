@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
@@ -7,6 +7,7 @@ import { farmApi } from "../api/farmApi";
 import { FarmCard } from "./dashboard/FarmCard";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { useLazyList } from "../hooks/useLazyList";
 
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
@@ -111,11 +112,21 @@ export default function YourFarms() {
     }
   };
 
-  const filteredFarms = farms.filter(
-    (farm) =>
-      farm.name?.toLowerCase().includes(search.toLowerCase()) ||
-      farm.address?.toLowerCase().includes(search.toLowerCase())
+  const filteredFarms = useMemo(
+    () => farms.filter(
+      (farm) =>
+        farm.name?.toLowerCase().includes(search.toLowerCase()) ||
+        farm.address?.toLowerCase().includes(search.toLowerCase()) ||
+        farm.city?.toLowerCase().includes(search.toLowerCase())
+    ),
+    [farms, search]
   );
+
+  const {
+    visibleItems: visibleFarms,
+    hasMore: hasMoreFarms,
+    loadMore: loadMoreFarms,
+  } = useLazyList(filteredFarms, 6, 6);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -185,7 +196,7 @@ export default function YourFarms() {
       {/* Farms Grid */}
       {!loading && filteredFarms.length > 0 && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredFarms.map((farm, index) => (
+          {visibleFarms.map((farm, index) => (
             <motion.div
               key={farm.id}
               initial={{ opacity: 0, y: 20 }}
@@ -272,6 +283,12 @@ export default function YourFarms() {
               )}
             </motion.div>
           ))}
+        </div>
+      )}
+
+      {!loading && filteredFarms.length > 0 && hasMoreFarms && (
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={loadMoreFarms}>{t('common.loadMore')}</Button>
         </div>
       )}
 

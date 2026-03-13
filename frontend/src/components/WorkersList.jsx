@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { apiFetch } from "../api/client";
+import { useLazyList } from "../hooks/useLazyList";
 import { Card, CardContent, Button, TextField, Stack, Alert, Select, MenuItem, OutlinedInput, Checkbox, ListItemText, Chip } from '@mui/material';
+import { Trash2 } from "lucide-react";
 
 export default function WorkersList() {
   const { farmId } = useParams();
@@ -19,6 +21,32 @@ export default function WorkersList() {
   const [shades, setShades] = useState([]);
   const [editingWorkerId, setEditingWorkerId] = useState(null);
   const [editShedIds, setEditShedIds] = useState([]);
+  const [deletingWorkerId, setDeletingWorkerId] = useState(null);
+
+  const {
+    visibleItems: visibleInvitations,
+    hasMore: hasMoreInvitations,
+    loadMore: loadMoreInvitations,
+  } = useLazyList(pendingInvitations, 5, 5);
+
+  const {
+    visibleItems: visibleWorkers,
+    hasMore: hasMoreWorkers,
+    loadMore: loadMoreWorkers,
+  } = useLazyList(workers, 8, 8);
+
+  const handleDeleteWorker = async (worker) => {
+    if (!window.confirm(`Remove "${worker.name}" from this farm? They will also be unassigned from all sheds.`)) return;
+    setDeletingWorkerId(worker.id);
+    try {
+      await apiFetch(`/farms/${farmId}/workers/${worker.id}`, { method: "DELETE" });
+      refreshWorkers();
+    } catch (err) {
+      alert(err?.message || "Failed to remove worker");
+    } finally {
+      setDeletingWorkerId(null);
+    }
+  };
 
   useEffect(() => {
     refreshWorkers();
@@ -112,7 +140,7 @@ export default function WorkersList() {
             <CardContent>
               <p className="font-semibold mb-2">{t('workers.pendingInvitations')} ({pendingInvitations.length})</p>
               <div className="space-y-2">
-                {pendingInvitations.map((inv) => (
+                {visibleInvitations.map((inv) => (
                   <div key={inv.id} className="flex items-center justify-between border rounded-lg px-3 py-2">
                     <div>
                       <p className="font-medium">{inv.workerName}</p>
@@ -122,6 +150,11 @@ export default function WorkersList() {
                   </div>
                 ))}
               </div>
+              {hasMoreInvitations && (
+                <div className="flex justify-center mt-3">
+                  <Button variant="outlined" onClick={loadMoreInvitations}>{t('common.loadMore')}</Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -131,7 +164,7 @@ export default function WorkersList() {
         )}
 
         <div className="space-y-3 mb-32">
-          {workers.map((w) => {
+          {visibleWorkers.map((w) => {
             const isEditing = editingWorkerId === w.id;
             const currentShadesText = w.sheds && w.sheds.length > 0
               ? w.sheds.map(s => s.name).join(", ")
@@ -140,8 +173,8 @@ export default function WorkersList() {
             return (
               <Card key={w.id} className="rounded-xl">
                 <CardContent className="p-4">
-                  <div className="flex justify-between items-center w-full">
-                    <div>
+                  <div className="flex justify-between items-start w-full gap-3">
+                    <div className="flex-1">
                       <p className="font-semibold text-lg">{w.name}</p>
                       <p className="text-sm text-gray-500">{w.email}</p>
                     </div>
@@ -216,12 +249,26 @@ export default function WorkersList() {
                         </>
                       )}
                     </div>
+                    <button
+                      title="Remove worker"
+                      disabled={deletingWorkerId === w.id}
+                      onClick={() => handleDeleteWorker(w)}
+                      className="ml-2 p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </CardContent>
               </Card>
             );
           })}
         </div>
+
+        {hasMoreWorkers && (
+          <div className="flex justify-center mb-32">
+            <Button variant="outlined" onClick={loadMoreWorkers}>{t('common.loadMore')}</Button>
+          </div>
+        )}
       </div>
     </div>
   );

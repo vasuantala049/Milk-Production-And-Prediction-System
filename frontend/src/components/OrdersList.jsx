@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { orderApi } from '../api/orderApi';
+import { useLazyList } from '../hooks/useLazyList';
 
 const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
   const { t } = useTranslation();
@@ -29,6 +30,12 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [processingOrderId, setProcessingOrderId] = useState(null);
+  const {
+    visibleItems: visibleOrders,
+    hasMore: hasMoreOrders,
+    loadMore: loadMoreOrders,
+  } = useLazyList(orders, 10, 10);
 
   useEffect(() => {
     fetchOrders();
@@ -77,6 +84,48 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
     fetchOrders();
   };
 
+  const handleApproveOrder = async (orderId) => {
+    setProcessingOrderId(orderId);
+    try {
+      await orderApi.approveOrder(orderId);
+      setOrders((prev) => {
+        const updatedOrders = prev.map((order) =>
+          order.id === orderId ? { ...order, status: 'CONFIRMED' } : order
+        );
+        return statusFilter === 'PENDING'
+          ? updatedOrders.filter((order) => order.id !== orderId)
+          : updatedOrders;
+      });
+    } catch (err) {
+      setError(err.message || t('common.error'));
+    } finally {
+      setProcessingOrderId(null);
+    }
+  };
+
+  const handleRejectOrder = async (orderId) => {
+    if (!window.confirm(t('pendingOrders.rejectOrderConfirm'))) {
+      return;
+    }
+
+    setProcessingOrderId(orderId);
+    try {
+      await orderApi.rejectOrder(orderId);
+      setOrders((prev) => {
+        const updatedOrders = prev.map((order) =>
+          order.id === orderId ? { ...order, status: 'CANCELLED' } : order
+        );
+        return statusFilter === 'PENDING'
+          ? updatedOrders.filter((order) => order.id !== orderId)
+          : updatedOrders;
+      });
+    } catch (err) {
+      setError(err.message || t('common.error'));
+    } finally {
+      setProcessingOrderId(null);
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'COMPLETED':
@@ -123,7 +172,8 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
         >
           <ToggleButton value="ALL">{t('common.all')}</ToggleButton>
           <ToggleButton value="CONFIRMED">{t('common.approved')}</ToggleButton>
-          <ToggleButton value="CANCELLED">{t('common.cancelled')}</ToggleButton>
+          <ToggleButton value="CANCELLED">{t('orders.rejected')}</ToggleButton>
+          <ToggleButton value="PENDING">{t('common.pending')}</ToggleButton>
         </ToggleButtonGroup>
 
         <Box sx={{ flexGrow: 1 }} />
@@ -165,12 +215,13 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
                 <TableCell><strong>{t('orders.session')}</strong></TableCell>
                 <TableCell><strong>{t('orders.status')}</strong></TableCell>
                 <TableCell><strong>{t('orders.buyerId')}</strong></TableCell>
+                <TableCell><strong>{t('dashboard.quickActions')}</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {orders.map((order) => (
+              {visibleOrders.map((order) => (
                 <TableRow key={order.id} hover>
-                  <TableCell>{order.id}</TableCell>
+                  <TableCell>{order.displayCode || String(order.id).padStart(6, '0')}</TableCell>
                   <TableCell>{order.orderDate}</TableCell>
                   <TableCell>{order.quantity.toFixed(2)}</TableCell>
                   <TableCell>
@@ -188,11 +239,44 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
                     />
                   </TableCell>
                   <TableCell>{order.buyerId}</TableCell>
+                  <TableCell>
+                    {order.status === 'PENDING' ? (
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          disabled={processingOrderId === order.id}
+                          onClick={() => handleApproveOrder(order.id)}
+                        >
+                          {processingOrderId === order.id ? t('pendingOrders.processing') : t('pendingOrders.approve')}
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          disabled={processingOrderId === order.id}
+                          onClick={() => handleRejectOrder(order.id)}
+                        >
+                          {t('pendingOrders.rejectRequest')}
+                        </Button>
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        -
+                      </Typography>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {orders.length > 0 && hasMoreOrders && (
+        <Box display="flex" justifyContent="center" sx={{ mt: 2 }}>
+          <Button variant="outlined" onClick={loadMoreOrders}>{t('common.loadMore')}</Button>
+        </Box>
       )}
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>

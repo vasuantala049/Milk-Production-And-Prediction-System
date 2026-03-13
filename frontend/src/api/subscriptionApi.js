@@ -29,9 +29,23 @@ export const subscriptionApi = {
   },
 
   // Cancel subscription
-  cancelSubscription: async (subscriptionId) => {
+  cancelSubscription: async (subscriptionId, amount = null) => {
     return apiFetch(`/subscriptions/${subscriptionId}/cancel`, {
       method: 'POST',
+      ...(amount != null ? { body: JSON.stringify({ amount }) } : {}),
+    });
+  },
+
+  skipToday: async (subscriptionId) => {
+    return apiFetch(`/subscriptions/${subscriptionId}/skip-today`, {
+      method: 'POST',
+    });
+  },
+
+  payCycle: async (subscriptionId, amount) => {
+    return apiFetch(`/subscriptions/${subscriptionId}/pay-cycle`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
     });
   },
 

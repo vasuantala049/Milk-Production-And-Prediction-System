@@ -24,6 +24,9 @@ export default function EditCattle() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  const [tagId, setTagId] = useState("");
+  const [type, setType] = useState("COW");
+  const [breed, setBreed] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [shedId, setShedId] = useState("");
   const [shades, setShades] = useState([]);
@@ -46,6 +49,9 @@ export default function EditCattle() {
           apiFetch(`/farms/${farmId}/sheds`).catch(() => [])
         ]);
         if (!mounted) return;
+        setTagId(dto.tagId || "");
+        setType(dto.type || "COW");
+        setBreed(dto.breed || "");
         setStatus(dto.status || "ACTIVE");
         setShedId(dto.shed?.id || "");
         setShades(shadesData || []);
@@ -69,7 +75,7 @@ export default function EditCattle() {
     try {
       await apiFetch(`/cattle/${cattleId}`, {
         method: "PATCH",
-        body: JSON.stringify({ status, shedId: shedId || null }),
+        body: JSON.stringify({ tagId, type, breed, status, shedId: shedId || null }),
       });
       navigate(`/cattle/${farmId}`);
     } catch (err) {
@@ -101,6 +107,47 @@ export default function EditCattle() {
 
             <form onSubmit={handleSubmit}>
               <Stack spacing={2}>
+                <TextField
+                  fullWidth
+                  label={t('cattle.tagId')}
+                  value={tagId}
+                  onChange={(e) => setTagId(e.target.value)}
+                />
+
+                <TextField
+                  select
+                  fullWidth
+                  label={t('cattle.type')}
+                  value={type}
+                  onChange={(e) => {
+                    const nextType = e.target.value;
+                    setType(nextType);
+                    if (!CATTLE_TYPES[nextType]?.includes(breed)) {
+                      setBreed("");
+                    }
+                  }}
+                >
+                  {Object.keys(CATTLE_TYPES).map((cattleType) => (
+                    <MenuItem key={cattleType} value={cattleType}>
+                      {t(`cattle.${cattleType.toLowerCase()}`)}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  select
+                  fullWidth
+                  label={t('cattle.breed')}
+                  value={breed}
+                  onChange={(e) => setBreed(e.target.value)}
+                >
+                  {CATTLE_TYPES[type]?.map((breedName) => (
+                    <MenuItem key={breedName} value={breedName}>
+                      {breedName}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
                 <TextField
                   select
                   fullWidth

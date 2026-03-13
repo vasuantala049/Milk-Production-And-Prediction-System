@@ -9,20 +9,28 @@ import {
     Stack,
     Alert,
     IconButton,
+    Chip,
 } from "@mui/material";
-import { Trash2 } from "lucide-react";
+import { Trash2, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useLazyList } from "../../hooks/useLazyList";
 
 export default function ShadePage() {
     const { farmId } = useParams();
     const navigate = useNavigate();
     const { t } = useTranslation();
     const [shades, setShades] = useState([]);
+    const [workers, setWorkers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [newShadeName, setNewShadeName] = useState("");
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const {
+        visibleItems: visibleShades,
+        hasMore: hasMoreShades,
+        loadMore: loadMoreShades,
+    } = useLazyList(shades, 8, 8);
 
     useEffect(() => {
         // Only FARM_OWNER is allowed
@@ -37,8 +45,12 @@ export default function ShadePage() {
     const loadShades = async () => {
         setLoading(true);
         try {
-            const data = await apiFetch(`/farms/${farmId}/sheds`);
-            setShades(data || []);
+            const [shadesData, workersData] = await Promise.all([
+                apiFetch(`/farms/${farmId}/sheds`),
+                apiFetch(`/farms/${farmId}/workers`).catch(() => []),
+            ]);
+            setShades(shadesData || []);
+            setWorkers(Array.isArray(workersData) ? workersData : []);
         } catch (err) {
             setError(t('common.error'));
             setShades([]);
@@ -142,22 +154,51 @@ export default function ShadePage() {
                     <p className="text-gray-500 italic">{t('sheds.noShadesCreated')}</p>
                 ) : (
                     <div className="space-y-3">
-                        {shades.map((shade) => (
+                        {visibleShades.map((shade) => {
+                            const shedWorkers = workers.filter(w =>
+                                Array.isArray(w.sheds) && w.sheds.some(s => s.id === shade.id)
+                            );
+                            return (
                             <Card key={shade.id} className="rounded-xl">
-                                <CardContent className="p-4 flex justify-between items-center">
-                                    <div>
-                                        <p className="font-semibold text-lg">{shade.name}</p>
+                                <CardContent className="p-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                            <p className="font-semibold text-lg">{shade.name}</p>
+                                            {shedWorkers.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    <Users className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                                                    {shedWorkers.map(w => (
+                                                        <Chip
+                                                            key={w.id}
+                                                            label={w.name}
+                                                            size="small"
+                                                            variant="outlined"
+                                                            className="text-xs"
+                                                        />
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-gray-400 mt-1 italic">{t('sheds.noWorkersAssigned')}</p>
+                                            )}
+                                        </div>
+                                        <IconButton
+                                            color="error"
+                                            onClick={() => handleDeleteShade(shade.id)}
+                                            disabled={actionLoading}
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </IconButton>
                                     </div>
-                                    <IconButton
-                                        color="error"
-                                        onClick={() => handleDeleteShade(shade.id)}
-                                        disabled={actionLoading}
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </IconButton>
                                 </CardContent>
                             </Card>
-                        ))}
+                            );
+                        })}
+                    </div>
+                )}
+
+                {shades.length > 0 && hasMoreShades && (
+                    <div className="flex justify-center mt-4">
+                        <Button variant="outlined" onClick={loadMoreShades}>{t('common.loadMore')}</Button>
                     </div>
                 )}
             </div>

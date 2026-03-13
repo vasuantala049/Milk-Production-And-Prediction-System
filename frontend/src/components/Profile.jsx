@@ -38,6 +38,8 @@ export default function Profile() {
             </div>
 
             <p className="mb-2"><strong>Role:</strong> {user.role}</p>
+            <p className="mb-2"><strong>Address:</strong> {user.address || user.location || '—'}</p>
+            <p className="mb-2"><strong>City:</strong> {user.city || '—'}</p>
           </CardContent>
         </Card>
       </div>

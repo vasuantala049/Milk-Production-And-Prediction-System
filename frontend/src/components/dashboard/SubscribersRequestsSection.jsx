@@ -7,6 +7,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { CheckCircle, XCircle } from "lucide-react";
+import { useLazyList } from "../../hooks/useLazyList";
 
 export function SubscribersRequestsSection({ farmId }) {
   const [pendingSubscriptions, setPendingSubscriptions] = useState([]);
@@ -123,6 +124,16 @@ export function SubscribersRequestsSection({ farmId }) {
 
   const totalRequests =
     pendingSubscriptions.length + pendingOrders.length;
+  const {
+    visibleItems: visibleSubscriptions,
+    hasMore: hasMoreSubscriptions,
+    loadMore: loadMoreSubscriptions,
+  } = useLazyList(pendingSubscriptions, 5, 5);
+  const {
+    visibleItems: visibleOrders,
+    hasMore: hasMoreOrders,
+    loadMore: loadMoreOrders,
+  } = useLazyList(pendingOrders, 5, 5);
 
   if (totalRequests === 0) {
     return (
@@ -156,19 +167,24 @@ export function SubscribersRequestsSection({ farmId }) {
           </div>
 
           <div className="space-y-2">
-            {pendingSubscriptions.map((sub) => (
+            {visibleSubscriptions.map((sub) => (
               <div
                 key={sub.id}
                 className="flex items-center justify-between text-xs border border-border/60 rounded-md px-3 py-2"
               >
                 <div className="flex-1">
                   <p className="font-medium text-foreground">
-                    {sub.buyerName || `Buyer #${sub.buyerId}`}
+                    #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.buyerName || `Buyer #${sub.buyerId}`}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
                     {sub.quantity}L/day • {sub.session} • Start:{" "}
                     {sub.startDate}
                   </p>
+                  {(sub.buyerAddress || sub.buyerCity) && (
+                    <p className="text-[11px] text-muted-foreground">
+                      {[sub.buyerAddress, sub.buyerCity].filter(Boolean).join(', ')}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-1.5">
                   <Button
@@ -206,6 +222,14 @@ export function SubscribersRequestsSection({ farmId }) {
                 </div>
               </div>
             ))}
+
+            {hasMoreSubscriptions && (
+              <div className="flex justify-center pt-2">
+                <Button size="sm" variant="outline" onClick={loadMoreSubscriptions}>
+                  Load more
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -223,14 +247,14 @@ export function SubscribersRequestsSection({ farmId }) {
           </div>
 
           <div className="space-y-2">
-            {pendingOrders.map((order) => (
+            {visibleOrders.map((order) => (
               <div
                 key={order.id}
                 className="flex items-center justify-between text-xs border border-border/60 rounded-md px-3 py-2"
               >
                 <div className="flex-1">
                   <p className="font-medium text-foreground">
-                    {order.buyerName || `Buyer #${order.buyerId}`}
+                    #{order.displayCode || String(order.id).padStart(6, '0')} • {order.buyerName || `Buyer #${order.buyerId}`}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
                     {order.quantity}L • {order.session} • {order.orderDate}
@@ -272,6 +296,14 @@ export function SubscribersRequestsSection({ farmId }) {
                 </div>
               </div>
             ))}
+
+            {hasMoreOrders && (
+              <div className="flex justify-center pt-2">
+                <Button size="sm" variant="outline" onClick={loadMoreOrders}>
+                  Load more
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}

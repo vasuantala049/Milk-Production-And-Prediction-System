@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import StorefrontIcon from "@mui/icons-material/Storefront";
@@ -15,6 +15,7 @@ import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
 import { SubscribersRequestsSection } from "./SubscribersRequestsSection";
+import { useLazyList } from "../../hooks/useLazyList";
 import { useTranslation } from 'react-i18next';
 
 // Main dashboard for farm owners
@@ -65,6 +66,35 @@ export function OwnerDashboard() {
   const [goatPrice, setGoatPrice] = useState("");
   const [priceSubmitting, setPriceSubmitting] = useState(false);
   const [shedStatusList, setShedStatusList] = useState([]);
+
+  const filteredDashboardOrders = useMemo(
+    () => orderTab === "pending" ? allOrders.filter((order) => order.status === "PENDING") : allOrders,
+    [allOrders, orderTab]
+  );
+
+  const {
+    visibleItems: visibleDashboardOrders,
+    hasMore: hasMoreDashboardOrders,
+    loadMore: loadMoreDashboardOrders,
+  } = useLazyList(filteredDashboardOrders, 6, 6);
+
+  const {
+    visibleItems: visibleFarmSubscriptions,
+    hasMore: hasMoreFarmSubscriptions,
+    loadMore: loadMoreFarmSubscriptions,
+  } = useLazyList(farmSubscriptions, 6, 6);
+
+  const {
+    visibleItems: visibleTodayEntries,
+    hasMore: hasMoreTodayEntries,
+    loadMore: loadMoreTodayEntries,
+  } = useLazyList(todayEntries, 8, 8);
+
+  const {
+    visibleItems: visibleShedStatuses,
+    hasMore: hasMoreShedStatuses,
+    loadMore: loadMoreShedStatuses,
+  } = useLazyList(shedStatusList, 6, 6);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -580,6 +610,55 @@ export function OwnerDashboard() {
             )}
           </div>
 
+          {/* Milk Prices */}
+          {activeFarm && (activeFarm.cowPrice || activeFarm.buffaloPrice || activeFarm.sheepPrice || activeFarm.goatPrice) && (
+            <div className="bg-card border border-border rounded-xl p-4 shadow-card">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-foreground text-sm">{t('dashboard.milkPrices')}</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-[10px] gap-1"
+                  onClick={() => {
+                    setCowPrice(activeFarm?.cowPrice || "");
+                    setBuffaloPrice(activeFarm?.buffaloPrice || "");
+                    setSheepPrice(activeFarm?.sheepPrice || "");
+                    setGoatPrice(activeFarm?.goatPrice || "");
+                    setPricesDialogOpen(true);
+                  }}
+                >
+                  {t('dashboard.setPrices')}
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {activeFarm.cowPrice > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2">
+                    <span className="text-xs text-muted-foreground">{formatAnimalTypeLabel('COW')}</span>
+                    <span className="font-semibold text-foreground text-sm">₹{activeFarm.cowPrice}/L</span>
+                  </div>
+                )}
+                {activeFarm.buffaloPrice > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2">
+                    <span className="text-xs text-muted-foreground">{formatAnimalTypeLabel('BUFFALO')}</span>
+                    <span className="font-semibold text-foreground text-sm">₹{activeFarm.buffaloPrice}/L</span>
+                  </div>
+                )}
+                {activeFarm.sheepPrice > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2">
+                    <span className="text-xs text-muted-foreground">{formatAnimalTypeLabel('SHEEP')}</span>
+                    <span className="font-semibold text-foreground text-sm">₹{activeFarm.sheepPrice}/L</span>
+                  </div>
+                )}
+                {activeFarm.goatPrice > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2">
+                    <span className="text-xs text-muted-foreground">{formatAnimalTypeLabel('GOAT')}</span>
+                    <span className="font-semibold text-foreground text-sm">₹{activeFarm.goatPrice}/L</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Charts + Controls */}
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
@@ -651,7 +730,7 @@ export function OwnerDashboard() {
                   <p className="text-xs text-muted-foreground">{t('dashboard.noShedData')}</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {shedStatusList.map((shed, idx) => (
+                    {visibleShedStatuses.map((shed, idx) => (
                       <div key={idx} className="border border-border/60 rounded-md p-3">
                         <div className="flex justify-between items-center mb-2">
                           <h4 className="font-medium text-sm text-primary">{shed.shedName}</h4>
@@ -664,6 +743,11 @@ export function OwnerDashboard() {
                         </div>
                       </div>
                     ))}
+                    {hasMoreShedStatuses && (
+                      <div className="md:col-span-2 flex justify-center pt-2">
+                        <Button variant="outline" size="sm" onClick={loadMoreShedStatuses}>{t('common.loadMore')}</Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -695,20 +779,17 @@ export function OwnerDashboard() {
                 </div>
 
                 {(() => {
-                  const displayed = orderTab === "pending"
-                    ? allOrders.filter(o => o.status === "PENDING")
-                    : allOrders;
-                  return displayed.length === 0 ? (
+                  return filteredDashboardOrders.length === 0 ? (
                     <p className="text-xs text-muted-foreground">
                       {orderTab === "pending" ? t('dashboard.noPendingOrders') : t('dashboard.noOrdersYet')}
                     </p>
                   ) : (
                     <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                      {displayed.map((order) => (
+                      {visibleDashboardOrders.map((order) => (
                         <div key={order.id} className="border border-border/60 rounded-md px-3 py-2 text-xs space-y-1.5">
                           <div className="flex items-center justify-between">
                             <span className="font-semibold text-foreground">
-                              {order.buyerName || t('dashboard.buyer', { id: order.buyerId })}
+                              #{order.displayCode || String(order.id).padStart(6, '0')} • {order.buyerName || t('dashboard.buyer', { id: order.buyerId })}
                             </span>
                             <span className={cn(
                               "px-2 py-0.5 rounded-full text-[10px] font-medium",
@@ -749,6 +830,11 @@ export function OwnerDashboard() {
                           )}
                         </div>
                       ))}
+                      {hasMoreDashboardOrders && (
+                        <div className="flex justify-center pt-2">
+                          <Button variant="outline" size="sm" onClick={loadMoreDashboardOrders}>{t('common.loadMore')}</Button>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
@@ -764,10 +850,10 @@ export function OwnerDashboard() {
                   <p className="text-xs text-muted-foreground">{t('dashboard.noSubscriptionsYet')}</p>
                 ) : (
                   <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                    {farmSubscriptions.map((sub) => (
+                    {visibleFarmSubscriptions.map((sub) => (
                       <div key={sub.id} className="border border-border/60 rounded-md px-3 py-2 text-xs space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-foreground">{sub.buyerName || `Buyer #${sub.buyerId}`}</span>
+                          <span className="font-semibold text-foreground">#{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.buyerName || `Buyer #${sub.buyerId}`}</span>
                           <span className={cn(
                             "px-2 py-0.5 rounded-full text-[10px] font-medium",
                             sub.status === "ACTIVE" && "bg-emerald-50 text-emerald-700 border border-emerald-200",
@@ -786,6 +872,11 @@ export function OwnerDashboard() {
                         </div>
                       </div>
                     ))}
+                    {hasMoreFarmSubscriptions && (
+                      <div className="flex justify-center pt-2">
+                        <Button variant="outline" size="sm" onClick={loadMoreFarmSubscriptions}>{t('common.loadMore')}</Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -807,7 +898,7 @@ export function OwnerDashboard() {
                   </p>
                 ) : (
                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                    {todayEntries.map((entry, idx) => (
+                    {visibleTodayEntries.map((entry, idx) => (
                       <div
                         key={`${entry.cattleTagId}-${entry.session}-${idx}`}
                         className="flex items-center justify-between text-xs border border-border/60 rounded-md px-2 py-1.5"
@@ -822,6 +913,11 @@ export function OwnerDashboard() {
                         </div>
                       </div>
                     ))}
+                    {hasMoreTodayEntries && (
+                      <div className="flex justify-center pt-2">
+                        <Button variant="outline" size="sm" onClick={loadMoreTodayEntries}>{t('common.loadMore')}</Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

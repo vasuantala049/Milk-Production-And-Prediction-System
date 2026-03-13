@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { apiFetch } from "../api/client";
 import { useTranslation } from "react-i18next";
+import { orderApi } from "../api/orderApi";
 
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import { motion } from "framer-motion";
+import { useLazyList } from "../hooks/useLazyList";
 import { cn } from "../lib/utils";
 
 export default function MyOrders() {
@@ -12,13 +15,29 @@ export default function MyOrders() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [processingPaymentId, setProcessingPaymentId] = useState(null);
+
+    const {
+        visibleItems: visibleOrders,
+        hasMore: hasMoreOrders,
+        loadMore: loadMoreOrders,
+    } = useLazyList(orders, 8, 8);
 
     useEffect(() => {
         const fetchOrders = async () => {
             try {
                 setLoading(true);
                 const data = await apiFetch("/orders/my-orders");
-                setOrders(data || []);
+                const sortedOrders = Array.isArray(data)
+                    ? [...data].sort((left, right) => {
+                        const dateCompare = new Date(right.orderDate).getTime() - new Date(left.orderDate).getTime();
+                        if (dateCompare !== 0) {
+                            return dateCompare;
+                        }
+                        return (right.id || 0) - (left.id || 0);
+                    })
+                    : [];
+                setOrders(sortedOrders);
             } catch (err) {
                 setError(err.message || t('messages.errorOccurred'));
             } finally {
@@ -59,6 +78,31 @@ export default function MyOrders() {
         }
     };
 
+    const formatRupees = (value) => {
+        const amount = Number(value || 0);
+        return `\u20B9${amount.toFixed(2)}`;
+    };
+
+    const formatPaidAt = (value) => {
+        if (!value) return "";
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return "";
+        return parsed.toLocaleString();
+    };
+
+    const handlePayOrder = async (order) => {
+        setProcessingPaymentId(order.id);
+        setError("");
+        try {
+            const paidOrder = await orderApi.payOrder(order.id, order.totalPrice);
+            setOrders(prev => prev.map(o => (o.id === order.id ? { ...o, ...paidOrder } : o)));
+        } catch (err) {
+            setError(err.message || t('messages.errorOccurred'));
+        } finally {
+            setProcessingPaymentId(null);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div>
@@ -88,7 +132,7 @@ export default function MyOrders() {
 
             {!loading && orders.length > 0 && (
                 <div className="grid gap-4">
-                    {orders.map((order, index) => (
+                    {visibleOrders.map((order, index) => (
                         <motion.div
                             key={order.id}
                             initial={{ opacity: 0, y: 10 }}
@@ -98,7 +142,7 @@ export default function MyOrders() {
                             <Card>
                                 <CardHeader>
                                     <div className="flex items-center justify-between">
-                                        <CardTitle className="text-lg">{t('orders.orderNumber', { id: order.id })}</CardTitle>
+                                        <CardTitle className="text-lg">{t('orders.orderNumber', { id: order.displayCode || String(order.id).padStart(6, '0') })}</CardTitle>
                                         <Badge
                                             variant="outline"
                                             className={cn(getStatusColor(order.status))}
@@ -125,6 +169,10 @@ export default function MyOrders() {
                                             <p className="text-sm text-muted-foreground">{t('orders.orderDate')}</p>
                                             <p className="font-medium">{order.orderDate}</p>
                                         </div>
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">{t('orders.totalAmount')}</p>
+                                            <p className="font-medium">{formatRupees(order.totalPrice)}</p>
+                                        </div>
                                     </div>
 
                                     {order.status === "PENDING" && (
@@ -148,12 +196,40 @@ export default function MyOrders() {
                                             <p className="text-sm text-blue-800">
                                                 ✅ {getStatusMessage(order.status)}
                                             </p>
+                                            {order.paid ? (
+                                                <div className="mt-2 space-y-1">
+                                                    <p className="text-sm font-semibold text-emerald-700">
+                                                        {t('orders.paidBadge')}
+                                                    </p>
+                                                    {order.paidAt && (
+                                                        <p className="text-xs text-emerald-700/80">
+                                                            {t('orders.paidOn', { date: formatPaidAt(order.paidAt) })}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <Button
+                                                    className="mt-3"
+                                                    onClick={() => handlePayOrder(order)}
+                                                    disabled={processingPaymentId === order.id}
+                                                >
+                                                    {processingPaymentId === order.id
+                                                        ? t('orders.processingPayment')
+                                                        : `${t('orders.pay')} ${formatRupees(order.totalPrice)}`}
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                 </CardContent>
                             </Card>
                         </motion.div>
                     ))}
+                </div>
+            )}
+
+            {!loading && orders.length > 0 && hasMoreOrders && (
+                <div className="flex justify-center">
+                    <Button variant="outline" onClick={loadMoreOrders}>{t('common.loadMore')}</Button>
                 </div>
             )}
         </div>

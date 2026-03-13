@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { useLazyList } from "../hooks/useLazyList";
 import { cn } from "../lib/utils";
 
 export default function CattleList() {
@@ -26,6 +27,7 @@ export default function CattleList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [type, setType] = useState("all");
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isOwner = user.role === "FARM_OWNER";
@@ -38,6 +40,10 @@ export default function CattleList() {
       .finally(() => setLoading(false));
   }, [farmId]);
 
+  const cattleTypes = useMemo(() => {
+    return Array.from(new Set(cattle.map((entry) => entry.type).filter(Boolean)));
+  }, [cattle]);
+
   const filteredCattle = useMemo(() => {
     return cattle.filter((c) => {
       const matchesSearch =
@@ -48,9 +54,18 @@ export default function CattleList() {
       const matchesStatus =
         status === "all" || c.status === status;
 
-      return matchesSearch && matchesStatus;
+      const matchesType =
+        type === "all" || c.type === type;
+
+      return matchesSearch && matchesStatus && matchesType;
     });
-  }, [cattle, search, status]);
+  }, [cattle, search, status, type]);
+
+  const {
+    visibleItems: visibleCattle,
+    hasMore: hasMoreCattle,
+    loadMore: loadMoreCattle,
+  } = useLazyList(filteredCattle, 9, 9);
 
   const handleDeleteCattle = async (cattleId) => {
     if (!confirm(t('cattle.deleteConfirm'))) return;
@@ -125,6 +140,20 @@ export default function CattleList() {
             <SelectItem value="INACTIVE">{t('cattle.inactive')}</SelectItem>
           </SelectContent>
         </Select>
+
+        <Select value={type} onValueChange={setType}>
+          <SelectTrigger className="w-full sm:w-44 h-12">
+            <SelectValue placeholder={t('cattle.allTypes')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('cattle.allTypes')}</SelectItem>
+            {cattleTypes.map((cattleType) => (
+              <SelectItem key={cattleType} value={cattleType}>
+                {t(`cattle.${cattleType.toLowerCase()}`, cattleType)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </motion.div>
 
       {/* Loading */}
@@ -140,7 +169,7 @@ export default function CattleList() {
           className="bg-card border border-border rounded-xl p-12 text-center shadow-card"
         >
           <p className="text-muted-foreground">
-            {search || status !== "all" ? t('cattle.noMatchingFilter') : t('cattle.noCattleFound')}
+            {search || status !== "all" || type !== "all" ? t('cattle.noMatchingFilter') : t('cattle.noCattleFound')}
           </p>
         </motion.div>
       )}
@@ -152,7 +181,7 @@ export default function CattleList() {
         transition={{ delay: 0.2 }}
         className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
       >
-        {filteredCattle.map((c, index) => (
+        {visibleCattle.map((c, index) => (
           <motion.div
             key={c.id}
             initial={{ opacity: 0, y: 10 }}
@@ -258,6 +287,12 @@ export default function CattleList() {
           </motion.div>
         ))}
       </motion.div>
+
+      {!loading && hasMoreCattle && (
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={loadMoreCattle}>{t('common.loadMore')}</Button>
+        </div>
+      )}
     </div>
   );
 }

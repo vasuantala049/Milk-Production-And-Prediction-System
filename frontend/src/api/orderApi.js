@@ -40,4 +40,12 @@ export const orderApi = {
   rejectOrder: async (orderId) => {
     return apiFetch(`/orders/${orderId}/reject`, { method: 'PATCH' });
   },
+
+  // Buyer pays for a confirmed order with exact amount
+  payOrder: async (orderId, amount) => {
+    return apiFetch(`/orders/${orderId}/pay`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  },
 };

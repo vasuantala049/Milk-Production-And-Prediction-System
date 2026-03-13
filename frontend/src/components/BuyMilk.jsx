@@ -11,6 +11,7 @@ import { Input } from "./ui/input";
 export default function BuyMilk() {
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const [quantity, setQuantity] = useState("");
   const [session, setSession] = useState("MORNING");
   const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
@@ -31,26 +32,62 @@ export default function BuyMilk() {
 
   const timeSlots = React.useMemo(() => {
     if (isSubscription) return [];
+
     const slots = [];
     const now = new Date();
-    const startMinute = now.getMinutes() > 30 ? 0 : 30;
-    const actualStartHour = now.getMinutes() > 30 ? now.getHours() + 1 : now.getHours();
+    const hasPartialHour = now.getMinutes() > 0 && now.getMinutes() <= 30;
+    const startMinute = hasPartialHour ? 30 : 0;
+    const startHour = now.getMinutes() > 30 ? now.getHours() + 1 : now.getHours();
 
-    const addSlot = (hour, minute, sessionType) => {
-      const timeLabel = new Date(0, 0, 0, hour, minute).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
-      slots.push({ value: `${hour}:${minute === 0 ? "00" : minute}`, label: timeLabel, session: sessionType });
+    const addSlot = (hour, minute) => {
+      const label = new Date(0, 0, 0, hour, minute).toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+      slots.push({
+        value: `${hour}:${minute === 0 ? "00" : minute}`,
+        label,
+        session: hour < 14 ? "MORNING" : "EVENING",
+      });
     };
 
-    for (let h = actualStartHour; h <= 23; h++) {
-      if (h === actualStartHour && startMinute === 30) {
-        addSlot(h, 30, h < 14 ? "MORNING" : "EVENING");
-      } else {
-        if (h === 23) { addSlot(h, 0, "EVENING"); }
-        else { addSlot(h, 0, h < 14 ? "MORNING" : "EVENING"); addSlot(h, 30, h < 14 ? "MORNING" : "EVENING"); }
+    for (let hour = startHour; hour <= 23; hour++) {
+      if (hour === startHour && startMinute === 30) {
+        addSlot(hour, 30);
+        continue;
+      }
+
+      addSlot(hour, 0);
+      if (hour !== 23) {
+        addSlot(hour, 30);
       }
     }
+
     return slots;
-  }, [date, isSubscription]);
+  }, [isSubscription]);
+
+  useEffect(() => {
+    if (isSubscription) {
+      setSelectedTimeSlot("");
+      return;
+    }
+
+    if (timeSlots.length === 0) {
+      setSelectedTimeSlot("");
+      return;
+    }
+
+    setSelectedTimeSlot((current) => {
+      if (current && timeSlots.some((slot) => slot.value === current)) {
+        return current;
+      }
+
+      const firstSlot = timeSlots[0];
+      setSession(firstSlot.session);
+      return firstSlot.value;
+    });
+  }, [isSubscription, timeSlots]);
 
   const parsedQuantity = parseFloat(quantity) || 0;
 
@@ -92,15 +129,18 @@ export default function BuyMilk() {
       const finalDate = isSubscription ? date : todayStr;
 
       if (isSubscription && finalDate < todayStr) throw new Error(t('buyMilk.startDatePast'));
+      if (isSubscription && (!currentUser?.address || !currentUser?.city)) {
+        throw new Error(t('buyMilk.completeBuyerProfile'));
+      }
 
       if (isSubscription) {
         const payload = { farmId: parsedFarmId, quantity: parsedQty, session, animalType, startDate: date };
         const sub = await subscriptionApi.createSubscription(payload);
-        setMessage({ type: "success", text: t('buyMilk.subscriptionSent', { id: sub.id }) });
+        setMessage({ type: "success", text: t('buyMilk.subscriptionSent', { id: sub.displayCode || String(sub.id).padStart(6, '0') }) });
       } else {
         const payload = { farmId: parsedFarmId, quantity: parsedQty, session, animalType, date };
         const order = await orderApi.createOrder(payload);
-        setMessage({ type: "success", text: t('buyMilk.orderSent', { id: order.id }) });
+        setMessage({ type: "success", text: t('buyMilk.orderSent', { id: order.displayCode || String(order.id).padStart(6, '0') }) });
       }
       setQuantity("");
     } catch (err) {
@@ -111,10 +151,12 @@ export default function BuyMilk() {
   }
 
   const handleTimeSlotChange = (e) => {
-    const val = e.target.value;
-    setSelectedTimeSlot(val);
-    const slot = timeSlots.find(s => s.value === val);
-    if (slot) setSession(slot.session);
+    const nextSlot = e.target.value;
+    setSelectedTimeSlot(nextSlot);
+    const matchedSlot = timeSlots.find((slot) => slot.value === nextSlot);
+    if (matchedSlot) {
+      setSession(matchedSlot.session);
+    }
   };
 
   return (
@@ -207,6 +249,12 @@ export default function BuyMilk() {
               <div className="space-y-1">
                 <label className="text-sm font-medium text-foreground">{t('buyMilk.startDate')}</label>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              </div>
+            )}
+
+            {isSubscription && (!currentUser?.address || !currentUser?.city) && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                {t('buyMilk.completeBuyerProfile')}
               </div>
             )}
 

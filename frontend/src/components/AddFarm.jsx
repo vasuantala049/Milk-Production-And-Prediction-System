@@ -19,6 +19,7 @@ export default function AddFarm() {
 
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -27,7 +28,7 @@ export default function AddFarm() {
 
     await apiFetch("/farms", {
       method: "POST",
-      body: JSON.stringify({ name, address }),
+      body: JSON.stringify({ name, address, city }),
     });
 
     navigate("/farms");
@@ -43,6 +44,7 @@ export default function AddFarm() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <TextField fullWidth label={t('addFarm.farmNameLabel')} value={name} onChange={(e) => setName(e.target.value)} />
               <TextField fullWidth label={t('addFarm.farmAddressLabel')} value={address} onChange={(e) => setAddress(e.target.value)} />
+              <TextField fullWidth label={t('farms.city')} value={city} onChange={(e) => setCity(e.target.value)} />
               <Button type="submit" variant="contained" color="success" fullWidth>
                 {loading ? t('addFarm.saving') : t('addFarm.saveFarm')}
               </Button>

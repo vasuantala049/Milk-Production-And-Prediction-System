@@ -19,6 +19,7 @@ export default function EditFarm() {
     const [formData, setFormData] = useState({
         name: "",
         address: "",
+        city: "",
     });
 
     useEffect(() => {
@@ -34,6 +35,7 @@ export default function EditFarm() {
                 setFormData({
                     name: data.name || "",
                     address: data.address || "",
+                    city: data.city || "",
                 });
             })
             .catch((err) => {
@@ -108,6 +110,18 @@ export default function EditFarm() {
                                         setFormData({ ...formData, address: e.target.value })
                                     }
                                     placeholder={t('farms.farmAddressPlaceholder')}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">{t('farms.city')}</label>
+                                <Input
+                                    required
+                                    value={formData.city}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, city: e.target.value })
+                                    }
+                                    placeholder={t('farms.farmCityPlaceholder')}
                                 />
                             </div>
 

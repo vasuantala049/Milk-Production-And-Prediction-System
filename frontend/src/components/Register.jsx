@@ -19,8 +19,11 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("BUYER");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
   const [farmName, setFarmName] = useState("");
   const [farmAddress, setFarmAddress] = useState("");
+  const [farmCity, setFarmCity] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -35,9 +38,11 @@ export default function Register() {
       email,
       password,
       role,
+      address,
+      city,
       farm:
         role === "FARM_OWNER"
-          ? { name: farmName, address: farmAddress }
+          ? { name: farmName, address: farmAddress, city: farmCity }
           : null,
       farmId: null,
     };
@@ -135,6 +140,24 @@ export default function Register() {
               </TextField>
             </div>
 
+            <div>
+              <TextField
+                fullWidth
+                label={t('farms.address')}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <TextField
+                fullWidth
+                label={t('farms.city')}
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              />
+            </div>
+
             {/* Farm Owner fields */}
             {isFarmOwner && (
               <div className="space-y-7 rounded-xl bg-gray-50 p-4">
@@ -147,9 +170,16 @@ export default function Register() {
                 />
                 <TextField
                   fullWidth
-                  label={t('farms.location')}
+                  label={t('farms.address')}
                   value={farmAddress}
                   onChange={(e) => setFarmAddress(e.target.value)}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  label={t('farms.city')}
+                  value={farmCity}
+                  onChange={(e) => setFarmCity(e.target.value)}
                   required
                 />
               </div>

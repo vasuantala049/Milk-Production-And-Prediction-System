@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLazyList } from "../hooks/useLazyList";
 import {
     CheckCircle as CheckCircleIcon,
     XCircle as CancelIcon,
@@ -26,6 +27,18 @@ export default function PendingOrders() {
     const [error, setError] = useState("");
     const [processingId, setProcessingId] = useState(null);
     const [activeTab, setActiveTab] = useState("orders");
+
+    const {
+        visibleItems: visibleOrders,
+        hasMore: hasMoreOrders,
+        loadMore: loadMoreOrders,
+    } = useLazyList(orders, 6, 6);
+
+    const {
+        visibleItems: visibleSubscriptions,
+        hasMore: hasMoreSubscriptions,
+        loadMore: loadMoreSubscriptions,
+    } = useLazyList(subscriptions, 6, 6);
 
     const fetchData = async () => {
         try {
@@ -167,7 +180,7 @@ export default function PendingOrders() {
                                 {orders.length === 0 ? (
                                     <EmptyState message={t('pendingOrders.noPendingOrders')} />
                                 ) : (
-                                    orders.map((order) => (
+                                    visibleOrders.map((order) => (
                                         <RequestCard
                                             key={order.id}
                                             type="order"
@@ -179,7 +192,14 @@ export default function PendingOrders() {
                                             t={t}
                                         />
                                     ))
-                                )}</motion.div>
+                                )}
+
+                                {hasMoreOrders && (
+                                    <div className="flex justify-center">
+                                        <Button variant="outline" onClick={loadMoreOrders}>{t('common.loadMore')}</Button>
+                                    </div>
+                                )}
+                            </motion.div>
                         ) : (
                             <motion.div
                                 key="subscriptions-list"
@@ -191,7 +211,7 @@ export default function PendingOrders() {
                                 {subscriptions.length === 0 ? (
                                     <EmptyState message={t('pendingOrders.noPendingSubscriptions')} />
                                 ) : (
-                                    subscriptions.map((sub) => (
+                                    visibleSubscriptions.map((sub) => (
                                         <RequestCard
                                             key={sub.id}
                                             type="subscription"
@@ -204,6 +224,12 @@ export default function PendingOrders() {
                                         />
                                     ))
                                 )}
+
+                                {hasMoreSubscriptions && (
+                                    <div className="flex justify-center">
+                                        <Button variant="outline" onClick={loadMoreSubscriptions}>{t('common.loadMore')}</Button>
+                                    </div>
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -215,6 +241,7 @@ export default function PendingOrders() {
 
 function RequestCard({ type, data, isOwner, processingId, onApprove, onReject, t }) {
     const isProcessing = processingId === data.id;
+    const displayCode = data.displayCode || String(data.id).padStart(6, '0');
 
     return (
         <Card className="overflow-hidden border-border/60 hover:border-primary/20 transition-colors group">
@@ -226,7 +253,7 @@ function RequestCard({ type, data, isOwner, processingId, onApprove, onReject, t
                         </div>
                         <div>
                             <CardTitle className="text-base font-bold">
-                                {type === 'order' ? t('pendingOrders.orderId', { id: data.id }) : t('pendingOrders.subscriptionRequest', { id: data.id })}
+                                {type === 'order' ? t('pendingOrders.orderId', { id: displayCode }) : t('pendingOrders.subscriptionRequest', { id: displayCode })}
                             </CardTitle>
                             <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                                 {type === 'order' ? t('pendingOrders.oneTimePurchase') : t('pendingOrders.recurringSubscription')}
@@ -258,6 +285,12 @@ function RequestCard({ type, data, isOwner, processingId, onApprove, onReject, t
                     <DetailItem icon={<Calendar size={14} />} label={type === 'order' ? t('pendingOrders.orderDate') : t('pendingOrders.startDate')}>
                         <span className="font-bold text-foreground">{type === 'order' ? data.orderDate : data.startDate}</span>
                     </DetailItem>
+                    {type === 'subscription' && (data.buyerAddress || data.buyerCity) && (
+                        <DetailItem icon={<User size={14} />} label={t('pendingOrders.buyerAddress')}>
+                            <span className="font-bold text-foreground">{data.buyerAddress || '—'}</span>
+                            <span className="text-muted-foreground">{data.buyerCity || '—'}</span>
+                        </DetailItem>
+                    )}
                 </div>
 
                 {isOwner && (
