@@ -21,7 +21,7 @@ export default function BuyMilk() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [isSubscription, setIsSubscription] = useState(false);
-  const [animalType, setAnimalType] = useState("ANY");
+  const [animalType, setAnimalType] = useState("COW");
 
   useEffect(() => {
     if (!farmId) { setFarm(null); return; }
@@ -196,7 +196,6 @@ export default function BuyMilk() {
               <div className="space-y-1">
                 <label className="text-sm font-medium text-foreground">{t('buyMilk.animalType')}</label>
                 <select value={animalType} onChange={(e) => setAnimalType(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="ANY">{t('buyMilk.any')}</option>
                   <option value="COW">{t('buyMilk.cowMilk')}</option>
                   <option value="BUFFALO">{t('buyMilk.buffaloMilk')}</option>
                   <option value="SHEEP">{t('buyMilk.sheepMilk')}</option>
