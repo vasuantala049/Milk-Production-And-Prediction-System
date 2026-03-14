@@ -17,10 +17,10 @@ backend:
   resources:
     requests:
       memory: "512Mi"
-      cpu: "500m"
+      cpu: "200m"
     limits:
       memory: "1Gi"
-      cpu: "2"
+      cpu: "1"
 
 jwt:
   secret: fgsdfg45sg8srgefyuegf7b548h516aret4hd6f6sg461gfhdf
