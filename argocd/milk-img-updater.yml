@@ -11,9 +11,7 @@ metadata:
     # =========================
     # IMAGE LIST
     # =========================
-    argocd-image-updater.argoproj.io/image-list: |
-      frontend=vasu049/dairy-flow-frontend
-      backend=vasu049/dairy-flow-backend
+    argocd-image-updater.argoproj.io/image-list: frontend=vasu049/dairy-flow-frontend,backend=vasu049/dairy-flow-backend
 
     # =========================
     # SEMVER STRATEGY
@@ -41,7 +39,6 @@ metadata:
     # WRITE BACK TO GIT
     # =========================
     argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/argocd-image-updater-git-creds
-    argocd-image-updater.argoproj.io/write-back-target: helm/dairy-flow/values.yaml  
 
     # Notifications
     notifications.argoproj.io/subscribe.on-deployed.email: "vasuantala098@gmail.com"
@@ -57,7 +54,7 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: milk
 
   syncPolicy:
     automated:
