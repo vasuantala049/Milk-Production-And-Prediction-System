@@ -5,13 +5,11 @@ metadata:
   namespace: milk
 spec:
   replicas: 4
-
   strategy:
       type: RollingUpdate
       rollingUpdate:
         maxUnavailable: 0
         maxSurge: 1
-
   selector:
     matchLabels:
       app: backend
@@ -26,12 +24,13 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: {{ .Values.backend.port }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
           env:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:mysql://{{ .Values.externalDatabase.host }}:{{ .Values.externalDatabase.port }}/{{ .Values.externalDatabase.database }}"
             - name: SPRING_DATASOURCE_USERNAME
               value: "admin"
-
             - name: SPRING_DATASOURCE_PASSWORD
               value: "Vasu2005"
             - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
@@ -44,5 +43,3 @@ spec:
               value: "{{ .Values.redis.host }}"
             - name: SPRING_DATA_REDIS_PORT
               value: "{{ .Values.redis.port }}"
-
-         

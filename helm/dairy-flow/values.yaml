@@ -2,11 +2,14 @@ externalDatabase:
   host: milk-db.cximw24o4s0e.ap-south-1.rds.amazonaws.com
   port: 3306
   database: mpps
+
 redis:
   image: redis:7-alpine
   port: 6379
   host: redis
+
 backend:
+  replicaCount: 4
   image:
     repository: vasu049/dairy-flow-backend
     tag: v1.0.44
@@ -14,20 +17,24 @@ backend:
   resources:
     requests:
       memory: "512Mi"
-      cpu: "250m"
+      cpu: "500m"
     limits:
       memory: "1Gi"
-      cpu: "1"
+      cpu: "2"
+
 jwt:
   secret: fgsdfg45sg8srgefyuegf7b548h516aret4hd6f6sg461gfhdf
   expiration: "86400000"
+
 cors:
   allowedOriginPatterns: "*"
+
 frontend:
   replicaCount: 2
   image:
     repository: vasu049/dairy-flow-frontend
     tag: v1.0.44
   port: 80
+
 ingress:
   enabled: true
