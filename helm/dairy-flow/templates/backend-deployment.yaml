@@ -4,7 +4,7 @@ metadata:
   name: backend
   namespace: milk
 spec:
-  replicas: 1
+  replicas: 4
 
   strategy:
       type: RollingUpdate
@@ -30,16 +30,10 @@ spec:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:mysql://{{ .Values.externalDatabase.host }}:{{ .Values.externalDatabase.port }}/{{ .Values.externalDatabase.database }}"
             - name: SPRING_DATASOURCE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: backend-db-secret
-                  key: SPRING_DATASOURCE_USERNAME
+              value: "admin"
 
             - name: SPRING_DATASOURCE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: backend-db-secret
-                  key: SPRING_DATASOURCE_PASSWORD
+              value: "Vasu2005"
             - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
               value: "com.mysql.cj.jdbc.Driver"
             - name: JWT_SECRET

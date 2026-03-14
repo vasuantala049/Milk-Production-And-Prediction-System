@@ -9,7 +9,7 @@ redis:
 backend:
   image:
     repository: vasu049/dairy-flow-backend
-    tag: v1.0.42
+    tag: v1.0.44
   port: 8080
   resources:
     requests:
@@ -21,10 +21,13 @@ backend:
 jwt:
   secret: fgsdfg45sg8srgefyuegf7b548h516aret4hd6f6sg461gfhdf
   expiration: "86400000"
+cors:
+  allowedOriginPatterns: "*"
 frontend:
+  replicaCount: 2
   image:
     repository: vasu049/dairy-flow-frontend
-    tag: v1.0.42
+    tag: v1.0.44
   port: 80
 ingress:
   enabled: true
