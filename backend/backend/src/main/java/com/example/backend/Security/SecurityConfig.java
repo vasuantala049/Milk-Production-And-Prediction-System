@@ -13,7 +13,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -39,6 +38,12 @@ public class SecurityConfig {
 
     @Value("${app.cors.allowed-origin-patterns:*}")
     private String allowedOriginPatterns;
+
+    @Value("${app.security.password.bcrypt-strength:10}")
+    private int bcryptStrength;
+
+    @Value("${app.security.password.max-concurrent-hashes:8}")
+    private int maxConcurrentHashes;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -73,7 +78,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BoundedBcryptPasswordEncoder(bcryptStrength, maxConcurrentHashes);
     }
 
     @Bean

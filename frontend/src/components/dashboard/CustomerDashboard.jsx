@@ -56,6 +56,17 @@ export function CustomerDashboard() {
     () => subscriptions.filter((subscription) => subscription.status === 'ACTIVE'),
     [subscriptions]
   );
+  const farmNameById = useMemo(() => {
+    const entries = farms
+      .filter((farm) => farm?.id != null && farm?.name)
+      .map((farm) => [String(farm.id), farm.name]);
+    return new Map(entries);
+  }, [farms]);
+
+  const resolveFarmName = (farmId, explicitFarmName) => {
+    if (explicitFarmName && explicitFarmName.trim() !== "") return explicitFarmName;
+    return farmNameById.get(String(farmId)) || `Farm #${farmId}`;
+  };
   const recentOrders = orders.slice(0, 5);
 
   const {
@@ -162,7 +173,7 @@ export function CustomerDashboard() {
 
           <div className="space-y-3">
             {visibleActiveSubscriptions.map((sub) => {
-              const farm = farms.find(f => f.id === sub.farmId);
+              const farmName = resolveFarmName(sub.farmId, sub.farmName);
               return (
                 <div
                   key={sub.id}
@@ -179,7 +190,7 @@ export function CustomerDashboard() {
                       )} />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">{farm?.name || `Farm #${sub.farmId}`}</p>
+                      <p className="font-medium text-foreground">{farmName}</p>
                       <p className="text-sm text-muted-foreground">
                         #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.quantity || "—"}L/day • {sub.session}
                       </p>
@@ -387,8 +398,7 @@ export function CustomerDashboard() {
 
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
             {visibleOrders.map((order) => {
-              const farm = farms.find(f => f.id === order.farmId);
-              const farmName = order.farmName || farm?.name || `Farm #${order.farmId}`;
+              const farmName = resolveFarmName(order.farmId, order.farmName);
               const animalEmoji = order.animalType === "COW" ? "🐮" : order.animalType === "BUFFALO" ? "🐃" : order.animalType === "SHEEP" ? "🐑" : order.animalType === "GOAT" ? "🐐" : "🐄";
               const animalLabel = order.animalType === "COW" ? "Cow" : order.animalType === "BUFFALO" ? "Buffalo" : order.animalType === "SHEEP" ? "Sheep" : order.animalType === "GOAT" ? "Goat" : "Any";
               return (
