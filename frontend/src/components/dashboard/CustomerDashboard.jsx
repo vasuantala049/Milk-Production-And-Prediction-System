@@ -66,6 +66,10 @@ export function CustomerDashboard() {
     () => subscriptions.filter((subscription) => subscription.status === 'ACTIVE'),
     [subscriptions]
   );
+  const pendingSubscriptions = useMemo(
+    () => subscriptions.filter((subscription) => subscription.status === 'PENDING'),
+    [subscriptions]
+  );
   const farmNameById = useMemo(() => {
     const entries = farms
       .filter((farm) => farm?.id != null && farm?.name)
@@ -84,6 +88,12 @@ export function CustomerDashboard() {
     hasMore: hasMoreActiveSubscriptions,
     loadMore: loadMoreActiveSubscriptions,
   } = useLazyList(activeSubscriptions, 4, 4);
+
+  const {
+    visibleItems: visiblePendingSubscriptions,
+    hasMore: hasMorePendingSubscriptions,
+    loadMore: loadMorePendingSubscriptions,
+  } = useLazyList(pendingSubscriptions, 4, 4);
 
   const {
     visibleItems: visibleFarms,
@@ -337,6 +347,57 @@ export function CustomerDashboard() {
           {hasMoreActiveSubscriptions && (
             <div className="flex justify-center mt-4">
               <Button variant="outline" onClick={loadMoreActiveSubscriptions}>{t('common.loadMore')}</Button>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* Pending Subscriptions */}
+      {pendingSubscriptions.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-card border border-border rounded-xl p-5 shadow-card"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground">{t('common.pending')} {t('subscriptions.subscriptions')}</h3>
+          </div>
+
+          <div className="space-y-3">
+            {visiblePendingSubscriptions.map((sub) => {
+              const farmName = resolveFarmName(sub.farmId, sub.farmName);
+              return (
+                <div
+                  key={sub.id}
+                  className="flex items-center justify-between p-4 rounded-lg bg-muted/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-warning/10">
+                      <Clock className="w-5 h-5 text-warning" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">{farmName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.quantity || "—"}L/day • {sub.session}
+                      </p>
+                      <p className="text-xs mt-1 text-amber-700 font-medium">{t('orders.awaitingApproval')}</p>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-warning/10 border-warning/30 text-warning"
+                  >
+                    <Clock className="w-3 h-3 mr-1" /> {t('common.pending')}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+
+          {hasMorePendingSubscriptions && (
+            <div className="flex justify-center mt-4">
+              <Button variant="outline" onClick={loadMorePendingSubscriptions}>{t('common.loadMore')}</Button>
             </div>
           )}
         </motion.div>
