@@ -5,6 +5,8 @@ import { apiFetch } from "../api/client";
 import { useLazyList } from "../hooks/useLazyList";
 import { Card, CardContent, Button, TextField, Stack, Alert, Select, MenuItem, OutlinedInput, Checkbox, ListItemText, Chip } from '@mui/material';
 import { Trash2 } from "lucide-react";
+import { InlineMessage } from "./ui/InlineMessage";
+import { InlineConfirmDialog } from "./ui/InlineConfirmDialog";
 
 export default function WorkersList() {
   const { farmId } = useParams();
@@ -22,6 +24,8 @@ export default function WorkersList() {
   const [editingWorkerId, setEditingWorkerId] = useState(null);
   const [editShedIds, setEditShedIds] = useState([]);
   const [deletingWorkerId, setDeletingWorkerId] = useState(null);
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [confirmWorker, setConfirmWorker] = useState(null);
 
   const {
     visibleItems: visibleInvitations,
@@ -36,15 +40,16 @@ export default function WorkersList() {
   } = useLazyList(workers, 8, 8);
 
   const handleDeleteWorker = async (worker) => {
-    if (!window.confirm(`Remove "${worker.name}" from this farm? They will also be unassigned from all sheds.`)) return;
     setDeletingWorkerId(worker.id);
     try {
       await apiFetch(`/farms/${farmId}/workers/${worker.id}`, { method: "DELETE" });
       refreshWorkers();
+      setMessage({ type: "success", text: t('workers.workerDeletedSuccess') });
     } catch (err) {
-      alert(err?.message || "Failed to remove worker");
+      setMessage({ type: "error", text: err?.message || t('messages.errorOccurred') });
     } finally {
       setDeletingWorkerId(null);
+      setConfirmWorker(null);
     }
   };
 
@@ -107,6 +112,13 @@ export default function WorkersList() {
   return (
     <div className="min-h-screen bg-background px-4 py-6">
       <div className="max-w-4xl mx-auto">
+        <InlineMessage
+          type={message.type}
+          message={message.text}
+          onClose={() => setMessage({ type: "", text: "" })}
+          className="mb-4"
+        />
+
         <div className="mb-4">
           <Button onClick={() => navigate('/dashboard')} variant="text">{t('workers.backToDashboard')}</Button>
         </div>
@@ -224,8 +236,9 @@ export default function WorkersList() {
                                   });
                                   setEditingWorkerId(null);
                                   refreshWorkers();
+                                  setMessage({ type: "success", text: t('common.success') });
                                 } catch (e) {
-                                  alert(e.message);
+                                  setMessage({ type: "error", text: e.message || t('messages.errorOccurred') });
                                 }
                               }}
                             >
@@ -252,7 +265,7 @@ export default function WorkersList() {
                     <button
                       title="Remove worker"
                       disabled={deletingWorkerId === w.id}
-                      onClick={() => handleDeleteWorker(w)}
+                      onClick={() => setConfirmWorker(w)}
                       className="ml-2 p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -269,6 +282,17 @@ export default function WorkersList() {
             <Button variant="outlined" onClick={loadMoreWorkers}>{t('common.loadMore')}</Button>
           </div>
         )}
+
+        <InlineConfirmDialog
+          open={confirmWorker != null}
+          title={t('common.confirm')}
+          message={confirmWorker ? `Remove "${confirmWorker.name}" from this farm? They will also be unassigned from all sheds.` : ""}
+          confirmLabel={t('common.delete')}
+          cancelLabel={t('common.cancel')}
+          busy={deletingWorkerId != null}
+          onCancel={() => setConfirmWorker(null)}
+          onConfirm={() => confirmWorker && handleDeleteWorker(confirmWorker)}
+        />
       </div>
     </div>
   );

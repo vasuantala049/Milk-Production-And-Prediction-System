@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,12 @@ import java.util.stream.Collectors;
 @RequestMapping("/subscriptions")
 @RequiredArgsConstructor
 public class SubscriptionController {
+
+    private static final Comparator<Subscription> SUBSCRIPTION_LIST_COMPARATOR = Comparator
+            .comparing(Subscription::getStartDate, Comparator.nullsLast(Comparator.reverseOrder()))
+            .thenComparing(subscription -> subscription.getStatus() == SubscriptionStatus.PENDING ? 0 : 1)
+            .thenComparing(Subscription::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+            .thenComparing(Subscription::getId, Comparator.nullsLast(Comparator.reverseOrder()));
 
     private final SubscriptionService subscriptionService;
     private final SubscriptionRepository subscriptionRepository;
@@ -38,7 +45,10 @@ public class SubscriptionController {
 
     @GetMapping("/my-subscriptions")
     public ResponseEntity<List<SubscriptionResponseDto>> getMySubscriptions(@AuthenticationPrincipal User user) {
-        List<Subscription> subscriptions = subscriptionService.getMySubscriptions(user);
+        List<Subscription> subscriptions = subscriptionService.getMySubscriptions(user)
+            .stream()
+            .sorted(SUBSCRIPTION_LIST_COMPARATOR)
+            .toList();
         List<SubscriptionResponseDto> dtos = subscriptions.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -113,9 +123,12 @@ public class SubscriptionController {
         if (page != null && size != null) {
             Pageable pageable = PageRequest.of(page, size);
             Page<Subscription> subPage = subscriptionRepository.findByFarm_Id(farmId, pageable);
-            subscriptions = subPage.getContent();
+            subscriptions = subPage.getContent().stream().sorted(SUBSCRIPTION_LIST_COMPARATOR).toList();
         } else {
-            subscriptions = subscriptionRepository.findByFarm_Id(farmId);
+            subscriptions = subscriptionRepository.findByFarm_IdOrderByStartDateDescCreatedAtDescIdDesc(farmId)
+                    .stream()
+                    .sorted(SUBSCRIPTION_LIST_COMPARATOR)
+                    .toList();
         }
 
         List<SubscriptionResponseDto> dtos = subscriptions.stream()
@@ -136,7 +149,11 @@ public class SubscriptionController {
         // Verify user has access to this farm
         farmAccessService.verifyFarmAccess(user, farmId);
 
-        List<Subscription> subscriptions = subscriptionRepository.findByFarm_IdAndStatus(farmId, status);
+        List<Subscription> subscriptions = subscriptionRepository
+            .findByFarm_IdAndStatusOrderByStartDateDescCreatedAtDescIdDesc(farmId, status)
+            .stream()
+            .sorted(SUBSCRIPTION_LIST_COMPARATOR)
+            .toList();
         List<SubscriptionResponseDto> dtos = subscriptions.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -165,6 +182,7 @@ public class SubscriptionController {
                 .paymentRequired(normalizeCounter(subscription.getBillingDayCounter()) >= 30)
                 .billingAmountDue(calculateBillingAmountDue(subscription))
                 .lastCyclePaidAt(subscription.getLastCyclePaidAt())
+                .createdAt(subscription.getCreatedAt())
                 .build();
     }
 

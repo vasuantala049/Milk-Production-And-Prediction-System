@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import com.example.backend.Entity.User;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import com.example.backend.Entity.type.MilkSession;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,7 @@ import org.springframework.data.repository.query.Param;
 public interface OrdersRepository extends JpaRepository<Orders, Long> {
     List<Orders> findByBuyer(User buyer);
     List<Orders> findByBuyerOrderByOrderDateDescIdDesc(User buyer);
+    List<Orders> findByBuyerOrderByOrderDateDescCreatedAtDescIdDesc(User buyer);
     long countByFarm_Id(Long farmId);
     Orders findTopByFarm_IdAndDisplayCodeIsNotNullOrderByDisplayCodeDesc(Long farmId);
     boolean existsByFarm_IdAndDisplayCode(Long farmId, String displayCode);
@@ -25,6 +27,7 @@ public interface OrdersRepository extends JpaRepository<Orders, Long> {
 
     // Farm-based queries for owner/worker access
     List<Orders> findByFarm_IdOrderByOrderDateDesc(Long farmId);
+    List<Orders> findByFarm_IdOrderByOrderDateDescCreatedAtDescIdDesc(Long farmId);
 
     Page<Orders> findByFarm_Id(Long farmId, Pageable pageable);
 
@@ -32,6 +35,21 @@ public interface OrdersRepository extends JpaRepository<Orders, Long> {
 
     // Status-based queries
     List<Orders> findByFarm_IdAndStatus(Long farmId, OrderStatus status);
+    List<Orders> findByFarm_IdAndStatusOrderByOrderDateDescCreatedAtDescIdDesc(Long farmId, OrderStatus status);
+
+    List<Orders> findByStatusAndCreatedAtBefore(OrderStatus status, LocalDateTime cutoff);
+
+        @Query("""
+                SELECT o
+                FROM Orders o
+                WHERE o.status = com.example.backend.Entity.type.OrderStatus.CONFIRMED
+                    AND (o.paid = false OR o.paid IS NULL)
+                    AND (
+                        (o.confirmedAt IS NOT NULL AND o.confirmedAt < :cutoff)
+                        OR (o.confirmedAt IS NULL AND o.createdAt < :cutoff)
+                    )
+        """)
+        List<Orders> findTimedOutUnpaidConfirmedOrders(@Param("cutoff") LocalDateTime cutoff);
 
     @Query("""
         SELECT COALESCE(SUM(o.quantity), 0)

@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.security.SecureRandom;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -32,6 +33,11 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     private static final int MAX_BILLING_DAYS = 30;
     private static final SecureRandom DISPLAY_CODE_RANDOM = new SecureRandom();
+        private static final Comparator<Subscription> SUBSCRIPTION_LIST_COMPARATOR = Comparator
+            .comparing(Subscription::getStartDate, Comparator.nullsLast(Comparator.reverseOrder()))
+            .thenComparing(subscription -> subscription.getStatus() == SubscriptionStatus.PENDING ? 0 : 1)
+            .thenComparing(Subscription::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+            .thenComparing(Subscription::getId, Comparator.nullsLast(Comparator.reverseOrder()));
 
     private final SubscriptionRepository subscriptionRepository;
     private final FarmRepository farmRepository;
@@ -227,7 +233,29 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public List<Subscription> getMySubscriptions(User user) {
-        return subscriptionRepository.findByBuyer(user);
+        return subscriptionRepository.findByBuyer(user).stream()
+                .sorted(SUBSCRIPTION_LIST_COMPARATOR)
+                .toList();
+    }
+
+    @Scheduled(cron = "0 */30 * * * *")
+    @Transactional
+    public void autoRejectTimedOutPendingSubscriptions() {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(1);
+        List<Subscription> stalePendingSubs = subscriptionRepository.findByStatusAndCreatedAtBefore(
+                SubscriptionStatus.PENDING,
+                cutoff);
+
+        if (stalePendingSubs.isEmpty()) {
+            return;
+        }
+
+        for (Subscription subscription : stalePendingSubs) {
+            subscription.setStatus(SubscriptionStatus.TIMEOUT_REJECTED);
+        }
+
+        subscriptionRepository.saveAll(stalePendingSubs);
+        log.info("Auto timeout-rejected {} pending subscriptions older than 1 day", stalePendingSubs.size());
     }
 
     private String nextDisplayCode(Long farmId) {

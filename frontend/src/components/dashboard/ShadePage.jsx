@@ -14,6 +14,7 @@ import {
 import { Trash2, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLazyList } from "../../hooks/useLazyList";
+import { InlineConfirmDialog } from "../ui/InlineConfirmDialog";
 
 export default function ShadePage() {
     const { farmId } = useParams();
@@ -26,6 +27,7 @@ export default function ShadePage() {
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [confirmShedId, setConfirmShedId] = useState(null);
     const {
         visibleItems: visibleShades,
         hasMore: hasMoreShades,
@@ -83,10 +85,6 @@ export default function ShadePage() {
     };
 
     const handleDeleteShade = async (shedId) => {
-        if (!window.confirm(t('sheds.deleteShadeConfirm'))) {
-            return;
-        }
-
         setError("");
         setSuccess("");
         setActionLoading(true);
@@ -101,6 +99,7 @@ export default function ShadePage() {
             setError(err?.message || t('sheds.failedToDeleteShade'));
         } finally {
             setActionLoading(false);
+            setConfirmShedId(null);
         }
     };
 
@@ -183,7 +182,7 @@ export default function ShadePage() {
                                         </div>
                                         <IconButton
                                             color="error"
-                                            onClick={() => handleDeleteShade(shade.id)}
+                                            onClick={() => setConfirmShedId(shade.id)}
                                             disabled={actionLoading}
                                         >
                                             <Trash2 className="w-5 h-5" />
@@ -201,6 +200,17 @@ export default function ShadePage() {
                         <Button variant="outlined" onClick={loadMoreShades}>{t('common.loadMore')}</Button>
                     </div>
                 )}
+
+                <InlineConfirmDialog
+                    open={confirmShedId != null}
+                    title={t('common.confirm')}
+                    message={t('sheds.deleteShadeConfirm')}
+                    confirmLabel={t('common.delete')}
+                    cancelLabel={t('common.cancel')}
+                    busy={actionLoading}
+                    onCancel={() => setConfirmShedId(null)}
+                    onConfirm={() => confirmShedId != null && handleDeleteShade(confirmShedId)}
+                />
             </div>
         </div>
     );

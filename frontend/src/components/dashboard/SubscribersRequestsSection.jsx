@@ -8,6 +8,8 @@ import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { CheckCircle, XCircle } from "lucide-react";
 import { useLazyList } from "../../hooks/useLazyList";
+import { sortOrdersByDateAndPending, sortSubscriptionsByDateAndPending } from "../../lib/requestSort";
+import { InlineMessage } from "../ui/InlineMessage";
 
 export function SubscribersRequestsSection({ farmId }) {
   const [pendingSubscriptions, setPendingSubscriptions] = useState([]);
@@ -15,6 +17,7 @@ export function SubscribersRequestsSection({ farmId }) {
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
+  const [message, setMessage] = useState({ type: "", text: "" });
 
   // Load pending subscriptions
   useEffect(() => {
@@ -29,12 +32,12 @@ export function SubscribersRequestsSection({ farmId }) {
 
         if (!mounted) return;
 
-        setPendingSubscriptions(Array.isArray(subscriptions) ? subscriptions : []);
+        setPendingSubscriptions(sortSubscriptionsByDateAndPending(subscriptions));
         // Filter orders to only show PENDING
         const pending = Array.isArray(orders)
           ? orders.filter((o) => o.status === "PENDING")
           : [];
-        setPendingOrders(pending);
+        setPendingOrders(sortOrdersByDateAndPending(pending));
       } catch (err) {
         console.error("Failed to load requests:", err);
         if (!mounted) return;
@@ -63,7 +66,7 @@ export function SubscribersRequestsSection({ farmId }) {
         prev.filter((s) => s.id !== subscriptionId)
       );
     } catch (err) {
-      alert("Failed to approve: " + (err.message || "Unknown error"));
+      setMessage({ type: "error", text: "Failed to approve: " + (err.message || "Unknown error") });
     } finally {
       setApprovingId(null);
     }
@@ -78,7 +81,7 @@ export function SubscribersRequestsSection({ farmId }) {
         prev.filter((s) => s.id !== subscriptionId)
       );
     } catch (err) {
-      alert("Failed to reject: " + (err.message || "Unknown error"));
+      setMessage({ type: "error", text: "Failed to reject: " + (err.message || "Unknown error") });
     } finally {
       setRejectingId(null);
     }
@@ -93,7 +96,7 @@ export function SubscribersRequestsSection({ farmId }) {
       });
       setPendingOrders((prev) => prev.filter((o) => o.id !== orderId));
     } catch (err) {
-      alert("Failed to approve: " + (err.message || "Unknown error"));
+      setMessage({ type: "error", text: "Failed to approve: " + (err.message || "Unknown error") });
     } finally {
       setApprovingId(null);
     }
@@ -108,7 +111,7 @@ export function SubscribersRequestsSection({ farmId }) {
       });
       setPendingOrders((prev) => prev.filter((o) => o.id !== orderId));
     } catch (err) {
-      alert("Failed to reject: " + (err.message || "Unknown error"));
+      setMessage({ type: "error", text: "Failed to reject: " + (err.message || "Unknown error") });
     } finally {
       setRejectingId(null);
     }
@@ -154,6 +157,12 @@ export function SubscribersRequestsSection({ farmId }) {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
+      <InlineMessage
+        type={message.type}
+        message={message.text}
+        onClose={() => setMessage({ type: "", text: "" })}
+      />
+
       {/* Subscription Requests */}
       {pendingSubscriptions.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-4 shadow-card">

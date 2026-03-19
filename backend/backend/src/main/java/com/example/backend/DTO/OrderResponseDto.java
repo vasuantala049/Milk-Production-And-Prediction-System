@@ -30,4 +30,5 @@ public class OrderResponseDto {
     private Boolean paid;
     private Double paidAmount;
     private LocalDateTime paidAt;
+    private LocalDateTime createdAt;
 }

@@ -9,8 +9,11 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
+import { sortOrdersByDateAndPending, sortSubscriptionsByDateAndPending } from "../../lib/requestSort";
 import { useLazyList } from "../../hooks/useLazyList";
 import { useTranslation } from 'react-i18next';
+import { InlineMessage } from "../ui/InlineMessage";
+import { InlineConfirmDialog } from "../ui/InlineConfirmDialog";
 
 export function CustomerDashboard() {
   const { t } = useTranslation();
@@ -25,6 +28,13 @@ export function CustomerDashboard() {
   const [city, setCity] = useState(user.city || "");
   const [savingLocation, setSavingLocation] = useState(false);
   const [processingSubscriptionPaymentId, setProcessingSubscriptionPaymentId] = useState(null);
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [confirmState, setConfirmState] = useState({
+    open: false,
+    message: "",
+    confirmLabel: "",
+    onConfirm: null,
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -39,8 +49,8 @@ export function CustomerDashboard() {
 
         if (!mounted) return;
         setFarms(Array.isArray(farmsData) ? farmsData : []);
-        setSubscriptions(Array.isArray(subsData) ? subsData : []);
-        setOrders(Array.isArray(ordersData) ? ordersData.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate)) : []);
+        setSubscriptions(sortSubscriptionsByDateAndPending(subsData));
+        setOrders(sortOrdersByDateAndPending(ordersData));
       } catch (err) {
         if (!mounted) return;
         console.error("Failed to load dashboard data", err);
@@ -92,6 +102,22 @@ export function CustomerDashboard() {
     return `₹${Number(value).toFixed(2)}`;
   };
 
+  const openConfirmation = (messageText, onConfirm, confirmLabel = t('common.confirm')) => {
+    setConfirmState({
+      open: true,
+      message: messageText,
+      confirmLabel,
+      onConfirm,
+    });
+  };
+
+  const handleDialogConfirm = async () => {
+    if (typeof confirmState.onConfirm === "function") {
+      await confirmState.onConfirm();
+    }
+    setConfirmState({ open: false, message: "", confirmLabel: "", onConfirm: null });
+  };
+
   async function handleSaveLocation() {
     if (!user?.id || !address || !city) return;
     try {
@@ -105,7 +131,7 @@ export function CustomerDashboard() {
       localStorage.setItem("user", JSON.stringify(updatedUser));
       window.location.reload();
     } catch (e) {
-      alert(e.message || "Failed to save address and city");
+      setMessage({ type: "error", text: e.message || t('dashboard.failedSaveAddressCity') });
     } finally {
       setSavingLocation(false);
     }
@@ -158,6 +184,12 @@ export function CustomerDashboard() {
           {t('dashboard.buyMilk')}
         </Button>
       </motion.div>
+
+      <InlineMessage
+        type={message.type}
+        message={message.text}
+        onClose={() => setMessage({ type: "", text: "" })}
+      />
       
       {/* Active Subscriptions */}
       {activeSubscriptions.length > 0 && (
@@ -168,7 +200,7 @@ export function CustomerDashboard() {
           className="bg-card border border-border rounded-xl p-5 shadow-card"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-foreground">Active Subscriptions</h3>
+            <h3 className="font-semibold text-foreground">{t('dashboard.activeSubscriptions')}</h3>
           </div>
 
           <div className="space-y-3">
@@ -217,9 +249,9 @@ export function CustomerDashboard() {
                       )}
                     >
                       {sub.status === 'ACTIVE' ? (
-                        <><CheckCircle className="w-3 h-3 mr-1" /> Active</>
+                        <><CheckCircle className="w-3 h-3 mr-1" /> {t('common.active')}</>
                       ) : (
-                        <><Pause className="w-3 h-3 mr-1" /> Paused</>
+                        <><Pause className="w-3 h-3 mr-1" /> {t('common.paused')}</>
                       )}
                     </Badge>
 
@@ -229,14 +261,15 @@ export function CustomerDashboard() {
                           variant="outline"
                           size="sm"
                           disabled={sub.skipDate === today || sub.paymentRequired}
-                          onClick={async () => {
-                            if (!confirm(t('subscriptions.skipTodayConfirm'))) return;
-                            try {
-                              const updated = await subscriptionApi.skipToday(sub.id);
-                              setSubscriptions(prev => prev.map(s => s.id === sub.id ? updated : s));
-                            } catch (e) {
-                              alert(t('subscriptions.skipTodayFailed') + ": " + e.message);
-                            }
+                          onClick={() => {
+                            openConfirmation(t('subscriptions.skipTodayConfirm'), async () => {
+                              try {
+                                const updated = await subscriptionApi.skipToday(sub.id);
+                                setSubscriptions(prev => sortSubscriptionsByDateAndPending(prev.map(s => s.id === sub.id ? updated : s)));
+                              } catch (e) {
+                                setMessage({ type: "error", text: `${t('subscriptions.skipTodayFailed')}: ${e.message}` });
+                              }
+                            }, t('subscriptions.skipToday'));
                           }}
                         >
                           {sub.skipDate === today ? t('subscriptions.skippedToday') : t('subscriptions.skipToday')}
@@ -246,17 +279,22 @@ export function CustomerDashboard() {
                             variant="default"
                             size="sm"
                             disabled={processingSubscriptionPaymentId === sub.id}
-                            onClick={async () => {
-                              if (!confirm(t('subscriptions.payCycleConfirm', { amount: formatRupees(sub.billingAmountDue) }))) return;
-                              try {
-                                setProcessingSubscriptionPaymentId(sub.id);
-                                const updated = await subscriptionApi.payCycle(sub.id, sub.billingAmountDue);
-                                setSubscriptions(prev => prev.map(s => s.id === sub.id ? updated : s));
-                              } catch (e) {
-                                alert(t('subscriptions.payCycleFailed') + ": " + e.message);
-                              } finally {
-                                setProcessingSubscriptionPaymentId(null);
-                              }
+                            onClick={() => {
+                              openConfirmation(
+                                t('subscriptions.payCycleConfirm', { amount: formatRupees(sub.billingAmountDue) }),
+                                async () => {
+                                  try {
+                                    setProcessingSubscriptionPaymentId(sub.id);
+                                    const updated = await subscriptionApi.payCycle(sub.id, sub.billingAmountDue);
+                                    setSubscriptions(prev => sortSubscriptionsByDateAndPending(prev.map(s => s.id === sub.id ? updated : s)));
+                                  } catch (e) {
+                                    setMessage({ type: "error", text: `${t('subscriptions.payCycleFailed')}: ${e.message}` });
+                                  } finally {
+                                    setProcessingSubscriptionPaymentId(null);
+                                  }
+                                },
+                                t('subscriptions.payNow', { amount: formatRupees(sub.billingAmountDue) })
+                              );
                             }}
                           >
                             {processingSubscriptionPaymentId === sub.id
@@ -267,21 +305,23 @@ export function CustomerDashboard() {
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={async () => {
+                          onClick={() => {
                             const hasOutstandingAmount = Number(sub.billingAmountDue || 0) > 0;
                             const confirmMessage = hasOutstandingAmount
                               ? t('subscriptions.cancelWithPaymentConfirm', { amount: formatRupees(sub.billingAmountDue) })
                               : t('subscriptions.cancelConfirm');
-                            if (!confirm(confirmMessage)) return;
-                            try {
-                              const updated = await subscriptionApi.cancelSubscription(
-                                sub.id,
-                                hasOutstandingAmount ? sub.billingAmountDue : null
-                              );
-                              setSubscriptions(prev => prev.map(s => s.id === sub.id ? updated : s));
-                            } catch (e) {
-                              alert(t('subscriptions.cancelFailed') + ": " + e.message);
-                            }
+
+                            openConfirmation(confirmMessage, async () => {
+                              try {
+                                const updated = await subscriptionApi.cancelSubscription(
+                                  sub.id,
+                                  hasOutstandingAmount ? sub.billingAmountDue : null
+                                );
+                                setSubscriptions(prev => sortSubscriptionsByDateAndPending(prev.map(s => s.id === sub.id ? updated : s)));
+                              } catch (e) {
+                                setMessage({ type: "error", text: `${t('subscriptions.cancelFailed')}: ${e.message}` });
+                              }
+                            }, t('common.cancel'));
                           }}
                         >
                           {t('common.cancel')}
@@ -310,7 +350,7 @@ export function CustomerDashboard() {
           transition={{ delay: 0.2 }}
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-foreground">Available Farms</h3>
+            <h3 className="font-semibold text-foreground">{t('dashboard.availableFarms')}</h3>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -345,10 +385,22 @@ export function CustomerDashboard() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      {/* <p className="text-lg font-bold text-foreground">₹{farm.pricePerLiter != null ? farm.pricePerLiter : "—"}<span className="text-xs font-normal text-muted-foreground">/L base</span></p> */}
-                      <div className="flex gap-2 mt-0.5">
-                        {farm.cowPrice != null && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Cow: ₹{farm.cowPrice}</span>}
-                        {farm.buffaloPrice != null && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Buf: ₹{farm.buffaloPrice}</span>}
+                      <div className="flex flex-wrap gap-2 mt-0.5">
+                        {farm.cowPrice != null && farm.cowPrice > 0 && (
+                          <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{t('cattle.cow')}: ₹{farm.cowPrice}</span>
+                        )}
+                        {farm.buffaloPrice != null && farm.buffaloPrice > 0 && (
+                          <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{t('cattle.buffalo')}: ₹{farm.buffaloPrice}</span>
+                        )}
+                        {farm.sheepPrice != null && farm.sheepPrice > 0 && (
+                          <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{t('cattle.sheep')}: ₹{farm.sheepPrice}</span>
+                        )}
+                        {farm.goatPrice != null && farm.goatPrice > 0 && (
+                          <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{t('cattle.goat')}: ₹{farm.goatPrice}</span>
+                        )}
+                        {farm.pricePerLiter != null && farm.pricePerLiter > 0 && (
+                          <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{t('dashboard.basePrice')}: ₹{farm.pricePerLiter}</span>
+                        )}
                       </div>
                     </div>
                     {/* <Badge
@@ -392,8 +444,8 @@ export function CustomerDashboard() {
           className="bg-card border border-border rounded-xl p-5 shadow-card"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-foreground">My Orders</h3>
-            <span className="text-xs text-muted-foreground">{orders.length} total</span>
+            <h3 className="font-semibold text-foreground">{t('dashboard.myOrders')}</h3>
+            <span className="text-xs text-muted-foreground">{t('dashboard.totalSubs', { count: orders.length })}</span>
           </div>
 
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -410,6 +462,7 @@ export function CustomerDashboard() {
                       order.status === "CONFIRMED" && "bg-emerald-50 text-emerald-700 border border-emerald-200",
                       order.status === "PENDING" && "bg-amber-50 text-amber-700 border border-amber-200",
                       order.status === "CANCELLED" && "bg-red-50 text-red-700 border border-red-200",
+                      order.status === "TIMEOUT_REJECTED" && "bg-red-50 text-red-700 border border-red-200",
                       order.status === "COMPLETED" && "bg-blue-50 text-blue-700 border border-blue-200",
                     )}>
                       {order.status}
@@ -444,9 +497,20 @@ export function CustomerDashboard() {
           animate={{ opacity: 1 }}
           className="bg-card border border-border rounded-xl p-12 text-center shadow-card"
         >
-          <p className="text-muted-foreground">No farms available at the moment.</p>
+          <p className="text-muted-foreground">{t('dashboard.noFarmsAvailable')}</p>
         </motion.div>
       )}
+
+      <InlineConfirmDialog
+        open={confirmState.open}
+        title={t('common.confirm')}
+        message={confirmState.message}
+        confirmLabel={confirmState.confirmLabel || t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        busy={processingSubscriptionPaymentId != null}
+        onCancel={() => setConfirmState({ open: false, message: "", confirmLabel: "", onConfirm: null })}
+        onConfirm={handleDialogConfirm}
+      />
     </div>
   );
 }

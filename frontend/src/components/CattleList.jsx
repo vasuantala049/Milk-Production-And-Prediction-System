@@ -17,6 +17,8 @@ import {
 } from "./ui/select";
 import { useLazyList } from "../hooks/useLazyList";
 import { cn } from "../lib/utils";
+import { InlineMessage } from "./ui/InlineMessage";
+import { InlineConfirmDialog } from "./ui/InlineConfirmDialog";
 
 export default function CattleList() {
   const { farmId } = useParams();
@@ -28,6 +30,8 @@ export default function CattleList() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [type, setType] = useState("all");
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isOwner = user.role === "FARM_OWNER";
@@ -68,13 +72,14 @@ export default function CattleList() {
   } = useLazyList(filteredCattle, 9, 9);
 
   const handleDeleteCattle = async (cattleId) => {
-    if (!confirm(t('cattle.deleteConfirm'))) return;
-
     try {
       await apiFetch(`/cattle/${cattleId}`, { method: "DELETE" });
       setCattle(cattle.filter((c) => c.id !== cattleId));
+      setMessage({ type: "success", text: t('cattle.cattleDeletedSuccess') });
     } catch (err) {
-      alert(err.message || t('cattle.cattleDeletedSuccess'));
+      setMessage({ type: "error", text: err.message || t('messages.errorOccurred') });
+    } finally {
+      setDeleteTargetId(null);
     }
   };
 
@@ -111,6 +116,12 @@ export default function CattleList() {
           )}
         </div>
       </motion.div>
+
+      <InlineMessage
+        type={message.type}
+        message={message.text}
+        onClose={() => setMessage({ type: "", text: "" })}
+      />
 
       {/* Filters */}
       <motion.div
@@ -225,7 +236,7 @@ export default function CattleList() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteCattle(c.id);
+                          setDeleteTargetId(c.id);
                         }}
                         className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive"
                       >
@@ -287,6 +298,16 @@ export default function CattleList() {
           </motion.div>
         ))}
       </motion.div>
+
+      <InlineConfirmDialog
+        open={deleteTargetId != null}
+        title={t('common.confirm')}
+        message={t('cattle.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        onCancel={() => setDeleteTargetId(null)}
+        onConfirm={() => deleteTargetId != null && handleDeleteCattle(deleteTargetId)}
+      />
 
       {!loading && hasMoreCattle && (
         <div className="flex justify-center">

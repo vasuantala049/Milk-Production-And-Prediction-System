@@ -19,6 +19,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { subscriptionApi } from '../api/subscriptionApi';
 import { useLazyList } from '../hooks/useLazyList';
+import { sortSubscriptionsByDateAndPending } from '../lib/requestSort';
+import { InlineConfirmDialog } from './ui/InlineConfirmDialog';
 
 const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
   const { t } = useTranslation();
@@ -27,6 +29,7 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [processingSubscriptionId, setProcessingSubscriptionId] = useState(null);
+  const [confirmSubscriptionId, setConfirmSubscriptionId] = useState(null);
   const {
     visibleItems: visibleSubscriptions,
     hasMore: hasMoreSubscriptions,
@@ -47,7 +50,7 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
       } else {
         data = await subscriptionApi.getFarmSubscriptionsByStatus(farmId, statusFilter);
       }
-      setSubscriptions(data);
+      setSubscriptions(sortSubscriptionsByDateAndPending(data));
     } catch (err) {
       setError(err.message || t('common.error'));
     } finally {
@@ -60,6 +63,7 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
       case 'ACTIVE':
         return 'success';
       case 'CANCELLED':
+      case 'TIMEOUT_REJECTED':
         return 'error';
       case 'PENDING':
         return 'warning';
@@ -80,9 +84,10 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
             ? { ...subscription, status: 'ACTIVE' }
             : subscription
         );
-        return statusFilter === 'PENDING'
+        const nextSubscriptions = statusFilter === 'PENDING'
           ? updatedSubscriptions.filter((subscription) => subscription.id !== subscriptionId)
           : updatedSubscriptions;
+        return sortSubscriptionsByDateAndPending(nextSubscriptions);
       });
     } catch (err) {
       setError(err.message || t('common.error'));
@@ -92,10 +97,6 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
   };
 
   const handleRejectSubscription = async (subscriptionId) => {
-    if (!window.confirm(t('pendingOrders.rejectSubConfirm'))) {
-      return;
-    }
-
     setProcessingSubscriptionId(subscriptionId);
     try {
       await subscriptionApi.rejectSubscription(subscriptionId, farmId);
@@ -105,14 +106,16 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
             ? { ...subscription, status: 'CANCELLED' }
             : subscription
         );
-        return statusFilter === 'PENDING'
+        const nextSubscriptions = statusFilter === 'PENDING'
           ? updatedSubscriptions.filter((subscription) => subscription.id !== subscriptionId)
           : updatedSubscriptions;
+        return sortSubscriptionsByDateAndPending(nextSubscriptions);
       });
     } catch (err) {
       setError(err.message || t('common.error'));
     } finally {
       setProcessingSubscriptionId(null);
+      setConfirmSubscriptionId(null);
     }
   };
 
@@ -121,14 +124,6 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
       <Box display="flex" justifyContent="center" alignItems="center" p={4}>
         <CircularProgress />
       </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ m: 2 }}>
-        {error}
-      </Alert>
     );
   }
 
@@ -151,6 +146,12 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
           <ToggleButton value="PENDING">{t('common.pending')}</ToggleButton>
         </ToggleButtonGroup>
       </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
       {subscriptions.length === 0 ? (
         <Alert severity="info">{t('subscriptions.noSubscriptionsStatus')}</Alert>
@@ -215,7 +216,7 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
                           variant="outlined"
                           color="error"
                           disabled={processingSubscriptionId === sub.id}
-                          onClick={() => handleRejectSubscription(sub.id)}
+                          onClick={() => setConfirmSubscriptionId(sub.id)}
                         >
                           {t('pendingOrders.rejectRequest')}
                         </Button>
@@ -242,6 +243,17 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
         {t('subscriptions.totalSubscriptionsCount', { count: subscriptions.length })}
       </Typography>
+
+      <InlineConfirmDialog
+        open={confirmSubscriptionId != null}
+        title={t('common.confirm')}
+        message={t('pendingOrders.rejectSubConfirm')}
+        confirmLabel={t('pendingOrders.rejectRequest')}
+        cancelLabel={t('common.cancel')}
+        busy={processingSubscriptionId != null}
+        onCancel={() => setConfirmSubscriptionId(null)}
+        onConfirm={() => confirmSubscriptionId != null && handleRejectSubscription(confirmSubscriptionId)}
+      />
     </Box>
   );
 };

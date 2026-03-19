@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { apiFetch } from "../api/client";
 import { subscriptionApi } from "../api/subscriptionApi";
@@ -10,6 +10,7 @@ import { Input } from "./ui/input";
 
 export default function BuyMilk() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const [quantity, setQuantity] = useState("");
@@ -161,6 +162,10 @@ export default function BuyMilk() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-xl space-y-3">
+        <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
+          {t('common.back')}
+        </Button>
       <Card className="w-full max-w-xl shadow-lg border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -276,6 +281,7 @@ export default function BuyMilk() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

@@ -5,5 +5,6 @@ public enum OrderStatus {
     CREATED, // order placed
     CONFIRMED, // inventory reserved
     COMPLETED, // milk delivered
-    CANCELLED // order cancelled
+    CANCELLED, // order cancelled
+    TIMEOUT_REJECTED // auto-cancelled after timeout
 }

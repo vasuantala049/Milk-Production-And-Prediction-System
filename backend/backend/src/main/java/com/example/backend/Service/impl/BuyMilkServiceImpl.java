@@ -107,6 +107,7 @@ public class BuyMilkServiceImpl implements BuyMilkService {
         dto1.setAnimalType(order.getAnimalType());
         dto1.setTotalPrice(order.getTotalPrice());
         dto1.setPaid(Boolean.FALSE);
+        dto1.setCreatedAt(order.getCreatedAt());
 
         return dto1;
     }

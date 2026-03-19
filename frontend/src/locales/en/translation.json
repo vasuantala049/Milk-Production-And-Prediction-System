@@ -34,7 +34,9 @@
     "approved": "Approved",
     "cancelled": "Cancelled",
     "active": "Active",
-    "completed": "Completed"
+    "paused": "Paused",
+    "completed": "Completed",
+    "timeout_rejected": "Timeout Rejected"
   },
   "auth": {
     "login": "Login",
@@ -132,6 +134,9 @@
     "activeSubscriptions": "Active Subscriptions",
     "availableFarms": "Available Farms",
     "myOrders": "My Orders",
+    "basePrice": "Base",
+    "noFarmsAvailable": "No farms available at the moment.",
+    "failedSaveAddressCity": "Failed to save address and city",
     "setMilkPrices": "Set Milk Prices",
     "cowMilkPrice": "Cow Milk Price (per Liter)",
     "buffaloMilkPrice": "Buffalo Milk Price (per Liter)",
@@ -338,6 +343,7 @@
     "awaitingApproval": "Awaiting farm owner approval",
     "approvedConfirmed": "Approved and confirmed",
     "rejectedCancelled": "Rejected or cancelled",
+    "timeout_rejected": "Timeout Rejected",
     "rejected": "Rejected",
     "pay": "Pay",
     "paidBadge": "Paid",

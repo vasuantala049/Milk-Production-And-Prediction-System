@@ -13,10 +13,12 @@ import {
 import { Milk, Beef, Users, Warehouse, Store, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
+import { sortOrdersByDateAndPending, sortSubscriptionsByDateAndPending } from "../../lib/requestSort";
 import { Badge } from "../ui/badge";
 import { SubscribersRequestsSection } from "./SubscribersRequestsSection";
 import { useLazyList } from "../../hooks/useLazyList";
 import { useTranslation } from 'react-i18next';
+import { InlineMessage } from "../ui/InlineMessage";
 
 // Main dashboard for farm owners
 export function OwnerDashboard() {
@@ -66,6 +68,7 @@ export function OwnerDashboard() {
   const [goatPrice, setGoatPrice] = useState("");
   const [priceSubmitting, setPriceSubmitting] = useState(false);
   const [shedStatusList, setShedStatusList] = useState([]);
+  const [message, setMessage] = useState({ type: "", text: "" });
 
   const filteredDashboardOrders = useMemo(
     () => orderTab === "pending" ? allOrders.filter((order) => order.status === "PENDING") : allOrders,
@@ -191,9 +194,11 @@ export function OwnerDashboard() {
           apiFetch(`/subscriptions/farm/${farmId}`),
         ]);
         if (!mounted) return;
-        setAllOrders(Array.isArray(orders) ? orders : []);
-        setRecentOrders((Array.isArray(orders) ? orders : []).slice(0, 5));
-        setFarmSubscriptions(Array.isArray(subs) ? subs : []);
+        const sortedOrders = sortOrdersByDateAndPending(orders);
+        const sortedSubscriptions = sortSubscriptionsByDateAndPending(subs);
+        setAllOrders(sortedOrders);
+        setRecentOrders(sortedOrders.slice(0, 5));
+        setFarmSubscriptions(sortedSubscriptions);
       } catch {
         if (!mounted) return;
         setAllOrders([]);
@@ -213,10 +218,11 @@ export function OwnerDashboard() {
       else await orderApi.rejectOrder(orderId);
       // Refresh orders
       const orders = await orderApi.getFarmOrders(activeFarm.id);
-      setAllOrders(Array.isArray(orders) ? orders : []);
-      setRecentOrders((Array.isArray(orders) ? orders : []).slice(0, 5));
+      const sortedOrders = sortOrdersByDateAndPending(orders);
+      setAllOrders(sortedOrders);
+      setRecentOrders(sortedOrders.slice(0, 5));
     } catch (err) {
-      alert(err.message || `Failed to ${action} order`);
+      setMessage({ type: "error", text: err.message || `Failed to ${action} order` });
     } finally {
       setActionLoading((prev) => { const n = { ...prev }; delete n[orderId]; return n; });
     }
@@ -290,7 +296,7 @@ export function OwnerDashboard() {
       localStorage.setItem("activeFarm", JSON.stringify(updatedFarm));
       window.location.reload(); // Simplest way to sync across components
     } catch (err) {
-      alert(err.message || "Failed to update selling status");
+      setMessage({ type: "error", text: err.message || "Failed to update selling status" });
     } finally {
       setIsToggling(false);
     }
@@ -342,7 +348,7 @@ export function OwnerDashboard() {
       localStorage.setItem("activeFarm", JSON.stringify(updatedFarm));
       window.location.reload();
     } catch (err) {
-      alert("Failed to update prices");
+      setMessage({ type: "error", text: "Failed to update prices" });
     } finally {
       setPriceSubmitting(false);
     }
@@ -518,6 +524,12 @@ export function OwnerDashboard() {
           </Button>
         )}
       </motion.div>
+
+      <InlineMessage
+        type={message.type}
+        message={message.text}
+        onClose={() => setMessage({ type: "", text: "" })}
+      />
 
       {activeFarm && (
         <>
@@ -737,7 +749,7 @@ export function OwnerDashboard() {
                           <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full">{shed.workerInCharge}</span>
                         </div>
                         <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>{t('dashboard.totalCattle')}: <span className="text-foreground">{shed.totalCattle}</span></span>
+                          <span>{t('dashboard.total')}: <span className="text-foreground">{shed.totalCattle}</span></span>
                           <span>{t('dashboard.milked')}: <span className="text-emerald-500 font-medium">{shed.milkedCattle}</span></span>
                           <span>{t('dashboard.remaining')}: <span className="text-amber-500 font-medium">{shed.remainingCattle}</span></span>
                         </div>
@@ -796,6 +808,7 @@ export function OwnerDashboard() {
                               order.status === "CONFIRMED" && "bg-emerald-50 text-emerald-700 border border-emerald-200",
                               order.status === "PENDING" && "bg-amber-50 text-amber-700 border border-amber-200",
                               order.status === "CANCELLED" && "bg-red-50 text-red-700 border border-red-200",
+                              order.status === "TIMEOUT_REJECTED" && "bg-red-50 text-red-700 border border-red-200",
                               order.status === "COMPLETED" && "bg-blue-50 text-blue-700 border border-blue-200",
                             )}>
                               {t(`orders.${order.status.toLowerCase()}`)}
@@ -859,6 +872,7 @@ export function OwnerDashboard() {
                             sub.status === "ACTIVE" && "bg-emerald-50 text-emerald-700 border border-emerald-200",
                             sub.status === "PAUSED" && "bg-amber-50 text-amber-700 border border-amber-200",
                             sub.status === "CANCELLED" && "bg-red-50 text-red-700 border border-red-200",
+                            sub.status === "TIMEOUT_REJECTED" && "bg-red-50 text-red-700 border border-red-200",
                             sub.status === "COMPLETED" && "bg-blue-50 text-blue-700 border border-blue-200",
                           )}>
                             {sub.status}

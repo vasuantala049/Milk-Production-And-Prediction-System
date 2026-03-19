@@ -4,6 +4,7 @@ import com.example.backend.Entity.type.MilkSession;
 import com.example.backend.Entity.type.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -45,9 +46,19 @@ public class Orders {
 
     private LocalDateTime paidAt;
 
+    private LocalDateTime confirmedAt;
+
     private String buyerName;
 
     private String farmName;
+
+    private String razorpayOrderId;
+
+    private String razorpayPaymentId;
+
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 
     @ManyToOne
     @JoinColumn(name = "buyer_id", nullable = false)

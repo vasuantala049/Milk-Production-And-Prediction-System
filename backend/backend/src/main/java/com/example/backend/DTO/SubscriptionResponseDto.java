@@ -35,4 +35,5 @@ public class SubscriptionResponseDto {
     private Boolean paymentRequired;
     private Double billingAmountDue;
     private LocalDateTime lastCyclePaidAt;
+    private LocalDateTime createdAt;
 }

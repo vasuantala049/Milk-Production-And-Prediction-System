@@ -4,6 +4,7 @@ import com.example.backend.Entity.type.MilkSession;
 import com.example.backend.Entity.type.SubscriptionStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -59,4 +60,8 @@ public class Subscription {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "VARCHAR(50)")
     private SubscriptionStatus status;
+
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 }

@@ -8,6 +8,8 @@ import { FarmCard } from "./dashboard/FarmCard";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useLazyList } from "../hooks/useLazyList";
+import { InlineMessage } from "./ui/InlineMessage";
+import { InlineConfirmDialog } from "./ui/InlineConfirmDialog";
 
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
@@ -28,6 +30,8 @@ export default function YourFarms() {
   const [search, setSearch] = useState("");
   const [area, setArea] = useState("");
   const [togglingFarms, setTogglingFarms] = useState(new Set());
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [deleteFarmId, setDeleteFarmId] = useState(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -77,12 +81,14 @@ export default function YourFarms() {
   };
 
   const handleDeleteFarm = async (farmId) => {
-    if (!window.confirm(t('farms.deleteFarmConfirm'))) return;
     try {
       await apiFetch(`/farms/${farmId}`, { method: "DELETE" });
       setFarms((prev) => prev.filter((f) => f.id !== farmId));
+      setMessage({ type: "success", text: t('farms.farmDeletedSuccess') });
     } catch (err) {
-      alert(err.message || t('messages.errorOccurred'));
+      setMessage({ type: "error", text: err.message || t('messages.errorOccurred') });
+    } finally {
+      setDeleteFarmId(null);
     }
   };
 
@@ -102,7 +108,7 @@ export default function YourFarms() {
         prev.map((f) => (f.id === farm.id ? { ...f, isSelling: newStatus, selling: newStatus } : f))
       );
     } catch (err) {
-      alert(err.message || t('messages.errorOccurred'));
+      setMessage({ type: "error", text: err.message || t('messages.errorOccurred') });
     } finally {
       setTogglingFarms(prev => {
         const next = new Set(prev);
@@ -154,6 +160,12 @@ export default function YourFarms() {
           </Button>
         )}
       </motion.div>
+
+      <InlineMessage
+        type={message.type}
+        message={message.text}
+        onClose={() => setMessage({ type: "", text: "" })}
+      />
 
       {/* Search */}
       <motion.div
@@ -273,7 +285,7 @@ export default function YourFarms() {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeleteFarm(farm.id);
+                      setDeleteFarmId(farm.id);
                     }}
                     className="h-8 w-8 p-0"
                   >
@@ -304,6 +316,16 @@ export default function YourFarms() {
           </p>
         </motion.div>
       )}
+
+      <InlineConfirmDialog
+        open={deleteFarmId != null}
+        title={t('common.confirm')}
+        message={t('farms.deleteFarmConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        onCancel={() => setDeleteFarmId(null)}
+        onConfirm={() => deleteFarmId != null && handleDeleteFarm(deleteFarmId)}
+      />
     </div>
   );
 }

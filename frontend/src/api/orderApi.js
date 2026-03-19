@@ -48,4 +48,19 @@ export const orderApi = {
       body: JSON.stringify({ amount }),
     });
   },
+
+  // Create Razorpay order for checkout
+  createRazorpayPaymentOrder: async (orderId) => {
+    return apiFetch(`/orders/${orderId}/pay/create`, {
+      method: 'POST',
+    });
+  },
+
+  // Verify Razorpay payment signature and mark order paid
+  verifyRazorpayPayment: async (orderId, payload) => {
+    return apiFetch(`/orders/${orderId}/pay/verify`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
 };

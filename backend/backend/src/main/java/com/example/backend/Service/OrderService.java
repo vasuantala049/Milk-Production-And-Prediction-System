@@ -1,6 +1,8 @@
 package com.example.backend.Service;
 
+import com.example.backend.DTO.OrderPaymentRequestDto;
 import com.example.backend.DTO.OrderResponseDto;
+import com.example.backend.DTO.RazorpayOrderResponseDto;
 import com.example.backend.Entity.User;
 
 import java.util.List;
@@ -25,4 +27,14 @@ public interface OrderService {
      * Buyer pays for an accepted order with exact total amount.
      */
     OrderResponseDto payForOrder(Long orderId, Double amount, User user);
+
+    /**
+     * Creates a Razorpay order for checkout.
+     */
+    RazorpayOrderResponseDto createRazorpayPaymentOrder(Long orderId, User user);
+
+    /**
+     * Verifies Razorpay signature and marks order as paid.
+     */
+    OrderResponseDto verifyRazorpayPayment(Long orderId, OrderPaymentRequestDto request, User user);
 }

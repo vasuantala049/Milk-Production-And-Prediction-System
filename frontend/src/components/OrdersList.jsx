@@ -21,6 +21,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { orderApi } from '../api/orderApi';
 import { useLazyList } from '../hooks/useLazyList';
+import { sortOrdersByDateAndPending } from '../lib/requestSort';
+import { InlineConfirmDialog } from './ui/InlineConfirmDialog';
 
 const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
   const { t } = useTranslation();
@@ -31,6 +33,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
   const [endDate, setEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [processingOrderId, setProcessingOrderId] = useState(null);
+  const [confirmOrderId, setConfirmOrderId] = useState(null);
   const {
     visibleItems: visibleOrders,
     hasMore: hasMoreOrders,
@@ -49,7 +52,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
       if (statusFilter !== 'ALL') {
         data = data.filter(o => o.status === statusFilter);
       }
-      setOrders(data);
+      setOrders(sortOrdersByDateAndPending(data));
     } catch (err) {
       setError(err.message || t('common.error'));
     } finally {
@@ -59,7 +62,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
 
   const handleDateFilter = async () => {
     if (!startDate || !endDate) {
-      alert(t('orders.selectDates'));
+      setError(t('orders.selectDates'));
       return;
     }
     try {
@@ -69,7 +72,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
       if (statusFilter !== 'ALL') {
         data = data.filter(o => o.status === statusFilter);
       }
-      setOrders(data);
+      setOrders(sortOrdersByDateAndPending(data));
     } catch (err) {
       setError(err.message || t('orders.failedToFilter'));
     } finally {
@@ -92,9 +95,10 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
         const updatedOrders = prev.map((order) =>
           order.id === orderId ? { ...order, status: 'CONFIRMED' } : order
         );
-        return statusFilter === 'PENDING'
+        const nextOrders = statusFilter === 'PENDING'
           ? updatedOrders.filter((order) => order.id !== orderId)
           : updatedOrders;
+        return sortOrdersByDateAndPending(nextOrders);
       });
     } catch (err) {
       setError(err.message || t('common.error'));
@@ -104,10 +108,6 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
   };
 
   const handleRejectOrder = async (orderId) => {
-    if (!window.confirm(t('pendingOrders.rejectOrderConfirm'))) {
-      return;
-    }
-
     setProcessingOrderId(orderId);
     try {
       await orderApi.rejectOrder(orderId);
@@ -115,14 +115,16 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
         const updatedOrders = prev.map((order) =>
           order.id === orderId ? { ...order, status: 'CANCELLED' } : order
         );
-        return statusFilter === 'PENDING'
+        const nextOrders = statusFilter === 'PENDING'
           ? updatedOrders.filter((order) => order.id !== orderId)
           : updatedOrders;
+        return sortOrdersByDateAndPending(nextOrders);
       });
     } catch (err) {
       setError(err.message || t('common.error'));
     } finally {
       setProcessingOrderId(null);
+      setConfirmOrderId(null);
     }
   };
 
@@ -135,6 +137,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
       case 'PENDING':
         return 'warning';
       case 'CANCELLED':
+      case 'TIMEOUT_REJECTED':
         return 'error';
       default:
         return 'default';
@@ -146,14 +149,6 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
       <Box display="flex" justifyContent="center" alignItems="center" p={4}>
         <CircularProgress />
       </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ m: 2 }}>
-        {error}
-      </Alert>
     );
   }
 
@@ -201,6 +196,12 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
           {t('orders.clear')}
         </Button>
       </Stack>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
       {orders.length === 0 ? (
         <Alert severity="info">{t('orders.noOrdersStatus', { status: statusFilter === 'ALL' ? '' : t(`common.${statusFilter.toLowerCase()}`) })}</Alert>
@@ -255,7 +256,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
                           variant="outlined"
                           color="error"
                           disabled={processingOrderId === order.id}
-                          onClick={() => handleRejectOrder(order.id)}
+                          onClick={() => setConfirmOrderId(order.id)}
                         >
                           {t('pendingOrders.rejectRequest')}
                         </Button>
@@ -282,6 +283,17 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
         {t('orders.totalOrders', { count: orders.length })}
       </Typography>
+
+      <InlineConfirmDialog
+        open={confirmOrderId != null}
+        title={t('common.confirm')}
+        message={t('pendingOrders.rejectOrderConfirm')}
+        confirmLabel={t('pendingOrders.rejectRequest')}
+        cancelLabel={t('common.cancel')}
+        busy={processingOrderId != null}
+        onCancel={() => setConfirmOrderId(null)}
+        onConfirm={() => confirmOrderId != null && handleRejectOrder(confirmOrderId)}
+      />
     </Box>
   );
 };

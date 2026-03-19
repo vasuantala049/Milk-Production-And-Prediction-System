@@ -8,6 +8,9 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLazyList } from "../hooks/useLazyList";
+import { sortOrdersByDateAndPending, sortSubscriptionsByDateAndPending } from "../lib/requestSort";
+import { InlineMessage } from "./ui/InlineMessage";
+import { InlineConfirmDialog } from "./ui/InlineConfirmDialog";
 import {
     CheckCircle as CheckCircleIcon,
     XCircle as CancelIcon,
@@ -25,8 +28,15 @@ export default function PendingOrders() {
     const [subscriptions, setSubscriptions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [message, setMessage] = useState({ type: "", text: "" });
     const [processingId, setProcessingId] = useState(null);
     const [activeTab, setActiveTab] = useState("orders");
+    const [confirmState, setConfirmState] = useState({
+        open: false,
+        message: "",
+        actionType: "",
+        targetId: null,
+    });
 
     const {
         visibleItems: visibleOrders,
@@ -47,8 +57,8 @@ export default function PendingOrders() {
                 apiFetch(`/orders/farm/${farmId}/pending`),
                 subscriptionApi.getFarmSubscriptionsByStatus(farmId, "PENDING")
             ]);
-            setOrders(ordersData || []);
-            setSubscriptions(subsData || []);
+            setOrders(sortOrdersByDateAndPending(ordersData || []));
+            setSubscriptions(sortSubscriptionsByDateAndPending(subsData || []));
         } catch (err) {
             setError(err.message || t('messages.errorOccurred'));
         } finally {
@@ -68,20 +78,19 @@ export default function PendingOrders() {
             await apiFetch(`/orders/${orderId}/approve`, { method: "PATCH" });
             setOrders(prev => prev.filter(o => o.id !== orderId));
         } catch (err) {
-            alert(err.message || t('messages.errorOccurred'));
+            setMessage({ type: "error", text: err.message || t('messages.errorOccurred') });
         } finally {
             setProcessingId(null);
         }
     };
 
     const handleRejectOrder = async (orderId) => {
-        if (!confirm(t('pendingOrders.rejectOrderConfirm'))) return;
         setProcessingId(orderId);
         try {
             await apiFetch(`/orders/${orderId}/reject`, { method: "PATCH" });
             setOrders(prev => prev.filter(o => o.id !== orderId));
         } catch (err) {
-            alert(err.message || t('messages.errorOccurred'));
+            setMessage({ type: "error", text: err.message || t('messages.errorOccurred') });
         } finally {
             setProcessingId(null);
         }
@@ -93,23 +102,41 @@ export default function PendingOrders() {
             await subscriptionApi.approveSubscription(subId, farmId);
             setSubscriptions(prev => prev.filter(s => s.id !== subId));
         } catch (err) {
-            alert(err.message || t('messages.errorOccurred'));
+            setMessage({ type: "error", text: err.message || t('messages.errorOccurred') });
         } finally {
             setProcessingId(null);
         }
     };
 
     const handleRejectSubscription = async (subId) => {
-        if (!confirm(t('pendingOrders.rejectSubConfirm'))) return;
         setProcessingId(subId);
         try {
             await subscriptionApi.rejectSubscription(subId, farmId);
             setSubscriptions(prev => prev.filter(s => s.id !== subId));
         } catch (err) {
-            alert(err.message || t('messages.errorOccurred'));
+            setMessage({ type: "error", text: err.message || t('messages.errorOccurred') });
         } finally {
             setProcessingId(null);
         }
+    };
+
+    const openRejectConfirm = (actionType, targetId, messageText) => {
+        setConfirmState({
+            open: true,
+            message: messageText,
+            actionType,
+            targetId,
+        });
+    };
+
+    const handleConfirmReject = async () => {
+        if (!confirmState.targetId) return;
+        if (confirmState.actionType === "order") {
+            await handleRejectOrder(confirmState.targetId);
+        } else if (confirmState.actionType === "subscription") {
+            await handleRejectSubscription(confirmState.targetId);
+        }
+        setConfirmState({ open: false, message: "", actionType: "", targetId: null });
     };
 
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -159,6 +186,12 @@ export default function PendingOrders() {
                 </motion.div>
             )}
 
+            <InlineMessage
+                type={message.type}
+                message={message.text}
+                onClose={() => setMessage({ type: "", text: "" })}
+            />
+
             <div className="relative min-h-[400px]">
                 {loading ? (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -188,7 +221,7 @@ export default function PendingOrders() {
                                             isOwner={isOwner}
                                             processingId={processingId}
                                             onApprove={handleApproveOrder}
-                                            onReject={handleRejectOrder}
+                                            onReject={(id) => openRejectConfirm("order", id, t('pendingOrders.rejectOrderConfirm'))}
                                             t={t}
                                         />
                                     ))
@@ -219,7 +252,7 @@ export default function PendingOrders() {
                                             isOwner={isOwner}
                                             processingId={processingId}
                                             onApprove={handleApproveSubscription}
-                                            onReject={handleRejectSubscription}
+                                            onReject={(id) => openRejectConfirm("subscription", id, t('pendingOrders.rejectSubConfirm'))}
                                             t={t}
                                         />
                                     ))
@@ -235,6 +268,17 @@ export default function PendingOrders() {
                     </AnimatePresence>
                 )}
             </div>
+
+            <InlineConfirmDialog
+                open={confirmState.open}
+                title={t('common.confirm')}
+                message={confirmState.message}
+                confirmLabel={t('pendingOrders.rejectRequest')}
+                cancelLabel={t('common.cancel')}
+                busy={processingId != null}
+                onCancel={() => setConfirmState({ open: false, message: "", actionType: "", targetId: null })}
+                onConfirm={handleConfirmReject}
+            />
         </div>
     );
 }

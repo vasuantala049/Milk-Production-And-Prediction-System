@@ -34,7 +34,9 @@
     "approved": "મંજૂર થયેલ",
     "cancelled": "રદ કરેલ",
     "active": "સક્રિય",
-    "completed": "પૂર્ણ થયેલ"
+    "paused": "થોભાયેલ",
+    "completed": "પૂર્ણ થયેલ",
+    "timeout_rejected": "સમયમર્યાદાને કારણે નામંજૂર"
   },
   "auth": {
     "login": "લૉગ ઇન",
@@ -132,6 +134,9 @@
     "activeSubscriptions": "સક્રિય સબ્સ્ક્રિપ્શન્સ",
     "availableFarms": "ઉપલબ્ધ ખેતરો",
     "myOrders": "મારા ઓર્ડર્સ",
+    "basePrice": "મૂળ ભાવ",
+    "noFarmsAvailable": "હાલમાં કોઈ ખેતર ઉપલબ્ધ નથી.",
+    "failedSaveAddressCity": "સરનામું અને શહેર સાચવવામાં નિષ્ફળ",
     "setMilkPrices": "દૂધનો ભાવ નક્કી કરો",
     "cowMilkPrice": "ગાયના દૂધનો ભાવ (પ્રતિ લિટર)",
     "buffaloMilkPrice": "ભેંસના દૂધનો ભાવ (પ્રતિ લિટર)",
@@ -338,6 +343,7 @@
     "awaitingApproval": "ખેતર માલિકની મંજૂરીની રાહ જોવાઇ રહી છે",
     "approvedConfirmed": "મંજૂર અને કન્ફર્મ થયેલ",
     "rejectedCancelled": "નામંજૂર અથવા રદ",
+    "timeout_rejected": "સમયમર્યાદાને કારણે નામંજૂર",
     "rejected": "નામંજૂર",
     "pay": "ચુકવણી કરો",
     "paidBadge": "ચૂકવેલ",

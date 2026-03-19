@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
 import { useTranslation } from "react-i18next";
 import { orderApi } from "../api/orderApi";
@@ -9,9 +10,26 @@ import { Button } from "./ui/button";
 import { motion } from "framer-motion";
 import { useLazyList } from "../hooks/useLazyList";
 import { cn } from "../lib/utils";
+import { sortOrdersByDateAndPending } from "../lib/requestSort";
+
+const loadRazorpayCheckout = () => {
+    return new Promise((resolve) => {
+        if (window.Razorpay) {
+            resolve(true);
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+};
 
 export default function MyOrders() {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -28,15 +46,7 @@ export default function MyOrders() {
             try {
                 setLoading(true);
                 const data = await apiFetch("/orders/my-orders");
-                const sortedOrders = Array.isArray(data)
-                    ? [...data].sort((left, right) => {
-                        const dateCompare = new Date(right.orderDate).getTime() - new Date(left.orderDate).getTime();
-                        if (dateCompare !== 0) {
-                            return dateCompare;
-                        }
-                        return (right.id || 0) - (left.id || 0);
-                    })
-                    : [];
+                const sortedOrders = sortOrdersByDateAndPending(data);
                 setOrders(sortedOrders);
             } catch (err) {
                 setError(err.message || t('messages.errorOccurred'));
@@ -57,6 +67,7 @@ export default function MyOrders() {
             case "COMPLETED":
                 return "bg-success/10 border-success/30 text-success";
             case "CANCELLED":
+            case "TIMEOUT_REJECTED":
                 return "bg-destructive/10 border-destructive/30 text-destructive";
             default:
                 return "bg-muted border-muted text-muted-foreground";
@@ -72,6 +83,7 @@ export default function MyOrders() {
             case "COMPLETED":
                 return t('orders.delivered');
             case "CANCELLED":
+            case "TIMEOUT_REJECTED":
                 return t('orders.rejectedCancelled');
             default:
                 return "";
@@ -94,8 +106,57 @@ export default function MyOrders() {
         setProcessingPaymentId(order.id);
         setError("");
         try {
-            const paidOrder = await orderApi.payOrder(order.id, order.totalPrice);
-            setOrders(prev => prev.map(o => (o.id === order.id ? { ...o, ...paidOrder } : o)));
+            const checkoutLoaded = await loadRazorpayCheckout();
+            if (!checkoutLoaded) {
+                throw new Error("Unable to load Razorpay checkout. Please try again.");
+            }
+
+            const paymentOrder = await orderApi.createRazorpayPaymentOrder(order.id);
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+            const paidOrder = await new Promise((resolve, reject) => {
+                const razorpay = new window.Razorpay({
+                    key: paymentOrder.keyId,
+                    amount: paymentOrder.amount,
+                    currency: paymentOrder.currency || "INR",
+                    name: "DairyFlow",
+                    description: `Payment for Order #${order.displayCode || String(order.id).padStart(6, "0")}`,
+                    order_id: paymentOrder.razorpayOrderId,
+                    prefill: {
+                        name: user?.name || "",
+                        email: user?.email || "",
+                    },
+                    handler: async (response) => {
+                        try {
+                            const verified = await orderApi.verifyRazorpayPayment(order.id, {
+                                amount: order.totalPrice,
+                                razorpayOrderId: response.razorpay_order_id,
+                                razorpayPaymentId: response.razorpay_payment_id,
+                                razorpaySignature: response.razorpay_signature,
+                            });
+                            resolve(verified);
+                        } catch (verifyError) {
+                            reject(verifyError);
+                        }
+                    },
+                    modal: {
+                        ondismiss: () => reject(new Error("Payment cancelled")),
+                    },
+                    theme: {
+                        color: "#16a34a",
+                    },
+                });
+
+                razorpay.on("payment.failed", (response) => {
+                    reject(new Error(response?.error?.description || "Payment failed"));
+                });
+
+                razorpay.open();
+            });
+
+            setOrders((prev) =>
+                sortOrdersByDateAndPending(prev.map((o) => (o.id === order.id ? { ...o, ...paidOrder } : o)))
+            );
         } catch (err) {
             setError(err.message || t('messages.errorOccurred'));
         } finally {
@@ -106,6 +167,9 @@ export default function MyOrders() {
     return (
         <div className="space-y-6">
             <div>
+                <Button variant="outline" size="sm" className="mb-3" onClick={() => navigate('/dashboard')}>
+                    {t('common.back')}
+                </Button>
                 <h1 className="text-3xl font-display font-bold text-foreground">
                     {t('orders.myOrdersTitle')}
                 </h1>
@@ -154,8 +218,8 @@ export default function MyOrders() {
                                 <CardContent>
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                         <div>
-                                            <p className="text-sm text-muted-foreground">{t('orders.farmId')}</p>
-                                            <p className="font-medium">{order.farmId}</p>
+                                            <p className="text-sm text-muted-foreground">{t('farms.farmName')}</p>
+                                            <p className="font-medium">{order.farmName || order.farmId}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-muted-foreground">{t('orders.quantity')}</p>
@@ -183,7 +247,7 @@ export default function MyOrders() {
                                         </div>
                                     )}
 
-                                    {order.status === "CANCELLED" && (
+                                    {(order.status === "CANCELLED" || order.status === "TIMEOUT_REJECTED") && (
                                         <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
                                             <p className="text-sm text-destructive">
                                                 ❌ {getStatusMessage(order.status)}
