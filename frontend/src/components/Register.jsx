@@ -33,13 +33,16 @@ export default function Register() {
     setError("");
     setLoading(true);
 
+    const payloadAddress = isFarmOwner ? farmAddress : address;
+    const payloadCity = isFarmOwner ? farmCity : city;
+
     const payload = {
       name,
       email,
       password,
       role,
-      address,
-      city,
+      address: payloadAddress,
+      city: payloadCity,
       farm:
         role === "FARM_OWNER"
           ? { name: farmName, address: farmAddress, city: farmCity }
@@ -140,23 +143,27 @@ export default function Register() {
               </TextField>
             </div>
 
-            <div>
-              <TextField
-                fullWidth
-                label={t('farms.address')}
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
-            </div>
+            {!isFarmOwner && (
+              <>
+                <div>
+                  <TextField
+                    fullWidth
+                    label={t('farms.address')}
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  />
+                </div>
 
-            <div>
-              <TextField
-                fullWidth
-                label={t('farms.city')}
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-              />
-            </div>
+                <div>
+                  <TextField
+                    fullWidth
+                    label={t('farms.city')}
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
 
             {/* Farm Owner fields */}
             {isFarmOwner && (
