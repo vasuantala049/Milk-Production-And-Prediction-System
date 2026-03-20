@@ -112,6 +112,11 @@ export function CustomerDashboard() {
     return `₹${Number(value).toFixed(2)}`;
   };
 
+  const formatTimeSlot = (slot) => {
+    if (!slot || typeof slot !== "string") return "--";
+    return slot.replace(/_/g, " ");
+  };
+
   const openConfirmation = (messageText, onConfirm, confirmLabel = t('common.confirm')) => {
     setConfirmState({
       open: true,
@@ -234,7 +239,7 @@ export function CustomerDashboard() {
                     <div>
                       <p className="font-medium text-foreground">{farmName}</p>
                       <p className="text-sm text-muted-foreground">
-                        #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.quantity || "—"}L/day • {sub.session}
+                        #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.quantity || "—"}L/day • {formatTimeSlot(sub.timeSlot || sub.session)}
                       </p>
                       <p className="text-xs mt-1 text-muted-foreground">
                         {t('subscriptions.billingDays')}: <span className="font-semibold text-foreground">{sub.billingDayCounter || 0}/{sub.maxBillingDays || 30}</span>
@@ -379,17 +384,19 @@ export function CustomerDashboard() {
                     <div>
                       <p className="font-medium text-foreground">{farmName}</p>
                       <p className="text-sm text-muted-foreground">
-                        #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.quantity || "—"}L/day • {sub.session}
+                        #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.quantity || "—"}L/day • {formatTimeSlot(sub.timeSlot || sub.session)}
                       </p>
                       <p className="text-xs mt-1 text-amber-700 font-medium">{t('orders.awaitingApproval')}</p>
                     </div>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className="bg-warning/10 border-warning/30 text-warning"
-                  >
-                    <Clock className="w-3 h-3 mr-1" /> {t('common.pending')}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className="bg-warning/10 border-warning/30 text-warning"
+                    >
+                      <Clock className="w-3 h-3 mr-1" /> {t('common.pending')}
+                    </Badge>
+                  </div>
                 </div>
               );
             })}
@@ -533,7 +540,7 @@ export function CustomerDashboard() {
                     <span>#{order.displayCode || String(order.id).padStart(6, '0')}</span>
                     <span>{order.quantity?.toFixed(1)}L</span>
                     <span>{animalEmoji} {animalLabel} Milk</span>
-                    <span>{order.session}</span>
+                    <span>{formatTimeSlot(order.timeSlot || order.session)}</span>
                     {order.orderDate && <span>{new Date(order.orderDate).toLocaleDateString()}</span>}
                     {order.totalPrice != null && (
                       <span className="text-emerald-600 font-bold">₹{order.totalPrice.toFixed(2)}</span>

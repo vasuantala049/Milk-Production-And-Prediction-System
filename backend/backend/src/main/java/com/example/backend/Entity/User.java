@@ -50,6 +50,10 @@ public class User {
     @Column(name = "oauth_provider_id")
     private String oauthProviderId;
 
+    private String passwordResetOtp;
+
+    private LocalDateTime passwordResetOtpExpiry;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

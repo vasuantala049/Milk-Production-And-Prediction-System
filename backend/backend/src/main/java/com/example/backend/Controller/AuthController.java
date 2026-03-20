@@ -7,6 +7,7 @@ import com.example.backend.Entity.type.UserRole;
 import com.example.backend.Repository.FarmRepository;
 import com.example.backend.Repository.UserRepository;
 import com.example.backend.Security.JwtTokenProvider;
+import com.example.backend.Service.impl.EmailServiceImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -19,7 +20,10 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 @RestController
 @RequestMapping("/auth")
@@ -33,6 +37,7 @@ public class AuthController {
     private final UserDetailsService userDetailsService;
     private final ModelMapper modelMapper;
     private final FarmRepository farmRepository;
+    private final EmailServiceImpl emailService;
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDto> register(@RequestBody @Valid CreateUserRequestDto request) {
 
@@ -71,6 +76,7 @@ public class AuthController {
         }
 
         User savedUser = userRepository.save(user);
+        emailService.sendRegistrationSuccessEmail(savedUser.getEmail(), savedUser.getName());
 
         UserDetails userDetails =
                 userDetailsService.loadUserByUsername(savedUser.getEmail());
@@ -111,6 +117,42 @@ public class AuthController {
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/forgot-password/request-otp")
+    public ResponseEntity<Map<String, String>> requestPasswordResetOtp(
+            @RequestBody @Valid ForgotPasswordRequestDto request) {
+        userRepository.findByEmail(request.getEmail()).ifPresent(user -> {
+            String otp = String.format("%06d", new Random().nextInt(1_000_000));
+            user.setPasswordResetOtp(otp);
+            user.setPasswordResetOtpExpiry(LocalDateTime.now().plusMinutes(10));
+            userRepository.save(user);
+            emailService.sendPasswordResetOtp(user.getEmail(), user.getName(), otp);
+        });
+
+        return ResponseEntity.ok(Map.of("message", "If this email exists, an OTP has been sent"));
+    }
+
+    @PostMapping("/forgot-password/reset")
+    public ResponseEntity<Map<String, String>> resetPasswordWithOtp(
+            @RequestBody @Valid ResetPasswordWithOtpRequestDto request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid OTP or email"));
+
+        if (user.getPasswordResetOtp() == null
+                || user.getPasswordResetOtpExpiry() == null
+                || LocalDateTime.now().isAfter(user.getPasswordResetOtpExpiry())
+                || !user.getPasswordResetOtp().equals(request.getOtp())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Invalid or expired OTP"));
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordResetOtp(null);
+        user.setPasswordResetOtpExpiry(null);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of("message", "Password reset successful"));
     }
 
         private UserResponseDto toUserResponse(User user) {

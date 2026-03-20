@@ -14,7 +14,6 @@ import {
   Alert,
   TextField,
   Button,
-  Stack,
   ToggleButtonGroup,
   ToggleButton,
 } from '@mui/material';
@@ -22,7 +21,6 @@ import { useTranslation } from 'react-i18next';
 import { orderApi } from '../api/orderApi';
 import { useLazyList } from '../hooks/useLazyList';
 import { sortOrdersByDateAndPending } from '../lib/requestSort';
-import { InlineConfirmDialog } from './ui/InlineConfirmDialog';
 
 const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
   const { t } = useTranslation();
@@ -32,8 +30,17 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState(initialStatus);
-  const [processingOrderId, setProcessingOrderId] = useState(null);
-  const [confirmOrderId, setConfirmOrderId] = useState(null);
+
+  const formatTimeSlot = (slot) => {
+    if (!slot) return '--';
+    const [h, m] = String(slot).split(':');
+    const hour = Number(h);
+    const minute = Number(m);
+    if (Number.isNaN(hour) || Number.isNaN(minute)) return String(slot);
+    const d = new Date();
+    d.setHours(hour, minute, 0, 0);
+    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
   const {
     visibleItems: visibleOrders,
     hasMore: hasMoreOrders,
@@ -85,47 +92,6 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
     setEndDate('');
     setStatusFilter(initialStatus);
     fetchOrders();
-  };
-
-  const handleApproveOrder = async (orderId) => {
-    setProcessingOrderId(orderId);
-    try {
-      await orderApi.approveOrder(orderId);
-      setOrders((prev) => {
-        const updatedOrders = prev.map((order) =>
-          order.id === orderId ? { ...order, status: 'CONFIRMED' } : order
-        );
-        const nextOrders = statusFilter === 'PENDING'
-          ? updatedOrders.filter((order) => order.id !== orderId)
-          : updatedOrders;
-        return sortOrdersByDateAndPending(nextOrders);
-      });
-    } catch (err) {
-      setError(err.message || t('common.error'));
-    } finally {
-      setProcessingOrderId(null);
-    }
-  };
-
-  const handleRejectOrder = async (orderId) => {
-    setProcessingOrderId(orderId);
-    try {
-      await orderApi.rejectOrder(orderId);
-      setOrders((prev) => {
-        const updatedOrders = prev.map((order) =>
-          order.id === orderId ? { ...order, status: 'CANCELLED' } : order
-        );
-        const nextOrders = statusFilter === 'PENDING'
-          ? updatedOrders.filter((order) => order.id !== orderId)
-          : updatedOrders;
-        return sortOrdersByDateAndPending(nextOrders);
-      });
-    } catch (err) {
-      setError(err.message || t('common.error'));
-    } finally {
-      setProcessingOrderId(null);
-      setConfirmOrderId(null);
-    }
   };
 
   const getStatusColor = (status) => {
@@ -213,10 +179,9 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
                 <TableCell><strong>{t('orders.orderId')}</strong></TableCell>
                 <TableCell><strong>{t('orders.date')}</strong></TableCell>
                 <TableCell><strong>{t('orders.quantityLiters')}</strong></TableCell>
-                <TableCell><strong>{t('orders.session')}</strong></TableCell>
+                <TableCell><strong>{t('buyMilk.timeSlot')}</strong></TableCell>
                 <TableCell><strong>{t('orders.status')}</strong></TableCell>
                 <TableCell><strong>{t('orders.buyerId')}</strong></TableCell>
-                <TableCell><strong>{t('dashboard.quickActions')}</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -227,7 +192,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
                   <TableCell>{order.quantity.toFixed(2)}</TableCell>
                   <TableCell>
                     <Chip
-                      label={order.timeSlot || order.session}
+                      label={formatTimeSlot(order.timeSlot)}
                       size="small"
                       color={order.session === 'MORNING' ? 'primary' : 'secondary'}
                     />
@@ -240,33 +205,6 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
                     />
                   </TableCell>
                   <TableCell>{order.buyerId}</TableCell>
-                  <TableCell>
-                    {order.status === 'PENDING' ? (
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          disabled={processingOrderId === order.id}
-                          onClick={() => handleApproveOrder(order.id)}
-                        >
-                          {processingOrderId === order.id ? t('pendingOrders.processing') : t('pendingOrders.approve')}
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="error"
-                          disabled={processingOrderId === order.id}
-                          onClick={() => setConfirmOrderId(order.id)}
-                        >
-                          {t('pendingOrders.rejectRequest')}
-                        </Button>
-                      </Stack>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        -
-                      </Typography>
-                    )}
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -283,17 +221,6 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
         {t('orders.totalOrders', { count: orders.length })}
       </Typography>
-
-      <InlineConfirmDialog
-        open={confirmOrderId != null}
-        title={t('common.confirm')}
-        message={t('pendingOrders.rejectOrderConfirm')}
-        confirmLabel={t('pendingOrders.rejectRequest')}
-        cancelLabel={t('common.cancel')}
-        busy={processingOrderId != null}
-        onCancel={() => setConfirmOrderId(null)}
-        onConfirm={() => confirmOrderId != null && handleRejectOrder(confirmOrderId)}
-      />
     </Box>
   );
 };

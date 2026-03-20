@@ -367,6 +367,17 @@ export function OwnerDashboard() {
     return t(`cattle.${normalized.toLowerCase()}`, normalized.charAt(0) + normalized.slice(1).toLowerCase());
   };
 
+  const formatTimeSlot = (slot) => {
+    if (!slot) return '--';
+    const [h, m] = String(slot).split(':');
+    const hour = Number(h);
+    const minute = Number(m);
+    if (Number.isNaN(hour) || Number.isNaN(minute)) return String(slot);
+    const d = new Date();
+    d.setHours(hour, minute, 0, 0);
+    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
   const cattleTypeSummaries = Array.from(
     farmCattle.reduce((map, cattle) => {
       const normalizedType = normalizeAnimalType(cattle?.type);
@@ -817,7 +828,7 @@ export function OwnerDashboard() {
                           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
                             <span>{order.quantity?.toFixed(1)}L</span>
                             <span>{order.animalType === "COW" ? "🐮 Cow" : order.animalType === "BUFFALO" ? "🐃 Buffalo" : order.animalType === "SHEEP" ? "🐑 Sheep" : order.animalType === "GOAT" ? "🐐 Goat" : "🐄 Any"}</span>
-                            <span>{order.timeSlot || order.session}</span>
+                            <span>{formatTimeSlot(order.timeSlot)}</span>
                             {order.totalPrice != null && (
                               <span className="text-emerald-600 font-semibold">₹{order.totalPrice.toFixed(2)}</span>
                             )}
