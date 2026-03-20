@@ -20,6 +20,7 @@ public class OrderResponseDto {
     private LocalDate orderDate;
     private Double quantity;
     private MilkSession session;
+    private String timeSlot;
     private OrderStatus status;
     private Long buyerId;
     private String buyerName;

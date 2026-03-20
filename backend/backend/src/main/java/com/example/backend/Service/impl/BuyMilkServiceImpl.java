@@ -64,6 +64,7 @@ public class BuyMilkServiceImpl implements BuyMilkService {
         order.setOrderDate(LocalDate.now());
         order.setQuantity(requestedQty);
         order.setSession(dto.getSession());
+        order.setTimeSlot(dto.getTimeSlot());
         order.setStatus(OrderStatus.PENDING); // Changed from COMPLETED to PENDING
         order.setBuyer(buyer);
         order.setFarm(farm);
@@ -101,6 +102,7 @@ public class BuyMilkServiceImpl implements BuyMilkService {
         dto1.setOrderDate(order.getOrderDate());
         dto1.setQuantity(order.getQuantity());
         dto1.setSession(order.getSession());
+        dto1.setTimeSlot(order.getTimeSlot());
         dto1.setStatus(order.getStatus());
         dto1.setBuyerId(buyer != null ? buyer.getId() : null);
         dto1.setFarmId(farm != null ? farm.getId() : null);

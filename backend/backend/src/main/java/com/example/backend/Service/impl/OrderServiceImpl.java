@@ -302,6 +302,7 @@ public class OrderServiceImpl implements OrderService {
         dto.setOrderDate(order.getOrderDate());
         dto.setQuantity(order.getQuantity());
         dto.setSession(order.getSession());
+        dto.setTimeSlot(order.getTimeSlot());
         dto.setStatus(order.getStatus());
         dto.setBuyerId(order.getBuyer() != null ? order.getBuyer().getId() : null);
         dto.setBuyerName(order.getBuyer() != null ? order.getBuyer().getName() : order.getBuyerName());

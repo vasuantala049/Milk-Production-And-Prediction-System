@@ -817,7 +817,7 @@ export function OwnerDashboard() {
                           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
                             <span>{order.quantity?.toFixed(1)}L</span>
                             <span>{order.animalType === "COW" ? "🐮 Cow" : order.animalType === "BUFFALO" ? "🐃 Buffalo" : order.animalType === "SHEEP" ? "🐑 Sheep" : order.animalType === "GOAT" ? "🐐 Goat" : "🐄 Any"}</span>
-                            <span>{order.session}</span>
+                            <span>{order.timeSlot || order.session}</span>
                             {order.totalPrice != null && (
                               <span className="text-emerald-600 font-semibold">₹{order.totalPrice.toFixed(2)}</span>
                             )}

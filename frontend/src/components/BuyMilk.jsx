@@ -139,7 +139,7 @@ export default function BuyMilk() {
         const sub = await subscriptionApi.createSubscription(payload);
         setMessage({ type: "success", text: t('buyMilk.subscriptionSent', { id: sub.displayCode || String(sub.id).padStart(6, '0') }) });
       } else {
-        const payload = { farmId: parsedFarmId, quantity: parsedQty, session, animalType, date };
+        const payload = { farmId: parsedFarmId, quantity: parsedQty, session, timeSlot: selectedTimeSlot, animalType, date };
         const order = await orderApi.createOrder(payload);
         setMessage({ type: "success", text: t('buyMilk.orderSent', { id: order.displayCode || String(order.id).padStart(6, '0') }) });
       }

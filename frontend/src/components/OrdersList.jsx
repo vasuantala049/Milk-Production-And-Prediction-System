@@ -227,7 +227,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
                   <TableCell>{order.quantity.toFixed(2)}</TableCell>
                   <TableCell>
                     <Chip
-                      label={order.session}
+                      label={order.timeSlot || order.session}
                       size="small"
                       color={order.session === 'MORNING' ? 'primary' : 'secondary'}
                     />

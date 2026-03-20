@@ -23,4 +23,6 @@ public class MilkBuyDto {
     private Long farmId;
 
     private String animalType;
+
+    private String timeSlot;
 }

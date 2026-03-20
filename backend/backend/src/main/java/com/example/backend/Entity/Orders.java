@@ -35,6 +35,8 @@ public class Orders {
 
     private MilkSession session;
 
+    private String timeSlot;
+
     private String animalType;
 
     private Double totalPrice;

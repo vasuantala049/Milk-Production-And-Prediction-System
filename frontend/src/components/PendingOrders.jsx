@@ -321,7 +321,7 @@ function RequestCard({ type, data, isOwner, processingId, onApprove, onReject, t
                         {type === 'subscription' && <span className="text-muted-foreground ml-1">{t('pendingOrders.perDay')}</span>}
                     </DetailItem>
                     <DetailItem icon={<Clock size={14} />} label={t('pendingOrders.sessionSlot')}>
-                        <span className="font-bold text-foreground">{data.session}</span>
+                        <span className="font-bold text-foreground">{data.timeSlot || data.session}</span>
                     </DetailItem>
                     <DetailItem icon={<Milk size={14} />} label={t('pendingOrders.milkType')}>
                         <span className="font-bold text-foreground">{data.animalType || t('pendingOrders.any')}</span>

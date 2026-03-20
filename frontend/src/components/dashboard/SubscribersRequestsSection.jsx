@@ -266,7 +266,7 @@ export function SubscribersRequestsSection({ farmId }) {
                     #{order.displayCode || String(order.id).padStart(6, '0')} • {order.buyerName || `Buyer #${order.buyerId}`}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    {order.quantity}L • {order.session} • {order.orderDate}
+                    {order.quantity}L • {order.timeSlot || order.session} • {order.orderDate}
                   </p>
                 </div>
                 <div className="flex gap-1.5">

@@ -148,6 +148,7 @@ public class OrderController {
                 .orderDate(order.getOrderDate())
                 .quantity(order.getQuantity())
                 .session(order.getSession())
+                .timeSlot(order.getTimeSlot())
                 .status(order.getStatus())
                 .buyerId(order.getBuyer() != null ? order.getBuyer().getId() : null)
                 .buyerName(order.getBuyer() != null ? order.getBuyer().getName() : null)
