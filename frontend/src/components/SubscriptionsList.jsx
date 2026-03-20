@@ -161,7 +161,6 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
             <TableHead>
               <TableRow>
                 <TableCell><strong>{t('subscriptions.id')}</strong></TableCell>
-                <TableCell><strong>{t('subscriptions.customerId')}</strong></TableCell>
                 <TableCell><strong>{t('orders.quantityLiters')}</strong></TableCell>
                 <TableCell><strong>{t('orders.session')}</strong></TableCell>
                 <TableCell><strong>{t('subscriptions.startDate')}</strong></TableCell>
@@ -174,15 +173,6 @@ const SubscriptionsList = ({ farmId, initialStatus = 'ACTIVE' }) => {
               {visibleSubscriptions.map((sub) => (
                 <TableRow key={sub.id} hover>
                   <TableCell>{sub.displayCode || String(sub.id).padStart(6, '0')}</TableCell>
-                  <TableCell>
-                    {sub.buyerId || 'N/A'}
-                    {sub.buyerName ? ` - ${sub.buyerName}` : ''}
-                    {(sub.buyerAddress || sub.buyerCity) ? (
-                      <Typography variant="caption" display="block" color="text.secondary">
-                        {[sub.buyerAddress, sub.buyerCity].filter(Boolean).join(', ')}
-                      </Typography>
-                    ) : null}
-                  </TableCell>
                   <TableCell>{sub.quantity.toFixed(2)}</TableCell>
                   <TableCell>
                     <Chip

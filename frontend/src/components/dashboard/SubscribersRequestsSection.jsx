@@ -183,7 +183,7 @@ export function SubscribersRequestsSection({ farmId }) {
               >
                 <div className="flex-1">
                   <p className="font-medium text-foreground">
-                    #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.buyerName || `Buyer #${sub.buyerId}`}
+                    #{sub.displayCode || String(sub.id).padStart(6, '0')}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
                     {sub.quantity}L/day • {sub.session} • Start:{" "}
@@ -263,7 +263,7 @@ export function SubscribersRequestsSection({ farmId }) {
               >
                 <div className="flex-1">
                   <p className="font-medium text-foreground">
-                    #{order.displayCode || String(order.id).padStart(6, '0')} • {order.buyerName || `Buyer #${order.buyerId}`}
+                    #{order.displayCode || String(order.id).padStart(6, '0')}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
                     {order.quantity}L • {order.timeSlot || order.session} • {order.orderDate}

@@ -31,6 +31,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [actionLoading, setActionLoading] = useState({});
 
   const formatTimeSlot = (slot) => {
     if (!slot) return null;
@@ -106,6 +107,30 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
     setEndDate('');
     setStatusFilter(initialStatus);
     fetchOrders();
+  };
+
+  const handleApproveOrder = async (orderId) => {
+    setActionLoading(prev => ({ ...prev, [orderId]: 'approve' }));
+    try {
+      await orderApi.approveOrder(orderId);
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'CONFIRMED' } : o));
+    } catch (err) {
+      setError(err.message || t('common.error'));
+    } finally {
+      setActionLoading(prev => ({ ...prev, [orderId]: null }));
+    }
+  };
+
+  const handleRejectOrder = async (orderId) => {
+    setActionLoading(prev => ({ ...prev, [orderId]: 'reject' }));
+    try {
+      await orderApi.rejectOrder(orderId);
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'CANCELLED' } : o));
+    } catch (err) {
+      setError(err.message || t('common.error'));
+    } finally {
+      setActionLoading(prev => ({ ...prev, [orderId]: null }));
+    }
   };
 
   const getStatusColor = (status) => {
@@ -195,7 +220,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
                 <TableCell><strong>{t('orders.quantityLiters')}</strong></TableCell>
                 <TableCell><strong>{t('buyMilk.timeSlot')}</strong></TableCell>
                 <TableCell><strong>{t('orders.status')}</strong></TableCell>
-                <TableCell><strong>{t('orders.buyerId')}</strong></TableCell>
+                <TableCell><strong>{t('dashboard.quickActions')}</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -218,7 +243,32 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
                       color={getStatusColor(order.status)}
                     />
                   </TableCell>
-                  <TableCell>{order.buyerId}</TableCell>
+                  <TableCell>
+                    {order.status === 'PENDING' ? (
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="success"
+                          disabled={!!actionLoading[order.id]}
+                          onClick={() => handleApproveOrder(order.id)}
+                        >
+                          {actionLoading[order.id] === 'approve' ? '...' : '✓'}
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="error"
+                          disabled={!!actionLoading[order.id]}
+                          onClick={() => handleRejectOrder(order.id)}
+                        >
+                          {actionLoading[order.id] === 'reject' ? '...' : '✗'}
+                        </Button>
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">-</Typography>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

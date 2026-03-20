@@ -310,12 +310,7 @@ function RequestCard({ type, data, isOwner, processingId, onApprove, onReject, t
                 </div>
             </CardHeader>
             <CardContent className="pt-6 pb-6">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-8">
-                    <DetailItem icon={<User size={14} />} label={t('pendingOrders.buyerDetails')}>
-                        <span className="font-bold text-foreground">
-                            {data.buyerName || data.buyerEmail || `ID: ${data.buyerId}`}
-                        </span>
-                    </DetailItem>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
                     <DetailItem icon={<Milk size={14} />} label={t('pendingOrders.quantity')}>
                         <span className="font-bold text-foreground">{data.quantity}L</span>
                         {type === 'subscription' && <span className="text-muted-foreground ml-1">{t('pendingOrders.perDay')}</span>}

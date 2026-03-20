@@ -825,7 +825,7 @@ export function OwnerDashboard() {
                         <div key={order.id} className="border border-border/60 rounded-md px-3 py-2 text-xs space-y-1.5">
                           <div className="flex items-center justify-between">
                             <span className="font-semibold text-foreground">
-                              #{order.displayCode || String(order.id).padStart(6, '0')} • {order.buyerName || t('dashboard.buyer', { id: order.buyerId })}
+                              #{order.displayCode || String(order.id).padStart(6, '0')}
                             </span>
                             <span className={cn(
                               "px-2 py-0.5 rounded-full text-[10px] font-medium",
@@ -890,7 +890,7 @@ export function OwnerDashboard() {
                     {visibleFarmSubscriptions.map((sub) => (
                       <div key={sub.id} className="border border-border/60 rounded-md px-3 py-2 text-xs space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-foreground">#{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.buyerName || `Buyer #${sub.buyerId}`}</span>
+                          <span className="font-semibold text-foreground">#{sub.displayCode || String(sub.id).padStart(6, '0')}</span>
                           <span className={cn(
                             "px-2 py-0.5 rounded-full text-[10px] font-medium",
                             sub.status === "ACTIVE" && "bg-emerald-50 text-emerald-700 border border-emerald-200",
