@@ -45,8 +45,8 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
 
   const formatSession = (session) => {
     if (!session) return '--';
-    if (session === 'MORNING') return t('buyMilk.morning');
-    if (session === 'EVENING') return t('buyMilk.evening');
+    if (session === 'MORNING') return t('common.morning', { defaultValue: 'Morning' });
+    if (session === 'EVENING') return t('common.evening', { defaultValue: 'Evening' });
     return String(session);
   };
 
