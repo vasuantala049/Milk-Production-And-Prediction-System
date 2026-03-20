@@ -368,7 +368,7 @@ export function OwnerDashboard() {
   };
 
   const formatTimeSlot = (slot) => {
-    if (!slot) return '--';
+    if (!slot) return null;
     const [h, m] = String(slot).split(':');
     const hour = Number(h);
     const minute = Number(m);
@@ -376,6 +376,19 @@ export function OwnerDashboard() {
     const d = new Date();
     d.setHours(hour, minute, 0, 0);
     return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const formatSession = (session) => {
+    if (!session) return '--';
+    if (session === "MORNING") return t('buyMilk.morning');
+    if (session === "EVENING") return t('buyMilk.evening');
+    return String(session);
+  };
+
+  const formatOrderSlot = (order) => {
+    const formattedSlot = formatTimeSlot(order?.timeSlot);
+    if (formattedSlot) return formattedSlot;
+    return formatSession(order?.session);
   };
 
   const cattleTypeSummaries = Array.from(
@@ -828,7 +841,7 @@ export function OwnerDashboard() {
                           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
                             <span>{order.quantity?.toFixed(1)}L</span>
                             <span>{order.animalType === "COW" ? "🐮 Cow" : order.animalType === "BUFFALO" ? "🐃 Buffalo" : order.animalType === "SHEEP" ? "🐑 Sheep" : order.animalType === "GOAT" ? "🐐 Goat" : "🐄 Any"}</span>
-                            <span>{formatTimeSlot(order.timeSlot)}</span>
+                            <span>{formatOrderSlot(order)}</span>
                             {order.totalPrice != null && (
                               <span className="text-emerald-600 font-semibold">₹{order.totalPrice.toFixed(2)}</span>
                             )}

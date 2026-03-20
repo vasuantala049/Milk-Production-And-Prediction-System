@@ -33,7 +33,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
   const [statusFilter, setStatusFilter] = useState(initialStatus);
 
   const formatTimeSlot = (slot) => {
-    if (!slot) return '--';
+    if (!slot) return null;
     const [h, m] = String(slot).split(':');
     const hour = Number(h);
     const minute = Number(m);
@@ -41,6 +41,19 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
     const d = new Date();
     d.setHours(hour, minute, 0, 0);
     return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const formatSession = (session) => {
+    if (!session) return '--';
+    if (session === 'MORNING') return t('buyMilk.morning');
+    if (session === 'EVENING') return t('buyMilk.evening');
+    return String(session);
+  };
+
+  const formatOrderSlot = (order) => {
+    const formattedSlot = formatTimeSlot(order?.timeSlot);
+    if (formattedSlot) return formattedSlot;
+    return formatSession(order?.session);
   };
   const {
     visibleItems: visibleOrders,
@@ -193,7 +206,7 @@ const OrdersList = ({ farmId, initialStatus = 'CONFIRMED' }) => {
                   <TableCell>{order.quantity.toFixed(2)}</TableCell>
                   <TableCell>
                     <Chip
-                      label={formatTimeSlot(order.timeSlot)}
+                      label={formatOrderSlot(order)}
                       size="small"
                       color={order.session === 'MORNING' ? 'primary' : 'secondary'}
                     />
