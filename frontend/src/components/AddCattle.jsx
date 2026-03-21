@@ -76,9 +76,13 @@ export default function AddCattle() {
   return (
     <div className="min-h-screen bg-background px-4 py-6">
       <div className="max-w-md mx-auto">
-        <Button variant="text" onClick={() => navigate(`/cattle/${farmId}`)}>
-          {t('common.back')}
-        </Button>
+        <div className="flex items-center gap-3">
+            <Button variant="text" onClick={() => navigate(`/cattle/${farmId}`)}>
+              {t('common.back')}
+            </Button>
+            <h1 className="text-lg font-bold">{t('addCattle.title')}</h1>
+        </div>
+        
 
         <Card className="mt-4">
           <CardContent>

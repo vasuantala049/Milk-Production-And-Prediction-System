@@ -66,13 +66,17 @@ export default function AddMilk() {
   return (
     <div className="min-h-screen bg-background px-4 py-6">
       <div className="max-w-md mx-auto">
-        <Button variant="text" onClick={() => navigate(-1)}>
-          {t('common.back') || '← Back'}
-        </Button>
+         <div className="flex items-center gap-3">
+            <Button variant="text" onClick={() => navigate  (-1)}>
+            {t('common.back') || '← Back'}
+            </Button>
+            <h1 className="text-lg font-bold">{t('addMilk.title') || 'Add Milk Entry'}</h1>
+         </div>
+  
 
         <Card className="mt-4">
           <CardContent>
-            <h2 className="text-xl font-bold mb-4">{t('addMilk.title')}</h2>
+            {/* <h2 className="text-xl font-bold mb-4">{t('addMilk.title')}</h2> */}
 
             {error && (
               <Alert severity="error" className="mb-4">
