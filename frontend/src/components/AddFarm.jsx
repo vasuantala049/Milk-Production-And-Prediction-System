@@ -37,7 +37,11 @@ export default function AddFarm() {
   return (
     <div className="min-h-screen bg-background px-4 py-6">
       <div className="max-w-md mx-auto">
-        <Button onClick={() => navigate("/farms")} variant="text">{t('common.back')}</Button>
+         <div className="flex items-center gap-3">
+            <Button onClick={() => navigate("/farms")} variant="text">{t('common.back')}</Button>
+            <h1 className="text-lg font-bold">{t('addFarm.title')}</h1>
+         </div>
+        
 
         <Card className="mt-4">
           <CardContent>

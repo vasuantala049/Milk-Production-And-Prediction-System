@@ -88,14 +88,21 @@ export default function EditCattle() {
   }
 
   return (
-    <div className="min-h-screen bg-background px-4 py-6">
-      <div className="max-w-md mx-auto">
-        <Button
-          onClick={() => navigate(`/cattle/${farmId}`)}
-          variant="text"
-        >
-          {t('common.back')}
-        </Button>
+ <div className="min-h-screen bg-background px-4 py-6">
+  <div className="max-w-md mx-auto">
+    
+    <div className="flex items-center gap-3">
+      <Button
+        onClick={() => navigate(`/cattle/${farmId}`)}
+        variant="text"
+      >
+        {t('common.back')}
+      </Button>
+
+      <p className="text-lg font-bold">
+        {t('cattle.editCattle')}
+      </p>
+      </div>
 
         <Card className="mt-4">
           <CardContent>
