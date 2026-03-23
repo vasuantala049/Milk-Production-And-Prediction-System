@@ -45,7 +45,7 @@ frontend:
 
 ingress:
   enabled: true
-  host: milk.43.205.90.77.nip.io
+  host: milk.3.110.76.117.nip.io
   tls:
     enabled: true
     secretName: milk-app-tls
