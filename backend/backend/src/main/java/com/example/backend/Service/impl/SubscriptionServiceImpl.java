@@ -211,9 +211,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         }
 
         int counter = normalizeCounter(subscription.getBillingDayCounter());
-        if (counter < MAX_BILLING_DAYS) {
-            throw new IllegalStateException("Payment is available only when 30 billing days are completed");
-        }
 
         if (amount == null) {
             throw new IllegalArgumentException("Payment amount is required");
