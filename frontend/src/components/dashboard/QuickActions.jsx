@@ -36,7 +36,7 @@ export function QuickActions() {
     },
     {
       icon: Layers,
-      label: t('dashboard.manageShades'),
+      label: t('dashboard.manageSheds'),
       href: farmId ? `/farms/${farmId}/sheds` : '/farms',
       variant: 'secondary'
     },

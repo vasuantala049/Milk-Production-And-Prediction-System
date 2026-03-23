@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, ShoppingCart, Milk, Clock, CheckCircle, Pause, ChevronRight } from "lucide-react";
+import { MapPin, Milk, Clock, CheckCircle, Pause, ChevronRight } from "lucide-react";
 import { apiFetch } from "../../api/client";
 import { farmApi } from "../../api/farmApi";
 import { subscriptionApi } from "../../api/subscriptionApi";
@@ -234,10 +234,6 @@ export function CustomerDashboard() {
             </Button>
           </div>
         </div>
-        <Button onClick={() => navigate("/buy-milk")} className="gap-2">
-          <ShoppingCart className="w-5 h-5" />
-          {t('dashboard.buyMilk')}
-        </Button>
       </motion.div>
 
       <InlineMessage

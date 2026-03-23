@@ -251,7 +251,7 @@ export function WorkerDashboard() {
                     <div className="flex flex-wrap gap-1 mt-2">
                       {mySheds.length > 0 ? mySheds.map(s => (
                         <Badge key={s.id} variant="secondary" className="text-[10px] py-0 px-2">📍 {s.name}</Badge>
-                      )) : <span className="text-xs italic text-muted-foreground">{t('workerDashboard.allShades')}</span>}
+                      )) : <span className="text-xs italic text-muted-foreground">{t('workerDashboard.allSheds')}</span>}
                     </div>
                   </CardContent>
                 </Card>
@@ -442,14 +442,14 @@ export function WorkerDashboard() {
 
       {/* Sections and Cattle List removed from here to be part of the active farm view */}
 
-      {/* Cattle List - Filtered by Worker's Assigned Shades */}
+      {/* Cattle List - Filtered by Worker's Assigned Sheds */}
       {(() => {
         const farmProfile = myProfileOptions.find(p => p.farmId == farmId);
         const myShedIds = farmProfile?.profile?.sheds?.map(s => s.id) || [];
 
-        // Filter cattle that match the worker's assigned shades
+        // Filter cattle that match the worker's assigned sheds
         const cattleToShow = cattle.filter(c => {
-          if (!c.shed?.id) return false; // Cattle must be assigned to a shade
+          if (!c.shed?.id) return false; // Cattle must be assigned to a shed
           return myShedIds.includes(c.shed.id);
         });
 
@@ -458,11 +458,11 @@ export function WorkerDashboard() {
             return (
               <div className="bg-card border border-border rounded-xl p-8 text-center shadow-card">
                 <p className="text-muted-foreground italic">
-                  No cattle found in your assigned shades for this farm.
+                  No cattle found in your assigned sheds for this farm.
                 </p>
                 {myShedIds.length === 0 && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    (You haven't been assigned to any specific shades by the owner yet)
+                    (You haven't been assigned to any specific sheds by the owner yet)
                   </p>
                 )}
               </div>
@@ -481,7 +481,7 @@ export function WorkerDashboard() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground">{t('workerDashboard.cattleForMilking')}</h3>
               <Badge variant="secondary" className="font-normal">
-                {t('workerDashboard.cattleInYourShades', { count: cattleToShow.length })}
+                {t('workerDashboard.cattleInYourSheds', { count: cattleToShow.length })}
               </Badge>
             </div>
             <div className="divide-y divide-border">
@@ -519,7 +519,7 @@ export function WorkerDashboard() {
                           {c.name && <span className="text-muted-foreground ml-1">({c.name})</span>}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {c.breed || "—"} • {c.shed?.name || "No Shade"}
+                          {c.breed || "—"} • {c.shed?.name || "No Shed"}
                         </p>
                       </div>
                     </div>

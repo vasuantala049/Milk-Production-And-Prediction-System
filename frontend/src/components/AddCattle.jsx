@@ -37,14 +37,14 @@ export default function AddCattle() {
   const [breed, setBreed] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [shedId, setShedId] = useState("");
-  const [shades, setShades] = useState([]);
+  const [sheds, setSheds] = useState([]);
   const [showScanner, setShowScanner] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     apiFetch(`/farms/${farmId}/sheds`)
-      .then((data) => setShades(data || []))
-      .catch((err) => console.error("Failed to load shades:", err));
+      .then((data) => setSheds(data || []))
+      .catch((err) => console.error("Failed to load sheds:", err));
   }, [farmId]);
 
   const handleSubmit = async (e) => {
@@ -162,14 +162,14 @@ export default function AddCattle() {
                 <TextField
                   select
                   fullWidth
-                  label={t('cattle.shadeOptional')}
+                  label={t('cattle.shedOptional')}
                   value={shedId}
                   onChange={(e) => setShedId(e.target.value)}
                 >
                   <MenuItem value=""><em>{t('cattle.none')}</em></MenuItem>
-                  {shades.map((shade) => (
-                    <MenuItem key={shade.id} value={shade.id}>
-                      {shade.name}
+                  {sheds.map((shed) => (
+                    <MenuItem key={shed.id} value={shed.id}>
+                      {shed.name}
                     </MenuItem>
                   ))}
                 </TextField>

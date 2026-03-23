@@ -29,7 +29,7 @@ export default function EditCattle() {
   const [breed, setBreed] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [shedId, setShedId] = useState("");
-  const [shades, setShades] = useState([]);
+  const [sheds, setSheds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -44,7 +44,7 @@ export default function EditCattle() {
 
     async function load() {
       try {
-        const [dto, shadesData] = await Promise.all([
+        const [dto, shedsData] = await Promise.all([
           apiFetch(`/cattle/${cattleId}`),
           apiFetch(`/farms/${farmId}/sheds`).catch(() => [])
         ]);
@@ -54,7 +54,7 @@ export default function EditCattle() {
         setBreed(dto.breed || "");
         setStatus(dto.status || "ACTIVE");
         setShedId(dto.shed?.id || "");
-        setShades(shadesData || []);
+        setSheds(shedsData || []);
       } catch (err) {
         setError(err.message || t('cattle.cattleUpdatedSuccess'));
       } finally {
@@ -163,14 +163,14 @@ export default function EditCattle() {
                 <TextField
                   select
                   fullWidth
-                  label={t('cattle.shadeOptional')}
+                  label={t('cattle.shedOptional')}
                   value={shedId}
                   onChange={(e) => setShedId(e.target.value)}
                 >
                   <MenuItem value=""><em>{t('cattle.none')}</em></MenuItem>
-                  {shades.map((shade) => (
-                    <MenuItem key={shade.id} value={shade.id}>
-                      {shade.name}
+                  {sheds.map((shed) => (
+                    <MenuItem key={shed.id} value={shed.id}>
+                      {shed.name}
                     </MenuItem>
                   ))}
                 </TextField>

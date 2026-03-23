@@ -20,7 +20,7 @@ export default function WorkersList() {
   const [assignSuccess, setAssignSuccess] = useState("");
   const [pendingInvitations, setPendingInvitations] = useState([]);
 
-  const [shades, setShades] = useState([]);
+  const [sheds, setSheds] = useState([]);
   const [editingWorkerId, setEditingWorkerId] = useState(null);
   const [editShedIds, setEditShedIds] = useState([]);
   const [deletingWorkerId, setDeletingWorkerId] = useState(null);
@@ -55,16 +55,16 @@ export default function WorkersList() {
 
   useEffect(() => {
     refreshWorkers();
-    loadShades();
+    loadSheds();
     refreshInvitations();
   }, [farmId]);
 
-  const loadShades = async () => {
+  const loadSheds = async () => {
     try {
       const data = await apiFetch(`/farms/${farmId}/sheds`);
-      setShades(data || []);
+      setSheds(data || []);
     } catch (err) {
-      console.error("Failed to load shades:", err);
+      console.error("Failed to load sheds:", err);
     }
   };
 
@@ -178,7 +178,7 @@ export default function WorkersList() {
         <div className="space-y-3 mb-32">
           {visibleWorkers.map((w) => {
             const isEditing = editingWorkerId === w.id;
-            const currentShadesText = w.sheds && w.sheds.length > 0
+            const currentShedsText = w.sheds && w.sheds.length > 0
               ? w.sheds.map(s => s.name).join(", ")
               : t('workers.allShedsUnassigned');
 
@@ -191,7 +191,7 @@ export default function WorkersList() {
                       <p className="text-sm text-gray-500">{w.email}</p>
                     </div>
                     <div className="text-right min-w-[250px]">
-                      <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{t('workers.assignedShades')}</p>
+                      <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{t('workers.assignedSheds')}</p>
 
                       {isEditing ? (
                         <div className="flex flex-col gap-2">
@@ -204,16 +204,16 @@ export default function WorkersList() {
                             input={<OutlinedInput size="small" />}
                             renderValue={(selected) => {
                               if (selected.length === 0) return <em>{t('cattle.none')}</em>;
-                              return shades
+                              return sheds
                                 .filter((s) => selected.includes(s.id))
                                 .map((s) => s.name)
                                 .join(", ");
                             }}
                           >
-                            {shades.map((shade) => (
-                              <MenuItem key={shade.id} value={shade.id}>
-                                <Checkbox checked={editShedIds.indexOf(shade.id) > -1} />
-                                <ListItemText primary={shade.name} />
+                            {sheds.map((shed) => (
+                              <MenuItem key={shed.id} value={shed.id}>
+                                <Checkbox checked={editShedIds.indexOf(shed.id) > -1} />
+                                <ListItemText primary={shed.name} />
                               </MenuItem>
                             ))}
                           </Select>
@@ -248,7 +248,7 @@ export default function WorkersList() {
                         </div>
                       ) : (
                         <>
-                          <p className="font-medium text-gray-700 mb-2">{currentShadesText}</p>
+                          <p className="font-medium text-gray-700 mb-2">{currentShedsText}</p>
                           <Button
                             size="small"
                             variant="text"
@@ -257,7 +257,7 @@ export default function WorkersList() {
                               setEditingWorkerId(w.id);
                             }}
                           >
-                            {t('workers.editShades')}
+                            {t('workers.editSheds')}
                           </Button>
                         </>
                       )}

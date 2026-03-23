@@ -275,7 +275,7 @@ export default function YourFarms() {
                       navigate(`/farms/${farm.id}/sheds`);
                     }}
                     className="h-8 w-8 p-0"
-                    title={t('dashboard.manageShades')}
+                    title={t('dashboard.manageSheds')}
                   >
                     <LayersIcon fontSize="small" />
                   </Button>

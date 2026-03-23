@@ -24,7 +24,7 @@ export default function AddWorker() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [shedIds, setShedIds] = useState([]);
-  const [shades, setShades] = useState([]);
+  const [sheds, setSheds] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -37,8 +37,8 @@ export default function AddWorker() {
 
   useEffect(() => {
     apiFetch(`/farms/${farmId}/sheds`)
-      .then((data) => setShades(data || []))
-      .catch((err) => console.error("Failed to load shades:", err));
+      .then((data) => setSheds(data || []))
+      .catch((err) => console.error("Failed to load sheds:", err));
   }, [farmId]);
 
   const handleSubmit = async (e) => {
@@ -87,18 +87,18 @@ export default function AddWorker() {
                 input={<OutlinedInput />}
                 renderValue={(selected) => {
                   if (selected.length === 0) {
-                    return <em>{t('workers.selectShades')}</em>;
+                    return <em>{t('workers.selectSheds')}</em>;
                   }
-                  return shades
+                  return sheds
                     .filter((s) => selected.includes(s.id))
                     .map((s) => s.name)
                     .join(", ");
                 }}
               >
-                {shades.map((shade) => (
-                  <MenuItem key={shade.id} value={shade.id}>
-                    <Checkbox checked={shedIds.indexOf(shade.id) > -1} />
-                    <ListItemText primary={shade.name} />
+                {sheds.map((shed) => (
+                  <MenuItem key={shed.id} value={shed.id}>
+                    <Checkbox checked={shedIds.indexOf(shed.id) > -1} />
+                    <ListItemText primary={shed.name} />
                   </MenuItem>
                 ))}
               </Select>
