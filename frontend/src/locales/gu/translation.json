@@ -36,7 +36,10 @@
     "active": "સક્રિય",
     "paused": "થોભાયેલ",
     "completed": "પૂર્ણ થયેલ",
-    "timeout_rejected": "સમયમર્યાદાને કારણે નામંજૂર"
+    "timeout_rejected": "સમયમર્યાદાને કારણે નામંજૂર",
+    "morning": "સવાર",
+    "evening": "સાંજ",
+    "unknownError": "અજ્ઞાત ભૂલ"
   },
   "auth": {
     "login": "લૉગ ઇન",
@@ -358,6 +361,9 @@
     "paidBadge": "ચૂકવેલ",
     "paidOn": "ચૂકવણી તારીખ: {{date}}",
     "processingPayment": "ચુકવણી પ્રક્રિયામાં...",
+    "razorpayLoadFailed": "Razorpay ચેકઆઉટ લોડ કરવામાં સમસ્યા આવી. કૃપા કરીને ફરી પ્રયાસ કરો.",
+    "paymentCancelled": "ચુકવણી રદ કરાઈ",
+    "paymentFailed": "ચુકવણી નિષ્ફળ ગઈ",
     "orderNumber": "ઓર્ડર #{{id}}",
     "selectDates": "કૃપા કરીને શરૂઆતની અને અંતિમ તારીખ બંને પસંદ કરો",
     "failedToFilter": "ઓર્ડર ફિલ્ટર કરવામાં નિષ્ફળ",
@@ -400,6 +406,12 @@
     "approveSubscription": "સબ્સ્ક્રિપ્શન મંજૂર કરો",
     "rejectRequest": "વિનંતી નામંજૂર કરો",
     "processing": "પ્રક્રિયા થઈ રહી છે...",
+    "failedApprove": "મંજૂરી કરવામાં નિષ્ફળ",
+    "failedReject": "નામંજૂર કરવામાં નિષ્ફળ",
+    "subscriptionRequests": "સબ્સ્ક્રિપ્શન વિનંતીઓ",
+    "oneTimeBuyRequests": "એક-વખત ખરીદી વિનંતીઓ",
+    "pendingCount": "{{count}} બાકી",
+    "noPendingRequestsForFarm": "આ ફાર્મ માટે કોઈ બાકી વિનંતી નથી.",
     "rejectOrderConfirm": "શું તમે ખરેખર આ ઓર્ડર નામંજૂર કરવા માંગો છો?",
     "rejectSubConfirm": "શું તમે ખરેખર આ સબ્સ્ક્રિપ્શન નામંજૂર કરવા માંગો છો?",
     "buyerAddress": "ખરીદદારનું સરનામું",
@@ -446,7 +458,9 @@
     "payNow": "{{amount}} ચુકવો",
     "payCycleConfirm": "આ 30-દિવસના સાયકલની રકમ {{amount}} ચુકવવી છે?",
     "payCycleFailed": "સબ્સ્ક્રિપ્શન સાયકલની ચૂકવણી નિષ્ફળ",
-    "processingPayment": "પ્રક્રિયા થઈ રહી છે..."
+    "processingPayment": "પ્રક્રિયા થઈ રહી છે...",
+    "payBeforeCancel": "આ સબ્સ્ક્રિપ્શન રદ કરતાં પહેલાં વપરાયેલ દૂધની રકમ ચૂકવો.",
+    "payBeforeCancelShort": "પહેલા ચુકવણી કરો"
   },
   "profile": {
     "profile": "પ્રોફાઇલ",

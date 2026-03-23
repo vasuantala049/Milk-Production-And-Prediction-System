@@ -102,13 +102,50 @@ export default function MyOrders() {
         return parsed.toLocaleString();
     };
 
+    const formatTimeSlot = (slot) => {
+        if (!slot || typeof slot !== "string") return null;
+        const value = slot.trim();
+        if (!value) return null;
+
+        if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(value)) {
+            const [h, m] = value.split(":");
+            const hour = Number(h);
+            const minute = Number(m);
+            if (!Number.isNaN(hour) && !Number.isNaN(minute)) {
+                const d = new Date();
+                d.setHours(hour, minute, 0, 0);
+                return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+            }
+        }
+
+        return value.replace(/_/g, " ");
+    };
+
+    const formatSession = (session) => {
+        if (!session) return "--";
+        if (session === "MORNING") return t('common.morning', { defaultValue: 'Morning' });
+        if (session === "EVENING") return t('common.evening', { defaultValue: 'Evening' });
+        return String(session);
+    };
+
+    const formatOrderTiming = (order) => {
+        const formattedSlot = formatTimeSlot(order?.timeSlot);
+        if (formattedSlot) return formattedSlot;
+        return formatSession(order?.session);
+    };
+
+    const formatStatus = (status) => {
+        if (!status) return "--";
+        return t(`common.${String(status).toLowerCase()}`, status);
+    };
+
     const handlePayOrder = async (order) => {
         setProcessingPaymentId(order.id);
         setError("");
         try {
             const checkoutLoaded = await loadRazorpayCheckout();
             if (!checkoutLoaded) {
-                throw new Error("Unable to load Razorpay checkout. Please try again.");
+                throw new Error(t('orders.razorpayLoadFailed'));
             }
 
             const paymentOrder = await orderApi.createRazorpayPaymentOrder(order.id);
@@ -140,7 +177,7 @@ export default function MyOrders() {
                         }
                     },
                     modal: {
-                        ondismiss: () => reject(new Error("Payment cancelled")),
+                        ondismiss: () => reject(new Error(t('orders.paymentCancelled'))),
                     },
                     theme: {
                         color: "#16a34a",
@@ -148,7 +185,7 @@ export default function MyOrders() {
                 });
 
                 razorpay.on("payment.failed", (response) => {
-                    reject(new Error(response?.error?.description || "Payment failed"));
+                    reject(new Error(response?.error?.description || t('orders.paymentFailed')));
                 });
 
                 razorpay.open();
@@ -211,7 +248,7 @@ export default function MyOrders() {
                                             variant="outline"
                                             className={cn(getStatusColor(order.status))}
                                         >
-                                            {order.status}
+                                            {formatStatus(order.status)}
                                         </Badge>
                                     </div>
                                 </CardHeader>
@@ -226,8 +263,8 @@ export default function MyOrders() {
                                             <p className="font-medium">{order.quantity}L</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-muted-foreground">{t('orders.sessionLabel')}</p>
-                                            <p className="font-medium">{order.session}</p>
+                                            <p className="text-sm text-muted-foreground">{t('buyMilk.timeSlot')}</p>
+                                            <p className="font-medium">{formatOrderTiming(order)}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-muted-foreground">{t('orders.orderDate')}</p>

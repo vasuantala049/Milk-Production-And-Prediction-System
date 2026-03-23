@@ -36,7 +36,10 @@
     "active": "Active",
     "paused": "Paused",
     "completed": "Completed",
-    "timeout_rejected": "Timeout Rejected"
+    "timeout_rejected": "Timeout Rejected",
+    "morning": "Morning",
+    "evening": "Evening",
+    "unknownError": "Unknown error"
   },
   "auth": {
     "login": "Login",
@@ -358,6 +361,9 @@
     "paidBadge": "Paid",
     "paidOn": "Paid on {{date}}",
     "processingPayment": "Processing payment...",
+    "razorpayLoadFailed": "Unable to load Razorpay checkout. Please try again.",
+    "paymentCancelled": "Payment cancelled",
+    "paymentFailed": "Payment failed",
     "orderNumber": "Order #{{id}}",
     "selectDates": "Please select both start and end dates",
     "failedToFilter": "Failed to filter orders",
@@ -400,6 +406,12 @@
     "approveSubscription": "Approve Subscription",
     "rejectRequest": "Reject Request",
     "processing": "Processing...",
+    "failedApprove": "Failed to approve",
+    "failedReject": "Failed to reject",
+    "subscriptionRequests": "Subscription Requests",
+    "oneTimeBuyRequests": "One-Time Buy Requests",
+    "pendingCount": "{{count}} pending",
+    "noPendingRequestsForFarm": "No pending requests for this farm.",
     "rejectOrderConfirm": "Are you sure you want to reject this order?",
     "rejectSubConfirm": "Are you sure you want to reject this subscription?",
     "buyerAddress": "Buyer Address",
@@ -446,7 +458,9 @@
     "payNow": "Pay {{amount}}",
     "payCycleConfirm": "Pay this 30-day cycle amount: {{amount}}?",
     "payCycleFailed": "Failed to pay subscription cycle",
-    "processingPayment": "Processing..."
+    "processingPayment": "Processing...",
+    "payBeforeCancel": "Please pay the used milk amount before cancelling this subscription.",
+    "payBeforeCancelShort": "Pay before cancel"
   },
   "profile": {
     "profile": "Profile",

@@ -79,7 +79,7 @@ export function CustomerDashboard() {
 
   const resolveFarmName = (farmId, explicitFarmName) => {
     if (explicitFarmName && explicitFarmName.trim() !== "") return explicitFarmName;
-    return farmNameById.get(String(farmId)) || `Farm #${farmId}`;
+    return farmNameById.get(String(farmId)) || `${t('farms.farmName')} #${farmId}`;
   };
   const recentOrders = orders.slice(0, 5);
 
@@ -113,8 +113,48 @@ export function CustomerDashboard() {
   };
 
   const formatTimeSlot = (slot) => {
-    if (!slot || typeof slot !== "string") return "--";
-    return slot.replace(/_/g, " ");
+    if (!slot || typeof slot !== "string") return null;
+    const value = slot.trim();
+    if (!value) return null;
+
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(value)) {
+      const [h, m] = value.split(":");
+      const hour = Number(h);
+      const minute = Number(m);
+      if (!Number.isNaN(hour) && !Number.isNaN(minute)) {
+        const d = new Date();
+        d.setHours(hour, minute, 0, 0);
+        return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      }
+    }
+
+    return value.replace(/_/g, " ");
+  };
+
+  const formatSession = (session) => {
+    if (!session) return "--";
+    if (session === "MORNING") return t('common.morning', { defaultValue: 'Morning' });
+    if (session === "EVENING") return t('common.evening', { defaultValue: 'Evening' });
+    return String(session);
+  };
+
+  const formatOrderTiming = (timeSlot, session) => {
+    const formattedTimeSlot = formatTimeSlot(timeSlot);
+    if (formattedTimeSlot) return formattedTimeSlot;
+    return formatSession(session);
+  };
+
+  const formatStatus = (status) => {
+    if (!status) return "--";
+    return t(`common.${String(status).toLowerCase()}`, status);
+  };
+
+  const formatAnimalType = (animalType) => {
+    if (animalType === "COW") return t('buyMilk.cowMilk');
+    if (animalType === "BUFFALO") return t('buyMilk.buffaloMilk');
+    if (animalType === "SHEEP") return t('buyMilk.sheepMilk');
+    if (animalType === "GOAT") return t('buyMilk.goatMilk');
+    return t('buyMilk.any');
   };
 
   const openConfirmation = (messageText, onConfirm, confirmLabel = t('common.confirm')) => {
@@ -221,6 +261,7 @@ export function CustomerDashboard() {
           <div className="space-y-3">
             {visibleActiveSubscriptions.map((sub) => {
               const farmName = resolveFarmName(sub.farmId, sub.farmName);
+              const hasOutstandingAmount = Number(sub.billingAmountDue || 0) > 0 || !!sub.paymentRequired;
               return (
                 <div
                   key={sub.id}
@@ -239,12 +280,12 @@ export function CustomerDashboard() {
                     <div>
                       <p className="font-medium text-foreground">{farmName}</p>
                       <p className="text-sm text-muted-foreground">
-                        #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.quantity || "—"}L/day • {formatTimeSlot(sub.timeSlot || sub.session)}
+                        #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.quantity || "—"}L{t('pendingOrders.perDay')} • {formatOrderTiming(sub.timeSlot, sub.session)}
                       </p>
                       <p className="text-xs mt-1 text-muted-foreground">
                         {t('subscriptions.billingDays')}: <span className="font-semibold text-foreground">{sub.billingDayCounter || 0}/{sub.maxBillingDays || 30}</span>
                       </p>
-                      {sub.paymentRequired && (
+                      {hasOutstandingAmount && (
                         <p className="text-xs mt-1 text-emerald-700 font-medium">
                           {t('subscriptions.paymentDue')}: {formatRupees(sub.billingAmountDue)}
                         </p>
@@ -275,7 +316,7 @@ export function CustomerDashboard() {
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={sub.skipDate === today || sub.paymentRequired}
+                          disabled={sub.skipDate === today || hasOutstandingAmount}
                           onClick={() => {
                             openConfirmation(t('subscriptions.skipTodayConfirm'), async () => {
                               try {
@@ -289,7 +330,7 @@ export function CustomerDashboard() {
                         >
                           {sub.skipDate === today ? t('subscriptions.skippedToday') : t('subscriptions.skipToday')}
                         </Button>
-                        {sub.paymentRequired && (
+                        {hasOutstandingAmount && (
                           <Button
                             variant="default"
                             size="sm"
@@ -320,18 +361,16 @@ export function CustomerDashboard() {
                         <Button
                           variant="destructive"
                           size="sm"
+                          disabled={hasOutstandingAmount || processingSubscriptionPaymentId === sub.id}
                           onClick={() => {
-                            const hasOutstandingAmount = Number(sub.billingAmountDue || 0) > 0;
-                            const confirmMessage = hasOutstandingAmount
-                              ? t('subscriptions.cancelWithPaymentConfirm', { amount: formatRupees(sub.billingAmountDue) })
-                              : t('subscriptions.cancelConfirm');
+                            if (hasOutstandingAmount) {
+                              setMessage({ type: "error", text: t('subscriptions.payBeforeCancel') });
+                              return;
+                            }
 
-                            openConfirmation(confirmMessage, async () => {
+                            openConfirmation(t('subscriptions.cancelConfirm'), async () => {
                               try {
-                                const updated = await subscriptionApi.cancelSubscription(
-                                  sub.id,
-                                  hasOutstandingAmount ? sub.billingAmountDue : null
-                                );
+                                const updated = await subscriptionApi.cancelSubscription(sub.id);
                                 setSubscriptions(prev => sortSubscriptionsByDateAndPending(prev.map(s => s.id === sub.id ? updated : s)));
                               } catch (e) {
                                 setMessage({ type: "error", text: `${t('subscriptions.cancelFailed')}: ${e.message}` });
@@ -339,7 +378,7 @@ export function CustomerDashboard() {
                             }, t('common.cancel'));
                           }}
                         >
-                          {t('common.cancel')}
+                          {hasOutstandingAmount ? t('subscriptions.payBeforeCancelShort') : t('common.cancel')}
                         </Button>
                       </>
                     )}
@@ -384,7 +423,7 @@ export function CustomerDashboard() {
                     <div>
                       <p className="font-medium text-foreground">{farmName}</p>
                       <p className="text-sm text-muted-foreground">
-                        #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.quantity || "—"}L/day • {formatTimeSlot(sub.timeSlot || sub.session)}
+                        #{sub.displayCode || String(sub.id).padStart(6, '0')} • {sub.quantity || "—"}L{t('pendingOrders.perDay')} • {formatOrderTiming(sub.timeSlot, sub.session)}
                       </p>
                       <p className="text-xs mt-1 text-amber-700 font-medium">{t('orders.awaitingApproval')}</p>
                     </div>
@@ -520,7 +559,7 @@ export function CustomerDashboard() {
             {visibleOrders.map((order) => {
               const farmName = resolveFarmName(order.farmId, order.farmName);
               const animalEmoji = order.animalType === "COW" ? "🐮" : order.animalType === "BUFFALO" ? "🐃" : order.animalType === "SHEEP" ? "🐑" : order.animalType === "GOAT" ? "🐐" : "🐄";
-              const animalLabel = order.animalType === "COW" ? "Cow" : order.animalType === "BUFFALO" ? "Buffalo" : order.animalType === "SHEEP" ? "Sheep" : order.animalType === "GOAT" ? "Goat" : "Any";
+              const animalLabel = formatAnimalType(order.animalType);
               return (
                 <div key={order.id} className="border border-border/60 rounded-md px-3 py-2.5 text-xs space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -533,14 +572,14 @@ export function CustomerDashboard() {
                       order.status === "TIMEOUT_REJECTED" && "bg-red-50 text-red-700 border border-red-200",
                       order.status === "COMPLETED" && "bg-blue-50 text-blue-700 border border-blue-200",
                     )}>
-                      {order.status}
+                      {formatStatus(order.status)}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
                     <span>#{order.displayCode || String(order.id).padStart(6, '0')}</span>
                     <span>{order.quantity?.toFixed(1)}L</span>
-                    <span>{animalEmoji} {animalLabel} Milk</span>
-                    <span>{formatTimeSlot(order.timeSlot || order.session)}</span>
+                    <span>{animalEmoji} {animalLabel}</span>
+                    <span>{formatOrderTiming(order.timeSlot, order.session)}</span>
                     {order.orderDate && <span>{new Date(order.orderDate).toLocaleDateString()}</span>}
                     {order.totalPrice != null && (
                       <span className="text-emerald-600 font-bold">₹{order.totalPrice.toFixed(2)}</span>

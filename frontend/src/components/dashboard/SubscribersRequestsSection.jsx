@@ -10,14 +10,46 @@ import { CheckCircle, XCircle } from "lucide-react";
 import { useLazyList } from "../../hooks/useLazyList";
 import { sortOrdersByDateAndPending, sortSubscriptionsByDateAndPending } from "../../lib/requestSort";
 import { InlineMessage } from "../ui/InlineMessage";
+import { useTranslation } from "react-i18next";
 
 export function SubscribersRequestsSection({ farmId }) {
+  const { t } = useTranslation();
   const [pendingSubscriptions, setPendingSubscriptions] = useState([]);
   const [pendingOrders, setPendingOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
   const [message, setMessage] = useState({ type: "", text: "" });
+
+  const formatTimeSlot = (slot) => {
+    if (!slot || typeof slot !== "string") return null;
+    const value = slot.trim();
+    if (!value) return null;
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(value)) {
+      const [h, m] = value.split(":");
+      const hour = Number(h);
+      const minute = Number(m);
+      if (!Number.isNaN(hour) && !Number.isNaN(minute)) {
+        const d = new Date();
+        d.setHours(hour, minute, 0, 0);
+        return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      }
+    }
+    return value.replace(/_/g, " ");
+  };
+
+  const formatSession = (session) => {
+    if (!session) return "--";
+    if (session === "MORNING") return t('common.morning', { defaultValue: 'Morning' });
+    if (session === "EVENING") return t('common.evening', { defaultValue: 'Evening' });
+    return String(session);
+  };
+
+  const formatOrderTiming = (timeSlot, session) => {
+    const formattedSlot = formatTimeSlot(timeSlot);
+    if (formattedSlot) return formattedSlot;
+    return formatSession(session);
+  };
 
   // Load pending subscriptions
   useEffect(() => {
@@ -66,7 +98,7 @@ export function SubscribersRequestsSection({ farmId }) {
         prev.filter((s) => s.id !== subscriptionId)
       );
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to approve: " + (err.message || "Unknown error") });
+      setMessage({ type: "error", text: `${t('pendingOrders.failedApprove')}: ${err.message || t('common.unknownError')}` });
     } finally {
       setApprovingId(null);
     }
@@ -81,7 +113,7 @@ export function SubscribersRequestsSection({ farmId }) {
         prev.filter((s) => s.id !== subscriptionId)
       );
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to reject: " + (err.message || "Unknown error") });
+      setMessage({ type: "error", text: `${t('pendingOrders.failedReject')}: ${err.message || t('common.unknownError')}` });
     } finally {
       setRejectingId(null);
     }
@@ -96,7 +128,7 @@ export function SubscribersRequestsSection({ farmId }) {
       });
       setPendingOrders((prev) => prev.filter((o) => o.id !== orderId));
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to approve: " + (err.message || "Unknown error") });
+      setMessage({ type: "error", text: `${t('pendingOrders.failedApprove')}: ${err.message || t('common.unknownError')}` });
     } finally {
       setApprovingId(null);
     }
@@ -111,7 +143,7 @@ export function SubscribersRequestsSection({ farmId }) {
       });
       setPendingOrders((prev) => prev.filter((o) => o.id !== orderId));
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to reject: " + (err.message || "Unknown error") });
+      setMessage({ type: "error", text: `${t('pendingOrders.failedReject')}: ${err.message || t('common.unknownError')}` });
     } finally {
       setRejectingId(null);
     }
@@ -120,7 +152,7 @@ export function SubscribersRequestsSection({ farmId }) {
   if (loading) {
     return (
       <div className="bg-card border border-border rounded-xl p-4 shadow-card">
-        <p className="text-xs text-muted-foreground">Loading requests...</p>
+        <p className="text-xs text-muted-foreground">{t('pendingOrders.loadingRequests')}</p>
       </div>
     );
   }
@@ -142,10 +174,10 @@ export function SubscribersRequestsSection({ farmId }) {
     return (
       <div className="bg-card border border-border rounded-xl p-4 shadow-card">
         <h3 className="font-semibold text-foreground text-sm mb-2">
-          Pending Requests
+          {t('pendingOrders.pendingRequests')}
         </h3>
         <p className="text-xs text-muted-foreground">
-          No pending requests for this farm.
+          {t('pendingOrders.noPendingRequestsForFarm')}
         </p>
       </div>
     );
@@ -168,10 +200,10 @@ export function SubscribersRequestsSection({ farmId }) {
         <div className="bg-card border border-border rounded-xl p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-foreground text-sm">
-              Subscription Requests
+              {t('pendingOrders.subscriptionRequests')}
             </h3>
             <span className="text-xs text-muted-foreground">
-              {pendingSubscriptions.length} pending
+              {t('pendingOrders.pendingCount', { count: pendingSubscriptions.length })}
             </span>
           </div>
 
@@ -186,7 +218,7 @@ export function SubscribersRequestsSection({ farmId }) {
                     #{sub.displayCode || String(sub.id).padStart(6, '0')}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    {sub.quantity}L/day • {sub.session} • Start:{" "}
+                    {sub.quantity}L{t('pendingOrders.perDay')} • {formatOrderTiming(sub.timeSlot, sub.session)} • {t('pendingOrders.startDate')}:{" "}
                     {sub.startDate}
                   </p>
                   {(sub.buyerAddress || sub.buyerCity) && (
@@ -208,7 +240,7 @@ export function SubscribersRequestsSection({ farmId }) {
                     ) : (
                       <>
                         <CheckCircle className="w-3 h-3" />
-                        Approve
+                        {t('pendingOrders.approve')}
                       </>
                     )}
                   </Button>
@@ -224,7 +256,7 @@ export function SubscribersRequestsSection({ farmId }) {
                     ) : (
                       <>
                         <XCircle className="w-3 h-3" />
-                        Reject
+                        {t('pendingOrders.rejectRequest')}
                       </>
                     )}
                   </Button>
@@ -235,7 +267,7 @@ export function SubscribersRequestsSection({ farmId }) {
             {hasMoreSubscriptions && (
               <div className="flex justify-center pt-2">
                 <Button size="sm" variant="outline" onClick={loadMoreSubscriptions}>
-                  Load more
+                  {t('common.loadMore')}
                 </Button>
               </div>
             )}
@@ -248,10 +280,10 @@ export function SubscribersRequestsSection({ farmId }) {
         <div className="bg-card border border-border rounded-xl p-4 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-foreground text-sm">
-              One-Time Buy Requests
+              {t('pendingOrders.oneTimeBuyRequests')}
             </h3>
             <span className="text-xs text-muted-foreground">
-              {pendingOrders.length} pending
+              {t('pendingOrders.pendingCount', { count: pendingOrders.length })}
             </span>
           </div>
 
@@ -266,7 +298,7 @@ export function SubscribersRequestsSection({ farmId }) {
                     #{order.displayCode || String(order.id).padStart(6, '0')}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    {order.quantity}L • {order.timeSlot || order.session} • {order.orderDate}
+                    {order.quantity}L • {formatOrderTiming(order.timeSlot, order.session)} • {order.orderDate}
                   </p>
                 </div>
                 <div className="flex gap-1.5">
@@ -282,7 +314,7 @@ export function SubscribersRequestsSection({ farmId }) {
                     ) : (
                       <>
                         <CheckCircle className="w-3 h-3" />
-                        Approve
+                        {t('pendingOrders.approve')}
                       </>
                     )}
                   </Button>
@@ -298,7 +330,7 @@ export function SubscribersRequestsSection({ farmId }) {
                     ) : (
                       <>
                         <XCircle className="w-3 h-3" />
-                        Reject
+                        {t('pendingOrders.rejectRequest')}
                       </>
                     )}
                   </Button>
@@ -309,7 +341,7 @@ export function SubscribersRequestsSection({ farmId }) {
             {hasMoreOrders && (
               <div className="flex justify-center pt-2">
                 <Button size="sm" variant="outline" onClick={loadMoreOrders}>
-                  Load more
+                  {t('common.loadMore')}
                 </Button>
               </div>
             )}
