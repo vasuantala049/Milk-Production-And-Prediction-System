@@ -24,6 +24,7 @@ import { InlineMessage } from "../ui/InlineMessage";
 export function OwnerDashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const DEFAULT_FARM_PRICE = "60";
   const TYPE_COLORS = {
     COW: "#2f9e44",
     BUFFALO: "#1c7ed6",
@@ -304,10 +305,39 @@ export function OwnerDashboard() {
 
   useEffect(() => {
     if (activeFarm) {
-      setCowPrice(activeFarm.cowPrice || "");
-      setBuffaloPrice(activeFarm.buffaloPrice || "");
+      setCowPrice(activeFarm.cowPrice > 0 ? String(activeFarm.cowPrice) : DEFAULT_FARM_PRICE);
+      setBuffaloPrice(activeFarm.buffaloPrice > 0 ? String(activeFarm.buffaloPrice) : DEFAULT_FARM_PRICE);
+      setSheepPrice(activeFarm.sheepPrice > 0 ? String(activeFarm.sheepPrice) : DEFAULT_FARM_PRICE);
+      setGoatPrice(activeFarm.goatPrice > 0 ? String(activeFarm.goatPrice) : DEFAULT_FARM_PRICE);
     }
-  }, [activeFarm]);
+  }, [activeFarm, DEFAULT_FARM_PRICE]);
+
+  const normalizePriceInput = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : Number(DEFAULT_FARM_PRICE);
+  };
+
+  const openPricesDialogWithDefaults = () => {
+    const farmCow = Number(activeFarm?.cowPrice) || 0;
+    const farmBuffalo = Number(activeFarm?.buffaloPrice) || 0;
+    const farmSheep = Number(activeFarm?.sheepPrice) || 0;
+    const farmGoat = Number(activeFarm?.goatPrice) || 0;
+    const hasAnyValidPrice = farmCow > 0 || farmBuffalo > 0 || farmSheep > 0 || farmGoat > 0;
+
+    if (!hasAnyValidPrice) {
+      setCowPrice(DEFAULT_FARM_PRICE);
+      setBuffaloPrice(DEFAULT_FARM_PRICE);
+      setSheepPrice(DEFAULT_FARM_PRICE);
+      setGoatPrice(DEFAULT_FARM_PRICE);
+    } else {
+      setCowPrice(farmCow > 0 ? String(farmCow) : DEFAULT_FARM_PRICE);
+      setBuffaloPrice(farmBuffalo > 0 ? String(farmBuffalo) : DEFAULT_FARM_PRICE);
+      setSheepPrice(farmSheep > 0 ? String(farmSheep) : DEFAULT_FARM_PRICE);
+      setGoatPrice(farmGoat > 0 ? String(farmGoat) : DEFAULT_FARM_PRICE);
+    }
+
+    setPricesDialogOpen(true);
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -328,22 +358,28 @@ export function OwnerDashboard() {
   const handleSavePrices = async () => {
     if (!activeFarm) return;
     setPriceSubmitting(true);
+
+    const normalizedCowPrice = normalizePriceInput(cowPrice);
+    const normalizedBuffaloPrice = normalizePriceInput(buffaloPrice);
+    const normalizedSheepPrice = normalizePriceInput(sheepPrice);
+    const normalizedGoatPrice = normalizePriceInput(goatPrice);
+
     try {
       await apiFetch(`/farms/${activeFarm.id}`, {
         method: "PATCH",
         body: JSON.stringify({
-          cowPrice: parseFloat(cowPrice),
-          buffaloPrice: parseFloat(buffaloPrice),
-          sheepPrice: parseFloat(sheepPrice),
-          goatPrice: parseFloat(goatPrice)
+          cowPrice: normalizedCowPrice,
+          buffaloPrice: normalizedBuffaloPrice,
+          sheepPrice: normalizedSheepPrice,
+          goatPrice: normalizedGoatPrice
         })
       });
       const updatedFarm = {
         ...activeFarm,
-        cowPrice: parseFloat(cowPrice),
-        buffaloPrice: parseFloat(buffaloPrice),
-        sheepPrice: parseFloat(sheepPrice),
-        goatPrice: parseFloat(goatPrice)
+        cowPrice: normalizedCowPrice,
+        buffaloPrice: normalizedBuffaloPrice,
+        sheepPrice: normalizedSheepPrice,
+        goatPrice: normalizedGoatPrice
       };
       localStorage.setItem("activeFarm", JSON.stringify(updatedFarm));
       window.location.reload();
@@ -527,13 +563,7 @@ export function OwnerDashboard() {
                 variant="outline"
                 size="sm"
                 className="h-7 text-[10px] gap-1.5"
-                onClick={() => {
-                  setCowPrice(activeFarm?.cowPrice || "");
-                  setBuffaloPrice(activeFarm?.buffaloPrice || "");
-                  setSheepPrice(activeFarm?.sheepPrice || "");
-                  setGoatPrice(activeFarm?.goatPrice || "");
-                  setPricesDialogOpen(true);
-                }}
+                onClick={openPricesDialogWithDefaults}
               >
                 {t('dashboard.setPrices')}
               </Button>
@@ -655,13 +685,7 @@ export function OwnerDashboard() {
                   variant="ghost"
                   size="sm"
                   className="h-7 text-[10px] gap-1"
-                  onClick={() => {
-                    setCowPrice(activeFarm?.cowPrice || "");
-                    setBuffaloPrice(activeFarm?.buffaloPrice || "");
-                    setSheepPrice(activeFarm?.sheepPrice || "");
-                    setGoatPrice(activeFarm?.goatPrice || "");
-                    setPricesDialogOpen(true);
-                  }}
+                  onClick={openPricesDialogWithDefaults}
                 >
                   {t('dashboard.setPrices')}
                 </Button>

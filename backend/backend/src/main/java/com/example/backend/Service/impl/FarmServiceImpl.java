@@ -28,6 +28,8 @@ import java.util.List;
 @Transactional
 public class FarmServiceImpl implements FarmService {
 
+    private static final double DEFAULT_MILK_PRICE = 60.0;
+
     private final FarmRepository farmRepository;
     private final UserRepository userRepository;
     private final FarmWorkerRepository farmWorkerRepository;
@@ -143,6 +145,11 @@ public class FarmServiceImpl implements FarmService {
         farm.setAddress(dto.getAddress());
         farm.setCity(dto.getCity());
         farm.setOwner(loggedInUser);
+        // Initialize per-animal prices so new farms never start with zero pricing.
+        farm.setCowPrice(DEFAULT_MILK_PRICE);
+        farm.setBuffaloPrice(DEFAULT_MILK_PRICE);
+        farm.setSheepPrice(DEFAULT_MILK_PRICE);
+        farm.setGoatPrice(DEFAULT_MILK_PRICE);
 
         Farm saved = farmRepository.save(farm);
         return toResponseDto(saved);
@@ -167,19 +174,19 @@ public class FarmServiceImpl implements FarmService {
             farm.setSelling(patchDto.getIsSelling());
 
         if (patchDto.getCowPrice() != null) {
-            farm.setCowPrice(patchDto.getCowPrice());
+            farm.setCowPrice(normalizeMilkPrice(patchDto.getCowPrice()));
         }
 
         if (patchDto.getBuffaloPrice() != null) {
-            farm.setBuffaloPrice(patchDto.getBuffaloPrice());
+            farm.setBuffaloPrice(normalizeMilkPrice(patchDto.getBuffaloPrice()));
         }
 
         if (patchDto.getSheepPrice() != null) {
-            farm.setSheepPrice(patchDto.getSheepPrice());
+            farm.setSheepPrice(normalizeMilkPrice(patchDto.getSheepPrice()));
         }
 
         if (patchDto.getGoatPrice() != null) {
-            farm.setGoatPrice(patchDto.getGoatPrice());
+            farm.setGoatPrice(normalizeMilkPrice(patchDto.getGoatPrice()));
         }
 
         Farm saved = farmRepository.save(farm);
@@ -279,6 +286,13 @@ public class FarmServiceImpl implements FarmService {
                     return totalProduction - allocated;
                 })
                 .orElse(0.0);
+    }
+
+    private Double normalizeMilkPrice(Double inputPrice) {
+        if (inputPrice == null || inputPrice <= 0.0) {
+            return DEFAULT_MILK_PRICE;
+        }
+        return inputPrice;
     }
 
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
