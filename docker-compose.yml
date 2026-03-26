@@ -1,15 +1,14 @@
 
-
 services:
   mysql:
     image: mysql:8.0
     container_name: milk-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: vasu@2005
-      MYSQL_DATABASE: mpps
-      MYSQL_USER: milkuser
-      MYSQL_PASSWORD: vasu@2005
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-mpps}
+      MYSQL_USER: ${MYSQL_USER:-milkuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -34,16 +33,19 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://milk-mysql:3306/mpps
-      SPRING_DATASOURCE_USERNAME: milkuser
-      SPRING_DATASOURCE_PASSWORD: vasu@2005
+      SPRING_DATASOURCE_URL: jdbc:mysql://milk-mysql:3306/${MYSQL_DATABASE:-mpps}
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-milkuser}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
-      JWT_SECRET: fgsdfg45sg8srgefyuegf7b548h516aret4hd6f6sg461gfhdf
-      JWT_EXPIRATION: 86400000
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       SPRING_DATA_REDIS_HOST: milk-redis
       SPRING_DATA_REDIS_PORT: 6379
-      RAZORPAY_KEY: rzp_test_SNCRhEiGrpeoUG
-      RAZORPAY_SECRET: ZCYHCupxMlxuZCRnWIoA1ggJ
+      RAZORPAY_KEY: ${RAZORPAY_KEY}
+      RAZORPAY_SECRET: ${RAZORPAY_SECRET}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
+      SPRING_MAIL_FROM: ${SPRING_MAIL_FROM}
 
 
     healthcheck:

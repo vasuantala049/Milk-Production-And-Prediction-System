@@ -32,3 +32,11 @@ dairy
 Thumbs.db
 .vscode/
 .idea/
+
+# JVM crash logs
+hs_err_pid*.log
+replay_pid*.log
+
+# Helm rendered output (may contain secrets)
+helm/**/out.yaml
+helm/**/rendered.yaml

@@ -1,7 +1,11 @@
 externalDatabase:
-  host: milk-db.cximw24o4s0e.ap-south-1.rds.amazonaws.com
+  # Override via secrets-values.yaml or --set externalDatabase.host=xxx
+  host: ""
   port: 3306
   database: mpps
+  # Database credentials — override via --set or Kubernetes Secret
+  username: ""
+  password: ""
 redis:
   image: redis:7-alpine
   port: 6379
@@ -9,9 +13,13 @@ redis:
 mail:
   host: smtp.gmail.com
   port: "587"
-  username: vasuantala098@gmail.com
-  password: "yuhivlwfzccihizq"
-  from: vasuantala098@gmail.com
+  # Override via: helm install --set mail.username=xxx --set mail.password=xxx
+  username: ""
+  password: ""
+  from: ""
+razorpay:
+  key: ""
+  secret: ""
 backend:
   replicaCount: 4
   image:
@@ -26,7 +34,8 @@ backend:
       memory: "1Gi"
       cpu: "1"
 jwt:
-  secret: fgsdfg45sg8srgefyuegf7b548h516aret4hd6f6sg461gfhdf
+  # Override via: helm install --set jwt.secret=xxx
+  secret: ""
   expiration: "86400000"
 cors:
   allowedOriginPatterns: "*"
