@@ -1,7 +1,7 @@
 @Library("sharedlib") _
 pipeline {
 
-    agent { label "vinod" }
+    agent any
     
     environment {
         DOCKER_USER    = "vasu049"
