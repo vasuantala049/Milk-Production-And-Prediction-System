@@ -1,5 +1,5 @@
 externalDatabase:
-  host: milk-db.cximw24o4s0e.ap-south-1.rds.amazonaws.com
+  host: database-1.cximw24o4s0e.ap-south-1.rds.amazonaws.com
   port: 3306
   database: mpps
 redis:
@@ -38,7 +38,7 @@ frontend:
   port: 80
 ingress:
   enabled: true
-  host: milk.3.110.76.117.nip.io
+  host: milk.13.127.101.238.nip.io
   tls:
     enabled: true
     secretName: milk-app-tls
