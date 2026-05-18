@@ -16,7 +16,7 @@ backend:
   replicaCount: 4
   image:
     repository: vasu049/dairy-flow-backend
-    tag: v1.0.73
+    tag: v1.0.75
   port: 8080
   resources:
     requests:
@@ -34,7 +34,7 @@ frontend:
   replicaCount: 2
   image:
     repository: vasu049/dairy-flow-frontend
-    tag: v1.0.73
+    tag: v1.0.75
   port: 80
 ingress:
   enabled: true
