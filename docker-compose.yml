@@ -44,7 +44,7 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       RAZORPAY_KEY: rzp_test_SNCRhEiGrpeoUG
       RAZORPAY_SECRET: ZCYHCupxMlxuZCRnWIoA1ggJ
-
+      APP_MAIL_FROM: vasu049@gmail.com
 
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/users/db-test"]
